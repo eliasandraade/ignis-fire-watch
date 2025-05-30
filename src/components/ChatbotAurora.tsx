@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Message } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -85,7 +84,7 @@ const ChatbotAurora = () => {
           onClick={() => setIsOpen(true)}
           className="w-16 h-16 rounded-full bg-gradient-to-r from-fire-500 to-warning-500 hover:from-fire-600 hover:to-warning-600 shadow-lg animate-pulse"
         >
-          <Message className="h-6 w-6 text-white" />
+          <MessageCircle className="h-6 w-6 text-white" />
         </Button>
         <Badge className="absolute -top-2 -left-2 bg-forest-500 text-white">
           AURORA

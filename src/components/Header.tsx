@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Message, Calendar } from 'lucide-react';
+import { Bell, MessageCircle, Calendar } from 'lucide-react';
 
 const Header = () => {
   return (
@@ -45,7 +45,7 @@ const Header = () => {
               </Button>
               
               <Button variant="outline" size="sm">
-                <Message className="h-4 w-4 mr-2" />
+                <MessageCircle className="h-4 w-4 mr-2" />
                 AURORA
               </Button>
               

@@ -1,166 +1,152 @@
 
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-interface FirePoint {
-  id: string;
-  lat: number;
-  lng: number;
-  intensity: 'low' | 'medium' | 'high' | 'critical';
-  location: string;
-  timestamp: string;
-}
+import { Card } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 const InteractiveMap = () => {
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  
-  const firePoints: FirePoint[] = [
-    {
-      id: 'SP-GRU-30052501',
-      lat: -23.5505,
-      lng: -46.6333,
-      intensity: 'critical',
-      location: 'Parque Estadual da Cantareira, SP',
-      timestamp: '2024-05-30T14:30:00Z'
-    },
-    {
-      id: 'RJ-NOV-30052502',
-      lat: -22.9068,
-      lng: -43.1729,
-      intensity: 'high',
-      location: 'Tijuca, Rio de Janeiro, RJ',
-      timestamp: '2024-05-30T13:45:00Z'
-    },
-    {
-      id: 'MG-BEL-30052503',
-      lat: -19.9191,
-      lng: -43.9386,
-      intensity: 'medium',
-      location: 'Serra do Curral, Belo Horizonte, MG',
-      timestamp: '2024-05-30T12:15:00Z'
-    }
+  const { toast } = useToast();
+  const [selectedLayers, setSelectedLayers] = useState({
+    fires: true,
+    weather: true,
+    resources: false,
+    evacuation: false
+  });
+
+  const [selectedFire, setSelectedFire] = useState<string | null>(null);
+
+  const fires = [
+    { id: '1', lat: -23.55, lng: -46.64, intensity: 'high', location: 'Cantareira, SP' },
+    { id: '2', lat: -22.91, lng: -43.17, intensity: 'critical', location: 'Tijuca, RJ' },
+    { id: '3', lat: -19.92, lng: -43.94, intensity: 'medium', location: 'Serra do Curral, MG' }
   ];
 
-  const getIntensityColor = (intensity: string) => {
-    switch (intensity) {
-      case 'critical': return 'bg-fire-600 border-fire-700';
-      case 'high': return 'bg-fire-500 border-fire-600';
-      case 'medium': return 'bg-warning-500 border-warning-600';
-      case 'low': return 'bg-forest-500 border-forest-600';
-      default: return 'bg-gray-500 border-gray-600';
-    }
+  const toggleLayer = (layer: string) => {
+    setSelectedLayers(prev => ({
+      ...prev,
+      [layer]: !prev[layer as keyof typeof prev]
+    }));
+    toast({
+      title: "Camada do Mapa",
+      description: `Camada ${layer} ${selectedLayers[layer as keyof typeof selectedLayers] ? 'desativada' : 'ativada'}`,
+    });
   };
 
-  const getIntensityBadge = (intensity: string) => {
-    switch (intensity) {
-      case 'critical': return <Badge className="bg-fire-600 text-white">Crítico</Badge>;
-      case 'high': return <Badge className="bg-fire-500 text-white">Alto</Badge>;
-      case 'medium': return <Badge className="bg-warning-500 text-white">Médio</Badge>;
-      case 'low': return <Badge className="bg-forest-500 text-white">Baixo</Badge>;
-      default: return <Badge>Desconhecido</Badge>;
-    }
+  const handleFireClick = (fire: any) => {
+    setSelectedFire(fire.id);
+    toast({
+      title: `Foco Selecionado`,
+      description: `${fire.location} - Intensidade: ${fire.intensity}`,
+    });
+  };
+
+  const handleFullScreen = () => {
+    toast({
+      title: "Modo Tela Cheia",
+      description: "Expandindo mapa para visualização completa...",
+    });
   };
 
   return (
-    <Card className="h-96 relative overflow-hidden">
+    <div className="relative w-full h-96 bg-gradient-to-br from-forest-100 to-forest-200 rounded-lg overflow-hidden">
+      {/* Mapa Base */}
+      <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-yellow-50 to-red-100">
+        {/* Simulação de focos de incêndio */}
+        {fires.map((fire) => (
+          <div
+            key={fire.id}
+            className={`absolute w-4 h-4 rounded-full cursor-pointer transform -translate-x-2 -translate-y-2 ${
+              fire.intensity === 'critical' ? 'bg-fire-600 animate-pulse' :
+              fire.intensity === 'high' ? 'bg-fire-500' :
+              'bg-warning-500'
+            } ${selectedFire === fire.id ? 'ring-4 ring-blue-400' : ''}`}
+            style={{
+              left: `${50 + (fire.lng + 46) * 10}%`,
+              top: `${50 + (fire.lat + 23) * 10}%`,
+            }}
+            onClick={() => handleFireClick(fire)}
+          />
+        ))}
+
+        {/* Overlay de informações */}
+        <div className="absolute inset-0 bg-black bg-opacity-5"></div>
+      </div>
+
       {/* Controles do Mapa */}
-      <div className="absolute top-4 left-4 z-10 flex space-x-2">
-        <Button 
-          size="sm" 
-          variant={selectedFilter === 'all' ? 'default' : 'outline'}
-          onClick={() => setSelectedFilter('all')}
-        >
-          Todos
-        </Button>
-        <Button 
-          size="sm" 
-          variant={selectedFilter === 'critical' ? 'default' : 'outline'}
-          onClick={() => setSelectedFilter('critical')}
-        >
-          Críticos
-        </Button>
-        <Button 
-          size="sm" 
-          variant={selectedFilter === 'active' ? 'default' : 'outline'}
-          onClick={() => setSelectedFilter('active')}
-        >
-          Ativos
-        </Button>
+      <div className="absolute top-4 left-4 space-y-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={selectedLayers.fires ? "default" : "outline"}
+            onClick={() => toggleLayer('fires')}
+          >
+            🔥 Focos
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedLayers.weather ? "default" : "outline"}
+            onClick={() => toggleLayer('weather')}
+          >
+            🌦️ Clima
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedLayers.resources ? "default" : "outline"}
+            onClick={() => toggleLayer('resources')}
+          >
+            🚁 Recursos
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedLayers.evacuation ? "default" : "outline"}
+            onClick={() => toggleLayer('evacuation')}
+          >
+            🚪 Evacuação
+          </Button>
+        </div>
       </div>
 
       {/* Legenda */}
-      <div className="absolute top-4 right-4 z-10 bg-white p-3 rounded-lg shadow-md">
-        <h4 className="font-semibold text-sm mb-2">Intensidade</h4>
-        <div className="space-y-1">
+      <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">
+        <h4 className="text-sm font-semibold mb-2">Legenda</h4>
+        <div className="space-y-1 text-xs">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-fire-600 rounded-full"></div>
-            <span className="text-xs">Crítico</span>
+            <span>Crítico</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-fire-500 rounded-full"></div>
-            <span className="text-xs">Alto</span>
+            <span>Alto</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-warning-500 rounded-full"></div>
-            <span className="text-xs">Médio</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-forest-500 rounded-full"></div>
-            <span className="text-xs">Baixo</span>
+            <span>Médio</span>
           </div>
         </div>
       </div>
 
-      {/* Simulação do Mapa */}
-      <div className="w-full h-full bg-gradient-to-br from-forest-50 to-forest-100 relative">
-        {/* Background pattern para simular mapa */}
-        <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300"></div>
-        
-        {/* Pontos de Fogo */}
-        {firePoints.map((point) => (
-          <div
-            key={point.id}
-            className={`absolute w-6 h-6 rounded-full border-2 ${getIntensityColor(point.intensity)} animate-pulse-fire cursor-pointer transform -translate-x-1/2 -translate-y-1/2`}
-            style={{
-              left: `${(point.lng + 50) * 2}%`,
-              top: `${(point.lat + 30) * 2}%`
-            }}
-            title={`${point.location} - ${point.intensity}`}
-          >
-            <div className="w-full h-full rounded-full animate-ping"></div>
-          </div>
-        ))}
-
-        {/* Overlay de informação quando um ponto é selecionado */}
-        <div className="absolute bottom-4 left-4 right-4 bg-white rounded-lg shadow-lg p-4">
-          <h3 className="font-semibold text-lg mb-2">Foco Selecionado: SP-GRU-30052501</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Localização</p>
-              <p className="font-medium">Parque Estadual da Cantareira, SP</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Intensidade</p>
-              {getIntensityBadge('critical')}
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Última Atualização</p>
-              <p className="font-medium">30/05/2024 14:30</p>
-            </div>
-          </div>
-          <div className="mt-3 flex space-x-2">
-            <Button size="sm" variant="default">
-              Ver Detalhes
-            </Button>
-            <Button size="sm" variant="outline">
-              Mobilizar Recursos
-            </Button>
-          </div>
-        </div>
+      {/* Controles de Zoom */}
+      <div className="absolute top-4 right-4 flex flex-col space-y-2">
+        <Button size="sm" variant="outline" className="w-8 h-8 p-0">+</Button>
+        <Button size="sm" variant="outline" className="w-8 h-8 p-0">-</Button>
+        <Button size="sm" variant="outline" onClick={handleFullScreen}>⛶</Button>
       </div>
-    </Card>
+
+      {/* Informações do Foco Selecionado */}
+      {selectedFire && (
+        <Card className="absolute bottom-4 right-4 p-3 max-w-xs">
+          <div className="text-sm">
+            <h4 className="font-semibold">Foco Selecionado</h4>
+            <p>ID: SP-GRU-{selectedFire}</p>
+            <div className="flex justify-between mt-2">
+              <Button size="sm" variant="outline">Detalhes</Button>
+              <Button size="sm">Mobilizar</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
   );
 };
 

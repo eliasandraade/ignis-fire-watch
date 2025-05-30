@@ -1,10 +1,32 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, MessageCircle, Calendar } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-const Header = () => {
+interface HeaderProps {
+  onOpenAurora: () => void;
+}
+
+const Header = ({ onOpenAurora }: HeaderProps) => {
+  const { toast } = useToast();
+  const [alerts] = useState(3);
+
+  const handleAlertsClick = () => {
+    toast({
+      title: "Central de Alertas",
+      description: "3 novos alertas de emergência disponíveis",
+    });
+  };
+
+  const handleCrisisRoomClick = () => {
+    toast({
+      title: "Sala de Crise Virtual",
+      description: "Acessando painel de coordenação de emergência...",
+    });
+  };
+
   return (
     <header className="bg-white shadow-lg border-b-4 border-fire-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,7 +48,7 @@ const Header = () => {
           <div className="flex items-center space-x-6">
             {/* Contador de Focos Ativos */}
             <div className="flex items-center space-x-2">
-              <Badge variant="destructive" className="animate-pulse-fire">
+              <Badge variant="destructive" className="animate-pulse">
                 7 Focos Ativos
               </Badge>
               <Badge variant="secondary" className="bg-warning-100 text-warning-800">
@@ -36,20 +58,33 @@ const Header = () => {
 
             {/* Botões de Ação */}
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" className="relative">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="relative"
+                onClick={handleAlertsClick}
+              >
                 <Bell className="h-4 w-4 mr-2" />
                 Alertas
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-fire-500 text-white text-xs flex items-center justify-center">
-                  3
+                  {alerts}
                 </Badge>
               </Button>
               
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onOpenAurora}
+              >
                 <MessageCircle className="h-4 w-4 mr-2" />
                 AURORA
               </Button>
               
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleCrisisRoomClick}
+              >
                 <Calendar className="h-4 w-4 mr-2" />
                 Sala de Crise
               </Button>

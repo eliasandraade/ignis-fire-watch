@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Send } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatMessage {
   id: string;
@@ -12,8 +14,16 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-const ChatbotAurora = () => {
-  const [isOpen, setIsOpen] = useState(false);
+interface ChatbotAuroraProps {
+  isOpen?: boolean;
+  onToggle?: () => void;
+}
+
+const ChatbotAurora = ({ isOpen: externalIsOpen, onToggle }: ChatbotAuroraProps) => {
+  const { toast } = useToast();
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -23,6 +33,7 @@ const ChatbotAurora = () => {
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
   const quickActions = [
     'Reportar novo foco de incêndio',
@@ -31,6 +42,14 @@ const ChatbotAurora = () => {
     'Orientações de segurança',
     'Status do sistema'
   ];
+
+  const handleToggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setInternalIsOpen(!internalIsOpen);
+    }
+  };
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
@@ -43,6 +62,7 @@ const ChatbotAurora = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    setIsTyping(true);
 
     // Simular resposta da AURORA
     setTimeout(() => {
@@ -53,7 +73,8 @@ const ChatbotAurora = () => {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, auroraResponse]);
-    }, 1000);
+      setIsTyping(false);
+    }, 1500);
 
     setInputMessage('');
   };
@@ -62,31 +83,40 @@ const ChatbotAurora = () => {
     const input = userInput.toLowerCase();
     
     if (input.includes('foco') || input.includes('incêndio')) {
-      return 'Entendi que você quer reportar um foco de incêndio. Preciso de algumas informações: 1) Localização exata 2) Tamanho aproximado 3) Presença de fumaça. Você pode me fornecer essas informações?';
-    } else if (input.includes('ajuda') || input.includes('socorro')) {
-      return 'Vou acionar imediatamente os serviços de emergência. Mantenha-se em local seguro e afastado das chamas. Os bombeiros foram notificados da sua localização.';
-    } else if (input.includes('segurança')) {
-      return 'Principais orientações de segurança: 1) Mantenha-se longe de áreas com fumaça 2) Tenha sempre uma rota de fuga 3) Não tente combater o fogo sozinho 4) Ligue 193 em emergências.';
+      return 'Entendi que você quer reportar um foco de incêndio. Preciso de algumas informações: 1) Localização exata (coordenadas GPS ou endereço) 2) Tamanho aproximado do foco 3) Presença de fumaça 4) Recursos próximos. Você pode me fornecer essas informações?';
+    } else if (input.includes('ajuda') || input.includes('socorro') || input.includes('emergência')) {
+      toast({
+        title: "🚨 Emergência Acionada",
+        description: "Serviços de emergência foram notificados automaticamente",
+        variant: "destructive"
+      });
+      return 'EMERGÊNCIA ACIONADA! 🚨 Notifiquei imediatamente os serviços de emergência. Bombeiros e equipes de resgate foram alertados da sua localização. Mantenha-se em local seguro e afastado das chamas. Número de protocolo: #EMG-' + Date.now().toString().slice(-6);
+    } else if (input.includes('segurança') || input.includes('orientação')) {
+      return 'Principais orientações de segurança em caso de incêndio florestal: 1) Mantenha-se longe de áreas com fumaça densa 2) Tenha sempre uma rota de fuga planejada 3) Nunca tente combater o fogo sozinho 4) Molhe roupas e cubra nariz/boca 5) Ligue 193 em emergências 6) Siga orientações das autoridades locais.';
+    } else if (input.includes('status') || input.includes('sistema')) {
+      return 'Status do Sistema IGNIS: ✅ Todos os sistemas operacionais | 🛰️ 47 sensores ativos | 🔥 7 focos em monitoramento | 🚁 12 recursos mobilizados | 📡 Conectividade 98% | Última atualização: ' + new Date().toLocaleTimeString('pt-BR');
+    } else if (input.includes('recursos') || input.includes('bombeiros')) {
+      return 'Recursos disponíveis na região: 🚁 7 aeronaves (4 helicópteros, 3 aviões) | 🚒 12 equipes terrestres | 🚛 5 caminhões-pipa | 🏥 8 hospitais de apoio | ⛑️ 45 bombeiros especializados. Tempo médio de resposta: 12 minutos.';
     } else {
-      return 'Obrigada pela sua mensagem. Como assistente da Plataforma IGNIS, posso ajudá-lo com reportes de incêndio, orientações de segurança e informações sobre focos ativos. Como posso auxiliá-lo?';
+      return 'Obrigada pela sua mensagem. Como assistente da Plataforma IGNIS, posso ajudá-lo com: 🔥 Reportes de incêndio | ⚠️ Orientações de segurança | 📊 Informações sobre focos ativos | 🚨 Acionamento de emergência | 📍 Localização de recursos. Como posso auxiliá-lo especificamente?';
     }
   };
 
   const handleQuickAction = (action: string) => {
     setInputMessage(action);
-    handleSendMessage();
+    setTimeout(() => handleSendMessage(), 100);
   };
 
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50">
         <Button
-          onClick={() => setIsOpen(true)}
+          onClick={handleToggle}
           className="w-16 h-16 rounded-full bg-gradient-to-r from-fire-500 to-warning-500 hover:from-fire-600 hover:to-warning-600 shadow-lg animate-pulse"
         >
           <MessageCircle className="h-6 w-6 text-white" />
         </Button>
-        <Badge className="absolute -top-2 -left-2 bg-forest-500 text-white">
+        <Badge className="absolute -top-2 -left-2 bg-forest-500 text-white animate-bounce">
           AURORA
         </Badge>
       </div>
@@ -110,7 +140,7 @@ const ChatbotAurora = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsOpen(false)}
+              onClick={handleToggle}
               className="text-white hover:bg-white/20"
             >
               ✕
@@ -134,9 +164,26 @@ const ChatbotAurora = () => {
                   }`}
                 >
                   {msg.message}
+                  <div className="text-xs opacity-70 mt-1">
+                    {msg.timestamp.toLocaleTimeString('pt-BR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 text-gray-900 p-3 rounded-lg text-sm">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Quick Actions */}
@@ -167,8 +214,8 @@ const ChatbotAurora = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 className="text-sm"
               />
-              <Button onClick={handleSendMessage} size="sm">
-                Enviar
+              <Button onClick={handleSendMessage} size="sm" disabled={!inputMessage.trim()}>
+                <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>

@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface FireIncident {
   id: string;
@@ -15,7 +16,9 @@ interface FireIncident {
 }
 
 const FireStatusCards = () => {
-  const incidents: FireIncident[] = [
+  const { toast } = useToast();
+  const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
+  const [incidents, setIncidents] = useState<FireIncident[]>([
     {
       id: 'SP-GRU-30052501',
       location: 'Parque Estadual da Cantareira, SP',
@@ -43,11 +46,11 @@ const FireStatusCards = () => {
       resources: ['5 Bombeiros', '1 Caminhão'],
       confidence: 78
     }
-  ];
+  ]);
 
   const getIntensityBadge = (intensity: string) => {
     switch (intensity) {
-      case 'critical': return <Badge className="bg-fire-600 text-white">Crítico</Badge>;
+      case 'critical': return <Badge className="bg-fire-600 text-white animate-pulse">Crítico</Badge>;
       case 'high': return <Badge className="bg-fire-500 text-white">Alto</Badge>;
       case 'medium': return <Badge className="bg-warning-500 text-white">Médio</Badge>;
       case 'low': return <Badge className="bg-forest-500 text-white">Baixo</Badge>;
@@ -57,31 +60,80 @@ const FireStatusCards = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active': return <Badge variant="destructive" className="animate-pulse">Ativo</Badge>;
-      case 'monitoring': return <Badge className="bg-warning-100 text-warning-800">Monitoramento</Badge>;
-      case 'controlled': return <Badge className="bg-safe-100 text-safe-800">Controlado</Badge>;
-      case 'extinguished': return <Badge className="bg-forest-100 text-forest-800">Extinto</Badge>;
+      case 'active': return <Badge variant="destructive" className="animate-pulse">🔥 Ativo</Badge>;
+      case 'monitoring': return <Badge className="bg-warning-100 text-warning-800">👁️ Monitoramento</Badge>;
+      case 'controlled': return <Badge className="bg-blue-100 text-blue-800">🛡️ Controlado</Badge>;
+      case 'extinguished': return <Badge className="bg-forest-100 text-forest-800">✅ Extinto</Badge>;
       default: return <Badge variant="secondary">Desconhecido</Badge>;
     }
   };
 
   const getCardBorder = (intensity: string) => {
     switch (intensity) {
-      case 'critical': return 'border-l-4 border-l-fire-600';
-      case 'high': return 'border-l-4 border-l-fire-500';
-      case 'medium': return 'border-l-4 border-l-warning-500';
-      case 'low': return 'border-l-4 border-l-forest-500';
+      case 'critical': return 'border-l-4 border-l-fire-600 shadow-lg shadow-red-200';
+      case 'high': return 'border-l-4 border-l-fire-500 shadow-lg shadow-orange-200';
+      case 'medium': return 'border-l-4 border-l-warning-500 shadow-lg shadow-yellow-200';
+      case 'low': return 'border-l-4 border-l-forest-500 shadow-lg shadow-green-200';
       default: return '';
     }
   };
 
+  const handleDetailsClick = (incident: FireIncident) => {
+    setSelectedIncident(incident.id);
+    toast({
+      title: `Detalhes do Foco ${incident.id}`,
+      description: `Abrindo informações detalhadas para ${incident.location}`,
+    });
+  };
+
+  const handleCrisisRoomClick = (incident: FireIncident) => {
+    toast({
+      title: "🚨 Sala de Crise Ativada",
+      description: `Coordenação de emergência iniciada para ${incident.location}`,
+      variant: "destructive"
+    });
+  };
+
+  const handleMobilizeResources = (incident: FireIncident) => {
+    const updatedIncidents = incidents.map(inc => 
+      inc.id === incident.id 
+        ? { ...inc, resources: [...inc.resources, 'Reforço Solicitado'] }
+        : inc
+    );
+    setIncidents(updatedIncidents);
+    
+    toast({
+      title: "🚁 Recursos Mobilizados",
+      description: `Reforços adicionais solicitados para ${incident.location}`,
+    });
+  };
+
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Focos em Monitoramento</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-900">Focos em Monitoramento</h2>
+        <div className="flex space-x-2">
+          <Badge variant="destructive" className="animate-pulse">
+            {incidents.filter(i => i.status === 'active').length} Ativos
+          </Badge>
+          <Badge className="bg-warning-100 text-warning-800">
+            {incidents.filter(i => i.status === 'monitoring').length} Monitoramento
+          </Badge>
+          <Badge className="bg-blue-100 text-blue-800">
+            {incidents.filter(i => i.status === 'controlled').length} Controlados
+          </Badge>
+        </div>
+      </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {incidents.map((incident) => (
-          <Card key={incident.id} className={`${getCardBorder(incident.intensity)} hover:shadow-lg transition-shadow`}>
+          <Card 
+            key={incident.id} 
+            className={`${getCardBorder(incident.intensity)} hover:shadow-xl transition-all duration-300 cursor-pointer ${
+              selectedIncident === incident.id ? 'ring-2 ring-blue-400' : ''
+            }`}
+            onClick={() => setSelectedIncident(incident.id)}
+          >
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
                 <div>
@@ -99,12 +151,15 @@ const FireStatusCards = () => {
               {/* Nível de Confiança */}
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-gray-600">Confiança</span>
+                  <span className="text-xs text-gray-600">Confiança da Detecção</span>
                   <span className="text-xs font-medium">{incident.confidence}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
-                    className={`h-2 rounded-full ${incident.confidence >= 90 ? 'bg-forest-500' : incident.confidence >= 70 ? 'bg-warning-500' : 'bg-fire-500'}`}
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      incident.confidence >= 90 ? 'bg-forest-500' : 
+                      incident.confidence >= 70 ? 'bg-warning-500' : 'bg-fire-500'
+                    }`}
                     style={{ width: `${incident.confidence}%` }}
                   ></div>
                 </div>
@@ -132,13 +187,43 @@ const FireStatusCards = () => {
 
               {/* Ações */}
               <div className="flex space-x-2 pt-2">
-                <Button size="sm" variant="outline" className="flex-1 text-xs">
-                  Detalhes
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex-1 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDetailsClick(incident);
+                  }}
+                >
+                  📋 Detalhes
                 </Button>
-                <Button size="sm" variant="default" className="flex-1 text-xs">
-                  Sala de Crise
+                <Button 
+                  size="sm" 
+                  variant="default" 
+                  className="flex-1 text-xs bg-fire-500 hover:bg-fire-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCrisisRoomClick(incident);
+                  }}
+                >
+                  🚨 Crise
                 </Button>
               </div>
+
+              {/* Ação adicional para casos ativos */}
+              {incident.status === 'active' && (
+                <Button 
+                  size="sm" 
+                  className="w-full text-xs bg-warning-500 hover:bg-warning-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMobilizeResources(incident);
+                  }}
+                >
+                  🚁 Mobilizar Reforços
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}

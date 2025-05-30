@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, MessageCircle, Calendar } from 'lucide-react';
+import { Bell, MessageCircle, Calendar, Settings, LogIn, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onOpenAurora: () => void;
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 const Header = ({ onOpenAurora }: HeaderProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [alerts] = useState(3);
 
   const handleAlertsClick = () => {
@@ -21,10 +23,15 @@ const Header = ({ onOpenAurora }: HeaderProps) => {
   };
 
   const handleCrisisRoomClick = () => {
-    toast({
-      title: "Sala de Crise Virtual",
-      description: "Acessando painel de coordenação de emergência...",
-    });
+    navigate('/crisis-room');
+  };
+
+  const handleAdminClick = () => {
+    navigate('/admin');
+  };
+
+  const handleLoginClick = () => {
+    navigate('/login');
   };
 
   return (
@@ -33,7 +40,7 @@ const Header = ({ onOpenAurora }: HeaderProps) => {
         <div className="flex justify-between items-center py-4">
           {/* Logo e Título */}
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
               <div className="w-10 h-10 fire-gradient rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">🔥</span>
               </div>
@@ -87,6 +94,24 @@ const Header = ({ onOpenAurora }: HeaderProps) => {
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Sala de Crise
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleAdminClick}
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
+              </Button>
+
+              <Button 
+                size="sm"
+                onClick={handleLoginClick}
+                className="fire-gradient text-white"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Login
               </Button>
             </div>
 

@@ -1,9 +1,11 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+import IncidentDetails from './IncidentDetails';
+import ResourceMobilization from './ResourceMobilization';
 
 interface FireIncident {
   id: string;
@@ -17,7 +19,12 @@ interface FireIncident {
 
 const FireStatusCards = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
+  const [detailsIncident, setDetailsIncident] = useState<FireIncident | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showMobilization, setShowMobilization] = useState(false);
+  const [mobilizationType, setMobilizationType] = useState<'aircraft' | 'ground' | 'water' | null>(null);
   const [incidents, setIncidents] = useState<FireIncident[]>([
     {
       id: 'SP-GRU-30052501',
@@ -79,156 +86,188 @@ const FireStatusCards = () => {
   };
 
   const handleDetailsClick = (incident: FireIncident) => {
-    setSelectedIncident(incident.id);
-    toast({
-      title: `Detalhes do Foco ${incident.id}`,
-      description: `Abrindo informações detalhadas para ${incident.location}`,
-    });
+    setDetailsIncident(incident);
+    setShowDetails(true);
   };
 
   const handleCrisisRoomClick = (incident: FireIncident) => {
-    toast({
-      title: "🚨 Sala de Crise Ativada",
-      description: `Coordenação de emergência iniciada para ${incident.location}`,
-      variant: "destructive"
-    });
+    navigate(`/crisis-room?incident=${incident.id}`);
   };
 
-  const handleMobilizeResources = (incident: FireIncident) => {
-    const updatedIncidents = incidents.map(inc => 
-      inc.id === incident.id 
-        ? { ...inc, resources: [...inc.resources, 'Reforço Solicitado'] }
-        : inc
-    );
-    setIncidents(updatedIncidents);
-    
-    toast({
-      title: "🚁 Recursos Mobilizados",
-      description: `Reforços adicionais solicitados para ${incident.location}`,
-    });
+  const handleMobilizeResources = (incident: FireIncident, type: 'aircraft' | 'ground' | 'water') => {
+    setSelectedIncident(incident.id);
+    setMobilizationType(type);
+    setShowMobilization(true);
+  };
+
+  const handleMobilizationComplete = () => {
+    setShowMobilization(false);
+    setMobilizationType(null);
+    setSelectedIncident(null);
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">Focos em Monitoramento</h2>
-        <div className="flex space-x-2">
-          <Badge variant="destructive" className="animate-pulse">
-            {incidents.filter(i => i.status === 'active').length} Ativos
-          </Badge>
-          <Badge className="bg-warning-100 text-warning-800">
-            {incidents.filter(i => i.status === 'monitoring').length} Monitoramento
-          </Badge>
-          <Badge className="bg-blue-100 text-blue-800">
-            {incidents.filter(i => i.status === 'controlled').length} Controlados
-          </Badge>
+    <>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-gray-900">Focos em Monitoramento</h2>
+          <div className="flex space-x-2">
+            <Badge variant="destructive" className="animate-pulse">
+              {incidents.filter(i => i.status === 'active').length} Ativos
+            </Badge>
+            <Badge className="bg-warning-100 text-warning-800">
+              {incidents.filter(i => i.status === 'monitoring').length} Monitoramento
+            </Badge>
+            <Badge className="bg-blue-100 text-blue-800">
+              {incidents.filter(i => i.status === 'controlled').length} Controlados
+            </Badge>
+          </div>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {incidents.map((incident) => (
+            <Card 
+              key={incident.id} 
+              className={`${getCardBorder(incident.intensity)} hover:shadow-xl transition-all duration-300 cursor-pointer ${
+                selectedIncident === incident.id ? 'ring-2 ring-blue-400' : ''
+              }`}
+              onClick={() => setSelectedIncident(incident.id)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-sm font-mono text-gray-600">{incident.id}</CardTitle>
+                    <p className="text-sm font-medium text-gray-900 mt-1">{incident.location}</p>
+                  </div>
+                  <div className="flex flex-col items-end space-y-1">
+                    {getIntensityBadge(incident.intensity)}
+                    {getStatusBadge(incident.status)}
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-3">
+                {/* Nível de Confiança */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-600">Confiança da Detecção</span>
+                    <span className="text-xs font-medium">{incident.confidence}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        incident.confidence >= 90 ? 'bg-forest-500' : 
+                        incident.confidence >= 70 ? 'bg-warning-500' : 'bg-fire-500'
+                      }`}
+                      style={{ width: `${incident.confidence}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Recursos Mobilizados */}
+                <div>
+                  <p className="text-xs text-gray-600 mb-1">Recursos Mobilizados</p>
+                  <div className="flex flex-wrap gap-1">
+                    {incident.resources.map((resource, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {resource}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Timestamp */}
+                <div>
+                  <p className="text-xs text-gray-600">Última atualização</p>
+                  <p className="text-xs text-gray-900">
+                    {new Date(incident.timestamp).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+
+                {/* Ações Principais */}
+                <div className="flex space-x-2 pt-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex-1 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDetailsClick(incident);
+                    }}
+                  >
+                    📋 Detalhes
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    className="flex-1 text-xs bg-fire-500 hover:bg-fire-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCrisisRoomClick(incident);
+                    }}
+                  >
+                    🚨 Crise
+                  </Button>
+                </div>
+
+                {/* Ações de Mobilização para casos ativos */}
+                {incident.status === 'active' && (
+                  <div className="grid grid-cols-3 gap-1 pt-2">
+                    <Button 
+                      size="sm" 
+                      className="text-xs bg-blue-500 hover:bg-blue-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMobilizeResources(incident, 'aircraft');
+                      }}
+                    >
+                      🚁 Aérea
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="text-xs bg-green-500 hover:bg-green-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMobilizeResources(incident, 'ground');
+                      }}
+                    >
+                      👥 Terrestre
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="text-xs bg-cyan-500 hover:bg-cyan-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMobilizeResources(incident, 'water');
+                      }}
+                    >
+                      🚛 Água
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {incidents.map((incident) => (
-          <Card 
-            key={incident.id} 
-            className={`${getCardBorder(incident.intensity)} hover:shadow-xl transition-all duration-300 cursor-pointer ${
-              selectedIncident === incident.id ? 'ring-2 ring-blue-400' : ''
-            }`}
-            onClick={() => setSelectedIncident(incident.id)}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-sm font-mono text-gray-600">{incident.id}</CardTitle>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{incident.location}</p>
-                </div>
-                <div className="flex flex-col items-end space-y-1">
-                  {getIntensityBadge(incident.intensity)}
-                  {getStatusBadge(incident.status)}
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-3">
-              {/* Nível de Confiança */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-gray-600">Confiança da Detecção</span>
-                  <span className="text-xs font-medium">{incident.confidence}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      incident.confidence >= 90 ? 'bg-forest-500' : 
-                      incident.confidence >= 70 ? 'bg-warning-500' : 'bg-fire-500'
-                    }`}
-                    style={{ width: `${incident.confidence}%` }}
-                  ></div>
-                </div>
-              </div>
 
-              {/* Recursos Mobilizados */}
-              <div>
-                <p className="text-xs text-gray-600 mb-1">Recursos Mobilizados</p>
-                <div className="flex flex-wrap gap-1">
-                  {incident.resources.map((resource, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {resource}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+      {/* Modais */}
+      <IncidentDetails 
+        incident={detailsIncident}
+        isOpen={showDetails}
+        onClose={() => {
+          setShowDetails(false);
+          setDetailsIncident(null);
+        }}
+      />
 
-              {/* Timestamp */}
-              <div>
-                <p className="text-xs text-gray-600">Última atualização</p>
-                <p className="text-xs text-gray-900">
-                  {new Date(incident.timestamp).toLocaleString('pt-BR')}
-                </p>
-              </div>
-
-              {/* Ações */}
-              <div className="flex space-x-2 pt-2">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex-1 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDetailsClick(incident);
-                  }}
-                >
-                  📋 Detalhes
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="default" 
-                  className="flex-1 text-xs bg-fire-500 hover:bg-fire-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCrisisRoomClick(incident);
-                  }}
-                >
-                  🚨 Crise
-                </Button>
-              </div>
-
-              {/* Ação adicional para casos ativos */}
-              {incident.status === 'active' && (
-                <Button 
-                  size="sm" 
-                  className="w-full text-xs bg-warning-500 hover:bg-warning-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMobilizeResources(incident);
-                  }}
-                >
-                  🚁 Mobilizar Reforços
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+      <ResourceMobilization 
+        isOpen={showMobilization}
+        onClose={handleMobilizationComplete}
+        type={mobilizationType}
+        incidentId={selectedIncident}
+      />
+    </>
   );
 };
 

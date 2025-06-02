@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import CrisisRoom from "./pages/CrisisRoom";
 import AdminDashboard from "./pages/AdminDashboard";
+import PublicDashboard from "./pages/PublicDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/crisis-room" element={<CrisisRoom />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/public" element={<PublicDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

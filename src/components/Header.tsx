@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, MessageCircle, Calendar, Settings, LogIn, Shield } from 'lucide-react';
+import { Bell, MessageCircle, Calendar, Settings, LogIn, Shield, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -28,6 +27,10 @@ const Header = ({ onOpenAurora }: HeaderProps) => {
 
   const handleAdminClick = () => {
     navigate('/admin');
+  };
+
+  const handlePublicClick = () => {
+    navigate('/public');
   };
 
   const handleLoginClick = () => {
@@ -103,6 +106,15 @@ const Header = ({ onOpenAurora }: HeaderProps) => {
               >
                 <Shield className="h-4 w-4 mr-2" />
                 Admin
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handlePublicClick}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Cidadãos
               </Button>
 
               <Button 

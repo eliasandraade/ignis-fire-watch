@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import ResourcesStructure from '@/components/ResourcesStructure';
 import InteractiveMap from '@/components/InteractiveMap';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Shield, 
@@ -21,6 +22,7 @@ import {
 
 const AdminDashboard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
 
   const activeIncidents = [
@@ -70,6 +72,49 @@ const AdminDashboard = () => {
     toast({
       title: "Manutenção Agendada",
       description: "Manutenção do sistema programada para 02:00",
+    });
+  };
+
+  const handleGenerateReport = () => {
+    toast({
+      title: "📊 Relatório Diário",
+      description: "Gerando relatório completo das últimas 24 horas...",
+    });
+  };
+
+  const handleManageUsers = () => {
+    toast({
+      title: "👥 Gerenciamento de Usuários",
+      description: "Abrindo painel de controle de usuários e permissões",
+    });
+  };
+
+  const handleSystemMonitor = () => {
+    toast({
+      title: "📈 Monitor de Sistema",
+      description: "Acessando dashboard de performance e logs do sistema",
+    });
+  };
+
+  const handleEditIncident = (incidentId: string) => {
+    toast({
+      title: "✏️ Editando Incidente",
+      description: `Abrindo editor para incidente ${incidentId}`,
+    });
+  };
+
+  const handleGoToCrisisRoom = (incidentId: string) => {
+    navigate('/crisis-room');
+    toast({
+      title: "🚨 Entrando na Sala de Crise",
+      description: `Redirecionando para sala de crise do incidente ${incidentId}`,
+    });
+  };
+
+  const handleIncidentManagement = () => {
+    toast({
+      title: "🔥 Gestão de Incidentes",
+      description: "Acessando sistema completo de gestão de incidentes",
     });
   };
 
@@ -202,7 +247,7 @@ const AdminDashboard = () => {
                         <p>Início: {incident.startTime}</p>
                         <p>{incident.resources} recursos mobilizados</p>
                       </div>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleGoToCrisisRoom(incident.id)}>
                         Sala de Crise
                       </Button>
                     </div>
@@ -219,11 +264,11 @@ const AdminDashboard = () => {
                 <CardTitle>Ações Rápidas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start" variant="outline" onClick={handleGenerateReport}>
                   <FileText className="h-4 w-4 mr-2" />
                   Gerar Relatório Diário
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start" variant="outline" onClick={handleManageUsers}>
                   <Users className="h-4 w-4 mr-2" />
                   Gerenciar Usuários
                 </Button>
@@ -231,7 +276,7 @@ const AdminDashboard = () => {
                   <Settings className="h-4 w-4 mr-2" />
                   Programar Manutenção
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start" variant="outline" onClick={handleSystemMonitor}>
                   <Activity className="h-4 w-4 mr-2" />
                   Monitor de Sistema
                 </Button>
@@ -273,11 +318,16 @@ const AdminDashboard = () => {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Gestão de Incidentes</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Gestão de Incidentes</CardTitle>
+                <Button onClick={handleIncidentManagement}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configurações Avançadas
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-4">Controle completo de todos os incidentes do sistema</p>
-              {/* Aqui seria implementada a gestão completa de incidentes */}
               <div className="space-y-4">
                 {activeIncidents.map((incident) => (
                   <div key={incident.id} className="border rounded-lg p-4">
@@ -288,8 +338,12 @@ const AdminDashboard = () => {
                         <p className="text-xs text-gray-500">Iniciado às {incident.startTime}</p>
                       </div>
                       <div className="space-x-2">
-                        <Button size="sm" variant="outline">Editar</Button>
-                        <Button size="sm">Sala de Crise</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleEditIncident(incident.id)}>
+                          Editar
+                        </Button>
+                        <Button size="sm" onClick={() => handleGoToCrisisRoom(incident.id)}>
+                          Sala de Crise
+                        </Button>
                       </div>
                     </div>
                   </div>

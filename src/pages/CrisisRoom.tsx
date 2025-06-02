@@ -50,10 +50,17 @@ const CrisisRoom = () => {
 
   const handleResourceAction = (resourceId: number, action: string) => {
     const resource = resources.find(r => r.id === resourceId);
-    toast({
-      title: "✅ Comando Executado",
-      description: `${action} enviado para ${resource?.name} - Status atualizado`,
-    });
+    if (action === 'Contatar') {
+      toast({
+        title: "📞 Contato Estabelecido",
+        description: `Comunicação ativa com ${resource?.name} - Canal aberto`,
+      });
+    } else if (action === 'Redirecionar') {
+      toast({
+        title: "🗺️ Recurso Redirecionado",
+        description: `${resource?.name} redirecionado para novas coordenadas - ETA atualizado`,
+      });
+    }
   };
 
   const handleEvacuation = () => {

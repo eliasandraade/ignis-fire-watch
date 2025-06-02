@@ -10,7 +10,7 @@ import { Shield, Lock, User } from 'lucide-react';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('bombeiro');
+  const [userType, setUserType] = useState('operacional');
   const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
@@ -45,12 +45,12 @@ const Login = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
-                    variant={userType === 'bombeiro' ? 'default' : 'outline'}
-                    onClick={() => setUserType('bombeiro')}
+                    variant={userType === 'operacional' ? 'default' : 'outline'}
+                    onClick={() => setUserType('operacional')}
                     className="flex items-center space-x-2"
                   >
                     <Shield className="h-4 w-4" />
-                    <span>Bombeiro</span>
+                    <span>Operacional</span>
                   </Button>
                   <Button
                     type="button"

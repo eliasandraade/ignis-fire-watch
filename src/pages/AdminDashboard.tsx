@@ -63,58 +63,65 @@ const AdminDashboard = () => {
 
   const handleCreateIncident = () => {
     toast({
-      title: "Novo Incidente Criado",
-      description: "ID: SP-ABC-30052504 - Status: Ativo",
+      title: "🚨 Novo Incidente Criado",
+      description: "ID: SP-ABC-30052504 - Status: Ativo - Coordenadas definidas",
     });
   };
 
   const handleSystemMaintenance = () => {
     toast({
-      title: "Manutenção Agendada",
-      description: "Manutenção do sistema programada para 02:00",
+      title: "🔧 Manutenção do Sistema",
+      description: "Manutenção programada para 02:00 - Notificações enviadas para todas as equipes",
     });
   };
 
   const handleGenerateReport = () => {
     toast({
-      title: "📊 Relatório Diário",
-      description: "Gerando relatório completo das últimas 24 horas...",
+      title: "📊 Relatório Diário Gerado",
+      description: "Relatório completo das últimas 24 horas - Download iniciado",
     });
   };
 
   const handleManageUsers = () => {
     toast({
-      title: "👥 Gerenciamento de Usuários",
-      description: "Abrindo painel de controle de usuários e permissões",
+      title: "👥 Painel de Usuários",
+      description: "Acessando controle de usuários e permissões - 47 usuários ativos",
     });
   };
 
   const handleSystemMonitor = () => {
     toast({
       title: "📈 Monitor de Sistema",
-      description: "Acessando dashboard de performance e logs do sistema",
+      description: "Dashboard de performance ativo - CPU: 23%, RAM: 45%, Uptime: 99.7%",
+    });
+  };
+
+  const handleSystemSettings = () => {
+    toast({
+      title: "⚙️ Configurações do Sistema",
+      description: "Acessando painel de configurações avançadas do IGNIS",
     });
   };
 
   const handleEditIncident = (incidentId: string) => {
     toast({
       title: "✏️ Editando Incidente",
-      description: `Abrindo editor para incidente ${incidentId}`,
+      description: `Editor aberto para ${incidentId} - Atualizando dados em tempo real`,
     });
   };
 
   const handleGoToCrisisRoom = (incidentId: string) => {
     navigate('/crisis-room');
     toast({
-      title: "🚨 Entrando na Sala de Crise",
-      description: `Redirecionando para sala de crise do incidente ${incidentId}`,
+      title: "🚨 Sala de Crise Ativa",
+      description: `Entrando na coordenação do incidente ${incidentId}`,
     });
   };
 
   const handleIncidentManagement = () => {
     toast({
-      title: "🔥 Gestão de Incidentes",
-      description: "Acessando sistema completo de gestão de incidentes",
+      title: "🔥 Sistema de Gestão",
+      description: "Acessando módulo completo de gestão de incidentes e recursos",
     });
   };
 
@@ -128,7 +135,7 @@ const AdminDashboard = () => {
             <p className="text-gray-600">Controle Central da Plataforma IGNIS</p>
           </div>
           <div className="flex space-x-3">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleSystemSettings}>
               <Settings className="h-4 w-4 mr-2" />
               Configurações
             </Button>

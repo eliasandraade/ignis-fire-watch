@@ -16,10 +16,18 @@ import {
   Shield,
   Activity
 } from 'lucide-react';
+import ResourceMobilization from '../components/ResourceMobilization';
+import CommunicationDialog from '../components/CommunicationDialog';
+import PerimeterControl from '../components/PerimeterControl';
 
 const CrisisRoom = () => {
   const { toast } = useToast();
   const [activeIncident] = useState('SP-GRU-30052501');
+  const [showMobilization, setShowMobilization] = useState(false);
+  const [mobilizationType, setMobilizationType] = useState<'aircraft' | 'ground' | 'water' | null>(null);
+  const [showCommunication, setShowCommunication] = useState(false);
+  const [communicationType, setCommunicationType] = useState<'radio' | 'phone' | null>(null);
+  const [showPerimeter, setShowPerimeter] = useState(false);
 
   const resources = [
     { id: 1, type: 'helicopter', name: 'Águia 01', status: 'em_rota', eta: '8 min', location: 'Cantareira' },
@@ -54,6 +62,20 @@ const CrisisRoom = () => {
       description: "Evacuação iniciada para área de risco",
       variant: "destructive"
     });
+  };
+
+  const handleCommunication = (type: 'radio' | 'phone') => {
+    setCommunicationType(type);
+    setShowCommunication(true);
+  };
+
+  const handleMobilizeResources = () => {
+    setMobilizationType('ground');
+    setShowMobilization(true);
+  };
+
+  const handlePerimeterControl = () => {
+    setShowPerimeter(true);
   };
 
   return (
@@ -133,19 +155,31 @@ const CrisisRoom = () => {
               <CardTitle className="text-warning-400">Ações de Comando</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start bg-fire-600 hover:bg-fire-700">
+              <Button 
+                className="w-full justify-start bg-fire-600 hover:bg-fire-700"
+                onClick={() => handleCommunication('radio')}
+              >
                 <Radio className="h-4 w-4 mr-2" />
                 Comunicação Geral
               </Button>
-              <Button className="w-full justify-start bg-blue-600 hover:bg-blue-700">
+              <Button 
+                className="w-full justify-start bg-blue-600 hover:bg-blue-700"
+                onClick={() => handleCommunication('phone')}
+              >
                 <Phone className="h-4 w-4 mr-2" />
                 Contatar Comando
               </Button>
-              <Button className="w-full justify-start bg-green-600 hover:bg-green-700">
+              <Button 
+                className="w-full justify-start bg-green-600 hover:bg-green-700"
+                onClick={handleMobilizeResources}
+              >
                 <Users className="h-4 w-4 mr-2" />
                 Mobilizar Recursos
               </Button>
-              <Button className="w-full justify-start bg-purple-600 hover:bg-purple-700">
+              <Button 
+                className="w-full justify-start bg-purple-600 hover:bg-purple-700"
+                onClick={handlePerimeterControl}
+              >
                 <MapPin className="h-4 w-4 mr-2" />
                 Definir Perímetro
               </Button>
@@ -302,6 +336,31 @@ const CrisisRoom = () => {
           </Card>
         </div>
       </div>
+
+      {/* Modais */}
+      <ResourceMobilization 
+        isOpen={showMobilization}
+        onClose={() => {
+          setShowMobilization(false);
+          setMobilizationType(null);
+        }}
+        type={mobilizationType}
+        incidentId={activeIncident}
+      />
+
+      <CommunicationDialog 
+        isOpen={showCommunication}
+        onClose={() => {
+          setShowCommunication(false);
+          setCommunicationType(null);
+        }}
+        type={communicationType}
+      />
+
+      <PerimeterControl 
+        isOpen={showPerimeter}
+        onClose={() => setShowPerimeter(false)}
+      />
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,16 +49,17 @@ const CrisisRoom = () => {
   };
 
   const handleResourceAction = (resourceId: number, action: string) => {
+    const resource = resources.find(r => r.id === resourceId);
     toast({
-      title: "Comando Enviado",
-      description: `${action} para recurso ${resourceId}`,
+      title: "✅ Comando Executado",
+      description: `${action} enviado para ${resource?.name} - Status atualizado`,
     });
   };
 
   const handleEvacuation = () => {
     toast({
-      title: "🚨 Ordem de Evacuação",
-      description: "Evacuação iniciada para área de risco",
+      title: "🚨 EVACUAÇÃO ORDENADA",
+      description: "Protocolos de evacuação ativados - Todas as unidades notificadas",
       variant: "destructive"
     });
   };

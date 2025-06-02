@@ -53,7 +53,23 @@ const CommunicationDialog = ({ isOpen, onClose, type }: CommunicationDialogProps
   const handleBroadcast = () => {
     toast({
       title: "📢 Transmissão Geral",
-      description: "Mensagem enviada para todos os canais ativos",
+      description: "Mensagem enviada para todos os canais ativos - 8 equipes notificadas",
+    });
+  };
+
+  const handlePTT = () => {
+    if (!activeChannel) return;
+    const channel = radioChannels.find(c => c.id === activeChannel);
+    toast({
+      title: "🎙️ Transmitindo",
+      description: `Falando no canal ${channel?.name} - ${channel?.users} ouvintes`,
+    });
+  };
+
+  const handleTextMessage = () => {
+    toast({
+      title: "💬 Mensagem de Texto",
+      description: "Mensagem enviada para todas as equipes no campo",
     });
   };
 
@@ -130,6 +146,7 @@ const CommunicationDialog = ({ isOpen, onClose, type }: CommunicationDialogProps
                     <Button 
                       className="w-full justify-start" 
                       disabled={!activeChannel}
+                      onClick={handlePTT}
                     >
                       <Mic className="h-4 w-4 mr-2" />
                       Pressionar para Falar (PTT)
@@ -145,6 +162,7 @@ const CommunicationDialog = ({ isOpen, onClose, type }: CommunicationDialogProps
                     <Button 
                       className="w-full justify-start" 
                       variant="outline"
+                      onClick={handleTextMessage}
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Mensagem de Texto

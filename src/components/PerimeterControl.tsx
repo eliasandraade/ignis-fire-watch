@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -67,14 +66,42 @@ const PerimeterControl = ({ isOpen, onClose }: PerimeterControlProps) => {
     const zone = securityZones.find(z => z.id === selectedZone);
     toast({
       title: "📏 Perímetro Expandido",
-      description: `${zone?.name} expandida em 200m`,
+      description: `${zone?.name} expandida em 200m - Novas coordenadas enviadas para equipes`,
+    });
+  };
+
+  const handleReinforceSecurityAction = () => {
+    if (!selectedZone) return;
+    const zone = securityZones.find(z => z.id === selectedZone);
+    toast({
+      title: "🛡️ Segurança Reforçada",
+      description: `Equipes adicionais despachadas para ${zone?.name}`,
+    });
+  };
+
+  const handleEvacuateAreaAction = () => {
+    if (!selectedZone) return;
+    const zone = securityZones.find(z => z.id === selectedZone);
+    toast({
+      title: "🚨 Evacuação Iniciada",
+      description: `Ordem de evacuação emitida para ${zone?.name}`,
+      variant: "destructive"
+    });
+  };
+
+  const handleEmergencyAction = () => {
+    if (!selectedZone) return;
+    toast({
+      title: "🚨 PROTOCOLO DE EMERGÊNCIA",
+      description: "Todas as unidades mobilizadas - Situação crítica declarada",
+      variant: "destructive"
     });
   };
 
   const handleEstablishCheckpoint = () => {
     toast({
-      title: "🛡️ Posto de Controle",
-      description: "Novo posto de controle estabelecido",
+      title: "🛡️ Novo Posto de Controle",
+      description: "Coordenadas enviadas - Equipe sendo despachada",
     });
   };
 
@@ -195,15 +222,15 @@ const PerimeterControl = ({ isOpen, onClose }: PerimeterControlProps) => {
                   <MapPin className="h-4 w-4 mr-2" />
                   Expandir Zona
                 </Button>
-                <Button variant="outline">
+                <Button onClick={handleReinforceSecurityAction} variant="outline">
                   <Shield className="h-4 w-4 mr-2" />
                   Reforçar Segurança
                 </Button>
-                <Button variant="outline">
+                <Button onClick={handleEvacuateAreaAction} variant="outline">
                   <Users className="h-4 w-4 mr-2" />
                   Evacuar Área
                 </Button>
-                <Button variant="destructive">
+                <Button onClick={handleEmergencyAction} variant="destructive">
                   <AlertTriangle className="h-4 w-4 mr-2" />
                   Emergência
                 </Button>

@@ -16,6 +16,10 @@ import ReportValidationPage from '@/pages/gestor/ReportValidationPage';
 import WarRoomPage          from '@/pages/gestor/WarRoomPage';
 import OrbitalMapPage       from '@/pages/gestor/OrbitalMapPage';
 import ActiveIncidentPage   from '@/pages/gestor/ActiveIncidentPage';
+import MobilizationPage     from '@/pages/gestor/MobilizationPage';
+import FieldOperationPage   from '@/pages/gestor/FieldOperationPage';
+import AuroraPage           from '@/pages/gestor/AuroraPage';
+import ESGReportPage        from '@/pages/gestor/ESGReportPage';
 
 // Placeholder component for pages not yet implemented
 const Placeholder = ({ name }: { name: string }) => (
@@ -30,12 +34,8 @@ const Placeholder = ({ name }: { name: string }) => (
     <div style={{ fontSize: 12, color: 'var(--text-ghost)' }}>Em implementação…</div>
   </div>
 );
-const MobilizationPage     = () => <Placeholder name="Mobilização" />;
 const GestorAreaDetailPage = () => <Placeholder name="Detalhe da Área" />;
 const RiskRankingPage      = () => <Placeholder name="Ranking de Risco" />;
-const AuroraPage           = () => <Placeholder name="Aurora IA" />;
-const ESGReportPage        = () => <Placeholder name="Relatório ESG" />;
-const FieldOperationPage   = () => <Placeholder name="Operação de Campo" />;
 const AdminPanelPage       = () => <Placeholder name="Painel Administrativo" />;
 
 export const router = createBrowserRouter([

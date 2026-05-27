@@ -21,22 +21,9 @@ import FieldOperationPage   from '@/pages/gestor/FieldOperationPage';
 import AuroraPage           from '@/pages/gestor/AuroraPage';
 import ESGReportPage        from '@/pages/gestor/ESGReportPage';
 
-// Placeholder component for pages not yet implemented
-const Placeholder = ({ name }: { name: string }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    minHeight: '60vh', background: 'var(--bg-void)', color: 'var(--text-mid)',
-    flexDirection: 'column', gap: 12, fontFamily: 'Space Grotesk, sans-serif',
-  }}>
-    <div style={{ fontSize: 11, color: 'var(--text-ghost)', letterSpacing: '0.1em',
-                  textTransform: 'uppercase' }}>IGNIS Orbital</div>
-    <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-hi)' }}>{name}</div>
-    <div style={{ fontSize: 12, color: 'var(--text-ghost)' }}>Em implementação…</div>
-  </div>
-);
-const GestorAreaDetailPage = () => <Placeholder name="Detalhe da Área" />;
-const RiskRankingPage      = () => <Placeholder name="Ranking de Risco" />;
-const AdminPanelPage       = () => <Placeholder name="Painel Administrativo" />;
+import GestorAreaDetailPage from '@/pages/gestor/GestorAreaDetailPage';
+import RiskRankingPage      from '@/pages/gestor/RiskRankingPage';
+import AdminPanelPage       from '@/pages/admin/AdminPanelPage';
 
 export const router = createBrowserRouter([
   { path: '/',               element: <SplashPage /> },

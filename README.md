@@ -116,7 +116,22 @@ src/
 
 ## Deploy
 
-Projeto configurado para deploy automático na Vercel via `vercel.json` (SPA rewrite para `/index.html`).
+**URL de produção:** https://ignis-fire-watch-main.vercel.app
+
+Hospedado na Vercel com SPA rewrite via `vercel.json` — todas as 21 rotas respondem HTTP 200 em produção.
+
+| Rota | Status produção |
+|---|---|
+| `/` | ✅ 200 |
+| `/public` | ✅ 200 |
+| `/public/map` | ✅ 200 |
+| `/public/report` | ✅ 200 |
+| `/gestor` | ✅ 200 |
+| `/gestor/war-room` | ✅ 200 |
+| `/gestor/aurora` | ✅ 200 |
+| `/gestor/esg` | ✅ 200 |
+| `/admin` | ✅ 200 |
+| `/rota-inexistente` | ✅ 200 (React 404) |
 
 ---
 

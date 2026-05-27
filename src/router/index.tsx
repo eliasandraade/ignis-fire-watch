@@ -2,6 +2,14 @@ import React from 'react';
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { PublicLayout } from '@/components/layouts/PublicLayout';
 import { GestorLayout } from '@/components/layouts/GestorLayout';
+import SplashPage          from '@/pages/shared/SplashPage';
+import LoginPage           from '@/pages/shared/LoginPage';
+import SelectProfilePage   from '@/pages/shared/SelectProfilePage';
+import NotFoundPage        from '@/pages/shared/NotFoundPage';
+import PublicDashboardPage from '@/pages/public/PublicDashboardPage';
+import PublicMapPage       from '@/pages/public/PublicMapPage';
+import RegisterReportPage  from '@/pages/public/RegisterReportPage';
+import ReportStatusPage    from '@/pages/public/ReportStatusPage';
 
 // Placeholder component for pages not yet implemented
 const Placeholder = ({ name }: { name: string }) => (
@@ -16,16 +24,6 @@ const Placeholder = ({ name }: { name: string }) => (
     <div style={{ fontSize: 12, color: 'var(--text-ghost)' }}>Em implementação…</div>
   </div>
 );
-
-// All pages start as placeholders — will be replaced phase by phase
-const SplashPage           = () => <Placeholder name="Splash" />;
-const LoginPage            = () => <Placeholder name="Login" />;
-const SelectProfilePage    = () => <Placeholder name="Selecionar Perfil" />;
-const NotFoundPage         = () => <Placeholder name="404 — Não Encontrado" />;
-const PublicDashboardPage  = () => <Placeholder name="Portal Público" />;
-const PublicMapPage        = () => <Placeholder name="Mapa Público" />;
-const RegisterReportPage   = () => <Placeholder name="Registrar Denúncia" />;
-const ReportStatusPage     = () => <Placeholder name="Status da Denúncia" />;
 const GestorDashboardPage  = () => <Placeholder name="Dashboard Gestor" />;
 const ReportCenterPage     = () => <Placeholder name="Central de Denúncias" />;
 const ReportValidationPage = () => <Placeholder name="Validação de Denúncia" />;

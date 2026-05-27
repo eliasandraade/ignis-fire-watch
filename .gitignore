@@ -43,3 +43,6 @@ Thumbs.db
 
 # Test coverage
 coverage/
+
+# Bun lockfile (project uses npm)
+bun.lockb

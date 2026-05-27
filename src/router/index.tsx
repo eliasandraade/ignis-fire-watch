@@ -10,6 +10,9 @@ import PublicDashboardPage from '@/pages/public/PublicDashboardPage';
 import PublicMapPage       from '@/pages/public/PublicMapPage';
 import RegisterReportPage  from '@/pages/public/RegisterReportPage';
 import ReportStatusPage    from '@/pages/public/ReportStatusPage';
+import GestorDashboardPage  from '@/pages/gestor/GestorDashboardPage';
+import ReportCenterPage     from '@/pages/gestor/ReportCenterPage';
+import ReportValidationPage from '@/pages/gestor/ReportValidationPage';
 
 // Placeholder component for pages not yet implemented
 const Placeholder = ({ name }: { name: string }) => (
@@ -24,9 +27,6 @@ const Placeholder = ({ name }: { name: string }) => (
     <div style={{ fontSize: 12, color: 'var(--text-ghost)' }}>Em implementação…</div>
   </div>
 );
-const GestorDashboardPage  = () => <Placeholder name="Dashboard Gestor" />;
-const ReportCenterPage     = () => <Placeholder name="Central de Denúncias" />;
-const ReportValidationPage = () => <Placeholder name="Validação de Denúncia" />;
 const ActiveIncidentPage   = () => <Placeholder name="Comando de Incidente" />;
 const OrbitalMapPage       = () => <Placeholder name="Mapa Orbital" />;
 const MobilizationPage     = () => <Placeholder name="Mobilização" />;

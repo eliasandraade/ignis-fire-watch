@@ -14,6 +14,8 @@ import GestorDashboardPage  from '@/pages/gestor/GestorDashboardPage';
 import ReportCenterPage     from '@/pages/gestor/ReportCenterPage';
 import ReportValidationPage from '@/pages/gestor/ReportValidationPage';
 import WarRoomPage          from '@/pages/gestor/WarRoomPage';
+import OrbitalMapPage       from '@/pages/gestor/OrbitalMapPage';
+import ActiveIncidentPage   from '@/pages/gestor/ActiveIncidentPage';
 
 // Placeholder component for pages not yet implemented
 const Placeholder = ({ name }: { name: string }) => (
@@ -28,8 +30,6 @@ const Placeholder = ({ name }: { name: string }) => (
     <div style={{ fontSize: 12, color: 'var(--text-ghost)' }}>Em implementação…</div>
   </div>
 );
-const ActiveIncidentPage   = () => <Placeholder name="Comando de Incidente" />;
-const OrbitalMapPage       = () => <Placeholder name="Mapa Orbital" />;
 const MobilizationPage     = () => <Placeholder name="Mobilização" />;
 const GestorAreaDetailPage = () => <Placeholder name="Detalhe da Área" />;
 const RiskRankingPage      = () => <Placeholder name="Ranking de Risco" />;

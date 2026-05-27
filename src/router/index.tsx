@@ -13,6 +13,7 @@ import ReportStatusPage    from '@/pages/public/ReportStatusPage';
 import GestorDashboardPage  from '@/pages/gestor/GestorDashboardPage';
 import ReportCenterPage     from '@/pages/gestor/ReportCenterPage';
 import ReportValidationPage from '@/pages/gestor/ReportValidationPage';
+import WarRoomPage          from '@/pages/gestor/WarRoomPage';
 
 // Placeholder component for pages not yet implemented
 const Placeholder = ({ name }: { name: string }) => (
@@ -34,7 +35,6 @@ const GestorAreaDetailPage = () => <Placeholder name="Detalhe da Área" />;
 const RiskRankingPage      = () => <Placeholder name="Ranking de Risco" />;
 const AuroraPage           = () => <Placeholder name="Aurora IA" />;
 const ESGReportPage        = () => <Placeholder name="Relatório ESG" />;
-const WarRoomPage          = () => <Placeholder name="Central Tática Ambiental" />;
 const FieldOperationPage   = () => <Placeholder name="Operação de Campo" />;
 const AdminPanelPage       = () => <Placeholder name="Painel Administrativo" />;
 

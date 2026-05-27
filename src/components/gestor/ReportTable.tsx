@@ -4,14 +4,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { getAreaById } from '@/data/areas';
 import type { PublicReport } from '@/types/domain';
 import { useToast } from '@/hooks/use-toast';
-
-const OCCURRENCE_LABEL: Record<string, string> = {
-  'incendio': 'Incêndio', 'queimada': 'Queimada',
-  'desmatamento': 'Desmatamento', 'caca': 'Caça Ilegal',
-  'pesca-ilegal': 'Pesca Ilegal', 'mineracao': 'Mineração',
-  'despejo-residuos': 'Resíduos', 'especie-invasora': 'Espécie Invasora',
-  'contaminacao-agua': 'Contaminação', 'outro': 'Outro',
-};
+import { OCCURRENCE_LABEL } from '@/lib/labels';
 
 interface Props {
   reports: PublicReport[];

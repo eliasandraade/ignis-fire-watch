@@ -56,57 +56,44 @@ export default function MobilizationPage() {
         ))}
       </div>
 
-      {/* Team table */}
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 8, overflow: 'hidden',
-                    marginBottom: 32 }}>
-        <div style={{ display: 'grid',
-                      gridTemplateColumns: '1fr 140px 100px 120px 120px 90px',
-                      gap: 12, padding: '10px 16px',
-                      borderBottom: '1px solid var(--bg-raised)',
-                      fontSize: 11, color: 'var(--text-ghost)',
-                      textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-          <span>Equipe</span>
-          <span>Tipo</span>
-          <span>Membros</span>
-          <span>Localização</span>
-          <span>Status</span>
-          <span>Ação</span>
-        </div>
-
+      {/* Team cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 32 }}>
         {filtered.map(t => (
-          <div key={t.id} style={{ display: 'grid',
-                                   gridTemplateColumns: '1fr 140px 100px 120px 120px 90px',
-                                   gap: 12, padding: '12px 16px',
-                                   borderBottom: '1px solid var(--bg-raised)',
-                                   alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                            background: STATUS_DOT[t.status] ?? 'var(--text-ghost)' }} />
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-hi)' }}>
-                  {t.name}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-ghost)', fontFamily: 'monospace' }}>
-                  {t.id}
-                </div>
+          <div key={t.id} style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--bg-raised)',
+            borderRadius: 8,
+            padding: '14px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+          }}>
+            <div style={{
+              width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+              background: STATUS_DOT[t.status] ?? 'var(--text-ghost)',
+            }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-hi)',
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t.name}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-ghost)', marginTop: 3,
+                            display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{t.id}</span>
+                <span>{t.type}</span>
+                <span>{t.members} membros</span>
+                {t.location && <span>{t.location}</span>}
               </div>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--text-mid)' }}>{t.type}</span>
-            <span style={{ fontSize: 13, fontFamily: 'monospace', color: 'var(--text-hi)',
-                           textAlign: 'center' }}>{t.members}</span>
-            <span style={{ fontSize: 12, color: 'var(--text-lo)', overflow: 'hidden',
-                           textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t.location ?? '—'}
-            </span>
             <StatusBadge status={t.status} size="sm" />
             <button
               onClick={() => t.status === 'disponivel' && handleMobilize(t.id)}
               disabled={t.status !== 'disponivel'}
               style={{
-                padding: '5px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                padding: '6px 12px', borderRadius: 4, border: 'none', cursor: 'pointer',
                 background: t.status === 'disponivel' ? 'var(--orbital)' : 'var(--bg-raised)',
                 color: t.status === 'disponivel' ? 'white' : 'var(--text-ghost)',
-                fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
+                fontSize: 11, fontFamily: 'inherit', fontWeight: 600, flexShrink: 0,
               }}
             >
               {t.status === 'disponivel' ? 'Mobilizar' : '—'}

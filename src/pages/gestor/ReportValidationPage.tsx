@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getReportById } from '@/data/reports';
+import { OCCURRENCE_LABEL } from '@/lib/labels';
 import { getAreaById } from '@/data/areas';
 import { getCriticalIncident } from '@/data/incidents';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
@@ -94,7 +95,7 @@ export default function ReportValidationPage() {
                   Tipo de Ocorrência
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-hi)', fontWeight: 500 }}>
-                  {report.occurrenceType}
+                  {OCCURRENCE_LABEL[report.occurrenceType] ?? report.occurrenceType}
                 </div>
               </div>
               <div>

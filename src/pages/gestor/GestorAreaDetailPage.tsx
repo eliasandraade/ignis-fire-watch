@@ -5,6 +5,7 @@ import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Polygon } from 'react-leaflet';
 import { getPolygonPositions } from '@/lib/geo';
+import { INCIDENT_TYPE_LABEL, DATA_QUALITY_LABEL } from '@/lib/labels';
 import type { RiskLevel } from '@/types/domain';
 
 function getRiskColor(risk: RiskLevel): string {
@@ -148,8 +149,8 @@ export default function GestorAreaDetailPage() {
             <div style={{ fontSize: 10, color: 'var(--text-ghost)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
               Qualidade
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-mid)', textTransform: 'capitalize' }}>
-              {area.dataQuality}
+            <div style={{ fontSize: 12, color: 'var(--text-mid)' }}>
+              {DATA_QUALITY_LABEL[area.dataQuality] ?? area.dataQuality}
             </div>
           </div>
         </div>
@@ -237,7 +238,7 @@ export default function GestorAreaDetailPage() {
                       {incident.id}
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--text-mid)', flex: 1, minWidth: 80 }}>
-                      {incident.type.replace(/-/g, ' ')}
+                      {INCIDENT_TYPE_LABEL[incident.type] ?? incident.type.replace(/-/g, ' ')}
                     </span>
                     <StatusBadge status={incident.status} size="sm" />
                     <RiskPill risk={incident.risk} />

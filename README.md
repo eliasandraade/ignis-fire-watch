@@ -16,6 +16,16 @@ O sistema integra dados orbitais simulados (INPE/MODIS), geolocalização de ár
 
 ---
 
+## Avisos de Protótipo
+
+- **Dados simulados:** todas as áreas protegidas, incidentes, coordenadas e métricas são dados estimados/simulados para fins acadêmicos. Não representam dados oficiais de nenhum órgão governamental (SEMACE, IBAMA, ICMBio, Defesa Civil).
+- **Autenticação:** o sistema aceita qualquer credencial — não há validação real de usuário ou senha.
+- **Aurora IA:** todas as respostas são simuladas com aviso obrigatório *"Sistema de IA demonstrativo — respostas simuladas para fins acadêmicos."* Não há integração real com nenhum modelo de linguagem.
+- **Banco de dados:** não há persistência real. Dados são mantidos em memória (React state) e/ou sessionStorage durante a sessão do navegador.
+- **Integrações externas:** nenhuma integração com APIs governamentais (INPE, CEMADEN, SEMACE) ou serviços externos está ativa em produção.
+
+---
+
 ## Stack Técnica
 
 | Camada | Tecnologia |
@@ -23,8 +33,8 @@ O sistema integra dados orbitais simulados (INPE/MODIS), geolocalização de ár
 | Framework | React 18.3 + TypeScript 5.5 |
 | Build | Vite 5.4 (SWC) |
 | Estilo | TailwindCSS 3.4 + CSS Variables (OKLCH) |
-| Componentes | shadcn/ui |
-| Roteamento | React Router DOM 6.26 |
+| Componentes | shadcn/ui (Radix UI) |
+| Roteamento | React Router DOM 6 (lazy loading + guards de perfil) |
 | Mapas | react-leaflet 4 + Leaflet |
 | Gráficos | Recharts 2.12 |
 | Animações | Framer Motion |
@@ -58,7 +68,7 @@ O sistema integra dados orbitais simulados (INPE/MODIS), geolocalização de ár
 | `/gestor/field` | Operação de campo (mobile-first 390px) |
 | `/gestor/area/:id` | Detalhe de área protegida |
 | `/gestor/ranking` | Ranking de risco das áreas |
-| `/gestor/aurora` | Aurora IA — chat de apoio à decisão |
+| `/gestor/aurora` | Aurora — chat de apoio à decisão |
 | `/gestor/esg` | Relatório ESG (ODS 2/8/9/11/13/15) |
 
 ### Módulo Admin
@@ -68,12 +78,19 @@ O sistema integra dados orbitais simulados (INPE/MODIS), geolocalização de ár
 
 ---
 
-## Avisos de Protótipo
+## Controle de Acesso (Protótipo)
 
-- **Aurora IA**: todas as respostas são simuladas e incluem o aviso *"Resposta simulada — protótipo demonstrativo"*. Não há integração real com nenhum modelo de linguagem.
-- **Dados**: todas as áreas protegidas, incidentes, coordenadas e métricas são dados estimados/simulados para fins acadêmicos. Não representam dados oficiais de nenhum órgão governamental (SEMACE, IBAMA, ICMBio, Defesa Civil).
-- **Autenticação**: o sistema aceita qualquer credencial — não há validação real de usuário ou senha.
-- **AuroraChat**: disclaimer obrigatório em todas as respostas: "Sistema de IA demonstrativo — respostas simuladas para fins acadêmicos. Não representa integração real com modelos de linguagem. FIAP GS 2026."
+O sistema implementa guards de rota leves para simular controle de acesso:
+
+| Perfil | Acesso |
+|---|---|
+| Admin | Total — todas as rotas |
+| Gestor | Painel gestor completo |
+| Analista / Órgão | Painel gestor completo |
+| Campo | Operação em Campo e War Room |
+| Público | Portal público de denúncias |
+
+Sem perfil selecionado, o sistema redireciona para `/select-profile`.
 
 ---
 
@@ -100,8 +117,8 @@ src/
 │   ├── gestor/      # Componentes do módulo gestor
 │   ├── layouts/     # GestorLayout, PublicLayout
 │   ├── shared/      # OrbitalMap, AuroraChat, StatusBadge, etc.
-│   └── ui/          # shadcn/ui (48 componentes, não modificados)
-├── context/         # UserContext — perfil de acesso
+│   └── ui/          # shadcn/ui (Radix UI)
+├── context/         # UserContext — perfil e helpers de permissão
 ├── data/            # Mock data centralizada (areas, incidents, reports…)
 ├── lib/             # Utilitários (geo.ts, utils.ts)
 ├── pages/
@@ -109,8 +126,10 @@ src/
 │   ├── gestor/      # 13 telas do módulo gestor
 │   ├── public/      # 4 telas públicas
 │   └── shared/      # Splash, Login, SelectProfile, NotFound
-├── router/          # createBrowserRouter (21 rotas)
+├── router/          # createBrowserRouter (21 rotas) + guards de perfil
 └── types/           # domain.ts — todos os tipos TypeScript
+docs/
+└── backend-roadmap.md  # Arquitetura planejada para o backend
 ```
 
 ---
@@ -119,20 +138,13 @@ src/
 
 **URL de produção:** https://ignis-fire-watch-main.vercel.app
 
-Hospedado na Vercel com SPA rewrite via `vercel.json` — todas as 21 rotas respondem HTTP 200 em produção.
+Hospedado na Vercel com SPA rewrite via `vercel.json` — todas as rotas respondem HTTP 200 em produção.
 
-| Rota | Status produção |
-|---|---|
-| `/` | ✅ 200 |
-| `/public` | ✅ 200 |
-| `/public/map` | ✅ 200 |
-| `/public/report` | ✅ 200 |
-| `/gestor` | ✅ 200 |
-| `/gestor/war-room` | ✅ 200 |
-| `/gestor/aurora` | ✅ 200 |
-| `/gestor/esg` | ✅ 200 |
-| `/admin` | ✅ 200 |
-| `/rota-inexistente` | ✅ 200 (React 404) |
+---
+
+## Roadmap Backend
+
+Ver [`docs/backend-roadmap.md`](docs/backend-roadmap.md) para a arquitetura planejada do backend (FastAPI + PostgreSQL + PostGIS).
 
 ---
 

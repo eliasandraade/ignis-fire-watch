@@ -62,9 +62,24 @@ export default function RegisterReportPage() {
 
   const isAnon = watch('isAnonymous');
 
-  const onSubmit = async (_data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     await new Promise(r => setTimeout(r, 500));
-    const id = `RPT-${Date.now()}`;
+    const id = `RPT-${Date.now().toString(36).toUpperCase()}`;
+
+    const submittedReport = {
+      id,
+      occurrenceType: data.occurrenceType,
+      areaId:         data.areaId || null,
+      description:    data.description,
+      urgency:        data.urgency,
+      isAnonymous:    data.isAnonymous,
+      reporterName:   data.isAnonymous ? null : (data.reporterName?.trim() || null),
+      coords:         coords ?? null,
+      status:         'em-triagem',
+      submittedAt:    new Date().toISOString(),
+    };
+
+    sessionStorage.setItem(`ignis_report_${id}`, JSON.stringify(submittedReport));
     navigate(`/public/report/status/${id}`);
   };
 

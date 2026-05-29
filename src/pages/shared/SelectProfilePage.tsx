@@ -102,7 +102,7 @@ export default function SelectProfilePage() {
       </div>
 
       <div style={{ marginTop: 40, fontSize: 11, color: 'var(--text-ghost)', textAlign: 'center' }}>
-        Protótipo demonstrativo FIAP GS 2026 · Elias Sales de Freitas — RM561257
+        Protótipo demonstrativo FIAP GS 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { PublicLayout } from '@/components/layouts/PublicLayout';
 import { GestorLayout } from '@/components/layouts/GestorLayout';
+import { RequireGestorAccess, RequireAdminAccess, RequireAuthenticatedAccess } from './guards';
 
 const SplashPage          = React.lazy(() => import('@/pages/shared/SplashPage'));
 const LoginPage           = React.lazy(() => import('@/pages/shared/LoginPage'));
@@ -48,33 +49,57 @@ export const router = createBrowserRouter([
   { path: '/',               element: withSuspense(<SplashPage />) },
   { path: '/login',          element: withSuspense(<LoginPage />) },
   { path: '/select-profile', element: withSuspense(<SelectProfilePage />) },
+
+  // Public area — acessível sem perfil
   {
     element: <PublicLayout />,
     children: [
-      { path: '/public',                     element: withSuspense(<PublicDashboardPage />) },
-      { path: '/public/map',                 element: withSuspense(<PublicMapPage />) },
-      { path: '/public/report',              element: withSuspense(<RegisterReportPage />) },
-      { path: '/public/report/status/:id',   element: withSuspense(<ReportStatusPage />) },
+      { path: '/public',                   element: withSuspense(<PublicDashboardPage />) },
+      { path: '/public/map',               element: withSuspense(<PublicMapPage />) },
+      { path: '/public/report',            element: withSuspense(<RegisterReportPage />) },
+      { path: '/public/report/status/:id', element: withSuspense(<ReportStatusPage />) },
     ],
   },
-  // WarRoom + Field bypass GestorLayout — must be BEFORE the nested gestor block
-  { path: '/gestor/war-room', element: withSuspense(<WarRoomPage />) },
-  { path: '/gestor/field',    element: withSuspense(<FieldOperationPage />) },
+
+  // War Room + Field: autenticado, qualquer perfil exceto público
   {
-    element: <GestorLayout />,
+    element: <RequireAuthenticatedAccess />,
     children: [
-      { path: '/gestor',                element: withSuspense(<GestorDashboardPage />) },
-      { path: '/gestor/reports',        element: withSuspense(<ReportCenterPage />) },
-      { path: '/gestor/reports/:id',    element: withSuspense(<ReportValidationPage />) },
-      { path: '/gestor/incident/:id',   element: withSuspense(<ActiveIncidentPage />) },
-      { path: '/gestor/map',            element: withSuspense(<OrbitalMapPage />) },
-      { path: '/gestor/mobilization',   element: withSuspense(<MobilizationPage />) },
-      { path: '/gestor/area/:id',       element: withSuspense(<GestorAreaDetailPage />) },
-      { path: '/gestor/ranking',        element: withSuspense(<RiskRankingPage />) },
-      { path: '/gestor/aurora',         element: withSuspense(<AuroraPage />) },
-      { path: '/gestor/esg',            element: withSuspense(<ESGReportPage />) },
+      { path: '/gestor/war-room', element: withSuspense(<WarRoomPage />) },
+      { path: '/gestor/field',    element: withSuspense(<FieldOperationPage />) },
     ],
   },
-  { path: '/admin', element: withSuspense(<AdminPanelPage />) },
-  { path: '*',      element: withSuspense(<NotFoundPage />) },
+
+  // Painel gestor: requer canAccessGestorPanel (gestor, analista/orgao, admin)
+  // Campo é redirecionado para /gestor/field pelo RequireGestorAccess
+  {
+    element: <RequireGestorAccess />,
+    children: [
+      {
+        element: <GestorLayout />,
+        children: [
+          { path: '/gestor',              element: withSuspense(<GestorDashboardPage />) },
+          { path: '/gestor/reports',      element: withSuspense(<ReportCenterPage />) },
+          { path: '/gestor/reports/:id',  element: withSuspense(<ReportValidationPage />) },
+          { path: '/gestor/incident/:id', element: withSuspense(<ActiveIncidentPage />) },
+          { path: '/gestor/map',          element: withSuspense(<OrbitalMapPage />) },
+          { path: '/gestor/mobilization', element: withSuspense(<MobilizationPage />) },
+          { path: '/gestor/area/:id',     element: withSuspense(<GestorAreaDetailPage />) },
+          { path: '/gestor/ranking',      element: withSuspense(<RiskRankingPage />) },
+          { path: '/gestor/aurora',       element: withSuspense(<AuroraPage />) },
+          { path: '/gestor/esg',          element: withSuspense(<ESGReportPage />) },
+        ],
+      },
+    ],
+  },
+
+  // Admin: requer canAccessAdminPanel (somente admin)
+  {
+    element: <RequireAdminAccess />,
+    children: [
+      { path: '/admin', element: withSuspense(<AdminPanelPage />) },
+    ],
+  },
+
+  { path: '*', element: withSuspense(<NotFoundPage />) },
 ]);

@@ -15,7 +15,7 @@ export type OccurrenceType =
   | 'especie-invasora' | 'contaminacao-agua' | 'outro';
 export type TeamStatus = 'disponivel' | 'mobilizado' | 'em-transito' | 'indisponivel';
 export type ResourceType = 'veiculo' | 'aeronave' | 'equipamento' | 'suprimento';
-export type UserRole = 'admin' | 'gestor' | 'campo' | 'analista' | 'publico';
+export type UserRole = 'admin' | 'gestor' | 'campo' | 'analista' | 'orgao' | 'publico';
 export type AlertSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 export interface Coords {

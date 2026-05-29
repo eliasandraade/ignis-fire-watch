@@ -3,12 +3,34 @@ import { getReportById } from '@/data/reports';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import type { ReportStatus } from '@/types/domain';
 
+interface SubmittedReport {
+  id: string;
+  occurrenceType: string;
+  areaId: string | null;
+  description: string;
+  urgency: string;
+  isAnonymous: boolean;
+  reporterName: string | null;
+  coords: { lat: number; lng: number } | null;
+  status: ReportStatus;
+  submittedAt: string;
+}
+
+function getSessionReport(id: string): SubmittedReport | null {
+  try {
+    const raw = sessionStorage.getItem(`ignis_report_${id}`);
+    return raw ? (JSON.parse(raw) as SubmittedReport) : null;
+  } catch {
+    return null;
+  }
+}
+
 const STATUS_STEPS: { status: ReportStatus; label: string; description: string }[] = [
-  { status: 'em-triagem',          label: 'Recebida',             description: 'Sua denúncia foi recebida e está na fila de triagem.' },
-  { status: 'em-triagem',          label: 'Em Triagem',           description: 'Gestores estão avaliando as informações.' },
-  { status: 'validada',            label: 'Validada',             description: 'Denúncia confirmada e priorizada.' },
-  { status: 'em-campo',            label: 'Equipe Despachada',    description: 'Equipe de campo enviada ao local.' },
-  { status: 'convertida-incidente',label: 'Incidente Registrado', description: 'Convertida em incidente oficial no sistema.' },
+  { status: 'em-triagem',           label: 'Recebida',             description: 'Sua denúncia foi recebida e está na fila de triagem.' },
+  { status: 'em-triagem',           label: 'Em Triagem',           description: 'Gestores estão avaliando as informações.' },
+  { status: 'validada',             label: 'Validada',             description: 'Denúncia confirmada e priorizada.' },
+  { status: 'em-campo',             label: 'Equipe Despachada',    description: 'Equipe de campo enviada ao local.' },
+  { status: 'convertida-incidente', label: 'Incidente Registrado', description: 'Convertida em incidente oficial no sistema.' },
 ];
 
 const STATUS_ORDER: Record<ReportStatus, number> = {
@@ -18,15 +40,19 @@ const STATUS_ORDER: Record<ReportStatus, number> = {
 
 export default function ReportStatusPage() {
   const { id } = useParams<{ id: string }>();
-  const report = id ? getReportById(id) : null;
 
-  // If not in DB (freshly submitted), show mock em-triagem
-  const status: ReportStatus = report?.status ?? 'em-triagem';
+  // Priority: freshly submitted (sessionStorage) → mock DB → fallback
+  const sessionReport = id ? getSessionReport(id) : null;
+  const dbReport      = id && !sessionReport ? getReportById(id) : null;
+
+  const status: ReportStatus = sessionReport?.status ?? dbReport?.status ?? 'em-triagem';
   const currentOrder = STATUS_ORDER[status] ?? 1;
+  const coords = sessionReport?.coords ?? dbReport?.coords ?? null;
+  const submittedAt = sessionReport?.submittedAt ?? dbReport?.submittedAt ?? null;
 
   return (
     <div style={{ padding: '48px 48px', maxWidth: 680, margin: '0 auto' }}>
-      {/* ID card */}
+      {/* Protocol card */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-raised)',
                     borderRadius: 10, padding: '24px 28px', marginBottom: 32 }}>
         <div style={{ fontSize: 11, color: 'var(--text-ghost)', letterSpacing: '0.1em',
@@ -37,7 +63,8 @@ export default function ReportStatusPage() {
                       fontWeight: 700, color: 'var(--orbital)', marginBottom: 12 }}>
           {id}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: coords ? 12 : 0 }}>
           <StatusBadge status={status} />
           <span style={{ fontSize: 12, color: 'var(--text-ghost)' }}>
             {status === 'descartada'
@@ -45,6 +72,28 @@ export default function ReportStatusPage() {
               : 'Acompanhe o status abaixo'}
           </span>
         </div>
+
+        {/* Coords (se informadas) */}
+        {coords && (
+          <div style={{ marginTop: 10, padding: '8px 12px',
+                        background: 'var(--bg-raised)', borderRadius: 6,
+                        display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-ghost)',
+                           textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Localização registrada
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--orbital)', fontFamily: 'monospace' }}>
+              {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+            </span>
+          </div>
+        )}
+
+        {/* Data/hora do envio */}
+        {submittedAt && (
+          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-ghost)' }}>
+            Enviado em {new Date(submittedAt).toLocaleString('pt-BR')}
+          </div>
+        )}
       </div>
 
       {/* Timeline */}
@@ -57,7 +106,7 @@ export default function ReportStatusPage() {
         <div style={{ padding: '16px', background: 'var(--bg-surface)',
                       border: '1px solid var(--bg-raised)', borderRadius: 8,
                       fontSize: 13, color: 'var(--text-lo)' }}>
-          {report?.notes ?? 'Esta denúncia foi descartada após análise pelos gestores.'}
+          {dbReport?.notes ?? 'Esta denúncia foi descartada após análise pelos gestores.'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -69,7 +118,6 @@ export default function ReportStatusPage() {
 
             return (
               <div key={idx} style={{ display: 'flex', gap: 16, paddingBottom: 20 }}>
-                {/* Dot + line */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{
                     width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
@@ -82,7 +130,6 @@ export default function ReportStatusPage() {
                                   background: isDone ? 'var(--risk-low)' : 'var(--bg-raised)' }} />
                   )}
                 </div>
-                {/* Content */}
                 <div style={{ paddingBottom: 4 }}>
                   <div style={{ fontSize: 13, fontWeight: isCurrent ? 700 : 500,
                                 color: isPending ? 'var(--text-ghost)' : 'var(--text-hi)',

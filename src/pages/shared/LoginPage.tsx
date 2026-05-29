@@ -1,8 +1,13 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { isApiEnabled } from '@/services/api/client';
+import { login, saveSession } from '@/services/api/authService';
+import { adaptApiUser, getRouteForRole } from '@/services/adapters/authAdapter';
+import { useUser } from '@/context/UserContext';
 
 const schema = z.object({
   email:    z.string().email('E-mail inválido'),
@@ -12,12 +17,31 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { setProfile } = useUser();
+  const [loginError, setLoginError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async () => {
-    // Any credentials work — demo prototype
+  const onSubmit = async (data: FormData) => {
+    setLoginError(null);
+
+    if (isApiEnabled()) {
+      try {
+        const token = await login(data.email, data.password);
+        saveSession(token);
+        const profile = adaptApiUser(token.user);
+        setProfile(profile);
+        navigate(getRouteForRole(profile.role));
+        return;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Credenciais inválidas.';
+        setLoginError(msg);
+        return;
+      }
+    }
+
+    // Mock mode — any credentials accepted for demonstration
     await new Promise(r => setTimeout(r, 400));
     navigate('/select-profile');
   };
@@ -93,6 +117,14 @@ export default function LoginPage() {
             )}
           </div>
 
+          {loginError && (
+            <p style={{ fontSize: 12, color: 'var(--risk-crit)', padding: '8px 12px',
+                         background: 'color-mix(in oklch, var(--risk-crit) 10%, transparent)',
+                         borderRadius: 6, margin: 0 }}>
+              {loginError}
+            </p>
+          )}
+
           <button type="submit" disabled={isSubmitting} style={{
             width: '100%', padding: '12px 0', borderRadius: 6, border: 'none',
             background: isSubmitting ? 'var(--bg-raised)' : 'var(--orbital)',
@@ -114,7 +146,10 @@ export default function LoginPage() {
         <div style={{ marginTop: 20, padding: '10px 12px', background: 'var(--bg-raised)',
                       borderRadius: 6, fontSize: 11, color: 'var(--text-ghost)',
                       textAlign: 'center', lineHeight: 1.5 }}>
-          Protótipo demonstrativo — qualquer credencial é aceita.<br />
+          {isApiEnabled()
+            ? <>Use as credenciais do sistema para acessar.<br /></>
+            : <>Protótipo demonstrativo — qualquer credencial é aceita.<br /></>
+          }
           FIAP GS 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427
         </div>
       </motion.div>

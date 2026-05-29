@@ -4,9 +4,12 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
-import { PROTECTED_AREAS } from '@/data/areas';
 import type { OccurrenceType, RiskLevel } from '@/types/domain';
 import { Marker, useMapEvents } from 'react-leaflet';
+import { isApiEnabled } from '@/services/api/client';
+import { submitReport } from '@/services/api/publicReportsService';
+import { buildApiReportBody } from '@/services/adapters/reportAdapter';
+import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 
 const OCCURRENCE_LABELS: Record<OccurrenceType, string> = {
   'incendio':          'Incêndio Florestal',
@@ -49,6 +52,8 @@ export default function RegisterReportPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { areas: PROTECTED_AREAS } = useProtectedAreas();
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch } =
     useForm<FormData>({
@@ -63,10 +68,46 @@ export default function RegisterReportPage() {
   const isAnon = watch('isAnonymous');
 
   const onSubmit = async (data: FormData) => {
+    setSubmitError(null);
+
+    if (isApiEnabled()) {
+      try {
+        const body = buildApiReportBody(
+          data.occurrenceType,
+          data.description,
+          data.urgency,
+          data.isAnonymous,
+          coords,
+          data.areaId || null,
+          data.reporterName ?? null,
+        );
+        const result = await submitReport(body);
+        // Save protocol to sessionStorage so ReportStatusPage can show it immediately
+        sessionStorage.setItem(`ignis_report_${result.protocol}`, JSON.stringify({
+          id:          result.protocol,
+          occurrenceType: data.occurrenceType,
+          areaId:      data.areaId || null,
+          description: data.description,
+          urgency:     data.urgency,
+          isAnonymous: data.isAnonymous,
+          reporterName: data.isAnonymous ? null : (data.reporterName?.trim() || null),
+          coords:      coords ?? null,
+          status:      'em-triagem',
+          submittedAt: result.created_at,
+          protocol:    result.protocol,
+        }));
+        navigate(`/public/report/status/${result.protocol}`);
+        return;
+      } catch {
+        setSubmitError('Não foi possível enviar via API. Tente novamente ou use o modo offline.');
+        return;
+      }
+    }
+
+    // Mock fallback (VITE_USE_API=false)
     await new Promise(r => setTimeout(r, 500));
     const id = `RPT-${Date.now().toString(36).toUpperCase()}`;
-
-    const submittedReport = {
+    sessionStorage.setItem(`ignis_report_${id}`, JSON.stringify({
       id,
       occurrenceType: data.occurrenceType,
       areaId:         data.areaId || null,
@@ -77,9 +118,7 @@ export default function RegisterReportPage() {
       coords:         coords ?? null,
       status:         'em-triagem',
       submittedAt:    new Date().toISOString(),
-    };
-
-    sessionStorage.setItem(`ignis_report_${id}`, JSON.stringify(submittedReport));
+    }));
     navigate(`/public/report/status/${id}`);
   };
 
@@ -181,6 +220,14 @@ export default function RegisterReportPage() {
             {errors.declaration && (
               <p style={{ fontSize: 11, color: 'var(--risk-crit)', marginTop: -16 }}>
                 {errors.declaration.message}
+              </p>
+            )}
+
+            {submitError && (
+              <p style={{ fontSize: 12, color: 'var(--risk-crit)', padding: '8px 12px',
+                           background: 'color-mix(in oklch, var(--risk-crit) 10%, transparent)',
+                           borderRadius: 6, margin: 0 }}>
+                {submitError}
               </p>
             )}
 

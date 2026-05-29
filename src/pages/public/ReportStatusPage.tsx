@@ -1,7 +1,11 @@
 import { useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { getReportById } from '@/data/reports';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import type { ReportStatus } from '@/types/domain';
+import { isApiEnabled } from '@/services/api/client';
+import { lookupReport } from '@/services/api/publicReportsService';
+import { adaptApiReportStatus } from '@/services/adapters/reportAdapter';
 
 interface SubmittedReport {
   id: string;
@@ -38,17 +42,39 @@ const STATUS_ORDER: Record<ReportStatus, number> = {
   'convertida-incidente': 4, 'descartada': 5,
 };
 
+// An API protocol looks like RP-20260101-ABCD
+function isApiProtocol(id: string): boolean {
+  return /^RP-\d{8}-[A-Z0-9]{4}$/.test(id);
+}
+
 export default function ReportStatusPage() {
   const { id } = useParams<{ id: string }>();
 
-  // Priority: freshly submitted (sessionStorage) → mock DB → fallback
+  const shouldLookup = !!id && isApiEnabled() && isApiProtocol(id);
+  const apiQuery = useQuery({
+    queryKey: ['report-status', id],
+    queryFn:  () => lookupReport(id!),
+    enabled:  shouldLookup,
+    staleTime: 30_000,
+    retry: 1,
+  });
+
+  // Priority: API response → sessionStorage → mock DB → fallback
   const sessionReport = id ? getSessionReport(id) : null;
   const dbReport      = id && !sessionReport ? getReportById(id) : null;
 
-  const status: ReportStatus = sessionReport?.status ?? dbReport?.status ?? 'em-triagem';
+  const apiStatus: ReportStatus | undefined = apiQuery.data
+    ? adaptApiReportStatus(apiQuery.data).status
+    : undefined;
+
+  const status: ReportStatus = apiStatus ?? sessionReport?.status ?? dbReport?.status ?? 'em-triagem';
   const currentOrder = STATUS_ORDER[status] ?? 1;
-  const coords = sessionReport?.coords ?? dbReport?.coords ?? null;
-  const submittedAt = sessionReport?.submittedAt ?? dbReport?.submittedAt ?? null;
+  const coords = sessionReport?.coords ?? (dbReport && 'coords' in dbReport ? dbReport.coords : null) ?? null;
+  const submittedAt =
+    apiQuery.data?.created_at ??
+    sessionReport?.submittedAt ??
+    dbReport?.submittedAt ??
+    null;
 
   return (
     <div style={{ padding: '48px 48px', maxWidth: 680, margin: '0 auto' }}>

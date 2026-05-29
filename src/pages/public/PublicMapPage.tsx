@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
-import { PROTECTED_AREAS } from '@/data/areas';
 import { getPolygonPositions } from '@/lib/geo';
 import { Polygon } from 'react-leaflet';
 import type { ProtectedArea } from '@/types/domain';
+import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 
 export default function PublicMapPage() {
   const [selected, setSelected] = useState<ProtectedArea | null>(null);
+  const { areas: PROTECTED_AREAS } = useProtectedAreas();
 
   return (
     <div style={{ height: 'calc(100vh - 52px)', display: 'flex', overflow: 'hidden' }}>

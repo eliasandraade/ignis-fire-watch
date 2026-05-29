@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { IncidentCard } from '@/components/gestor/IncidentCard';
-import { getCriticalIncident, getActiveIncidents } from '@/data/incidents';
-import { getPendingReports } from '@/data/reports';
+import { useActiveIncidents, useCriticalIncident } from '@/hooks/useIncidents';
+import { useInternalReports } from '@/hooks/useInternalReports';
 import { TEAMS } from '@/data/operations';
 import { ESG_DATA } from '@/data/esg';
 import {
@@ -10,9 +10,11 @@ import {
 } from 'recharts';
 
 export default function GestorDashboardPage() {
-  const critical = getCriticalIncident();
-  const active   = getActiveIncidents();
-  const pending  = getPendingReports();
+  const { incidents: active } = useActiveIncidents();
+  const { incident: critical } = useCriticalIncident();
+  const { reports } = useInternalReports();
+
+  const pending  = reports.filter(r => r.status === 'em-triagem');
   const mobilized = TEAMS.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
 
   return (
@@ -28,7 +30,7 @@ export default function GestorDashboardPage() {
         }}>
           <div>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--risk-crit)' }}>
-              ⚠ INCIDENTE CRÍTICO ATIVO — {critical.id}
+              ⚠ INCIDENTE CRÍTICO ATIVO — {critical.code ?? critical.id}
             </span>
             <span style={{ fontSize: 12, color: 'var(--text-lo)', marginLeft: 12 }}>
               {critical.description.substring(0, 80)}...
@@ -51,7 +53,8 @@ export default function GestorDashboardPage() {
         <MetricCard value={active.length}  label="Incidentes Ativos"  accent="var(--risk-high)" />
         <MetricCard value={pending.length} label="Denúncias Pendentes" accent="var(--risk-med)" />
         <MetricCard value={mobilized.length} label="Equipes Mobilizadas" accent="var(--orbital)" />
-        <MetricCard value={1}              label="Alertas Críticos"   accent="var(--risk-crit)" />
+        <MetricCard value={active.filter(i => i.risk === 'critical').length}
+                    label="Alertas Críticos" accent="var(--risk-crit)" />
         <MetricCard value={18}             label="Tempo Médio Resposta" unit="min" />
       </div>
 
@@ -105,7 +108,7 @@ export default function GestorDashboardPage() {
               </p>
               <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-ghost)',
                             fontStyle: 'italic' }}>
-                Confiança: {critical.aurora.confidence}% — Resposta simulada
+                Confiança: {critical.aurora.confidence}% — Análise rule-based demonstrativa
               </div>
             </>
           ) : (

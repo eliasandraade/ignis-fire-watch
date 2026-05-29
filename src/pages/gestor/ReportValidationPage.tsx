@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getReportById } from '@/data/reports';
+import { isApiEnabled } from '@/services/api/client';
+import { useInternalReportDetail, useReportActions } from '@/hooks/useInternalReports';
 import { OCCURRENCE_LABEL } from '@/lib/labels';
 import { getAreaById } from '@/data/areas';
-import { getCriticalIncident } from '@/data/incidents';
+import { useCriticalIncident } from '@/hooks/useIncidents';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -14,17 +15,29 @@ export default function ReportValidationPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const apiEnabled = isApiEnabled();
+
   const [decision, setDecision] = useState<'none' | 'validated' | 'discarded' | 'converted'>('none');
 
-  const report = id ? getReportById(id) : null;
-  const area   = report?.areaId ? getAreaById(report.areaId) : null;
-  const critical = getCriticalIncident();
+  const { report, loading } = useInternalReportDetail(id);
+  const { incident: critical } = useCriticalIncident();
+  const { validate, discard, convert } = useReportActions();
+
+  const area = report?.areaId ? getAreaById(report.areaId) : null;
 
   const mapCenter: [number, number] = area
     ? area.center
     : report?.coords
       ? [report.coords.lat, report.coords.lng]
       : [-4.5, -39.0];
+
+  if (loading) {
+    return (
+      <div style={{ padding: 32 }}>
+        <p style={{ color: 'var(--text-mid)' }}>Carregando denúncia...</p>
+      </div>
+    );
+  }
 
   if (!report) {
     return (
@@ -38,21 +51,64 @@ export default function ReportValidationPage() {
   }
 
   const handleValidate = () => {
-    setDecision('validated');
-    toast({ title: 'Denúncia validada ✓', description: `${report.id} — protótipo` });
+    if (apiEnabled) {
+      validate.mutate(
+        { id: report.id },
+        {
+          onSuccess: () => {
+            setDecision('validated');
+            toast({ title: 'Denúncia validada ✓', description: report.id });
+          },
+          onError: () => toast({ title: 'Erro ao validar', description: 'Tente novamente.' }),
+        },
+      );
+    } else {
+      setDecision('validated');
+      toast({ title: 'Denúncia validada ✓', description: `${report.id} — protótipo` });
+    }
   };
 
   const handleConvert = () => {
-    setDecision('converted');
-    toast({ title: 'Convertida em incidente', description: 'Redirecionando à Central Tática...' });
-    setTimeout(() => navigate('/gestor/war-room'), 1500);
+    if (apiEnabled) {
+      convert.mutate(report.id, {
+        onSuccess: () => {
+          setDecision('converted');
+          toast({ title: 'Convertida em incidente', description: 'Redirecionando à Central Tática...' });
+          setTimeout(() => navigate('/gestor/war-room'), 1500);
+        },
+        onError: (err) => {
+          const msg = err instanceof Error ? err.message : 'Erro ao converter.';
+          toast({ title: 'Erro ao converter', description: msg });
+        },
+      });
+    } else {
+      setDecision('converted');
+      toast({ title: 'Convertida em incidente', description: 'Redirecionando à Central Tática...' });
+      setTimeout(() => navigate('/gestor/war-room'), 1500);
+    }
   };
 
   const handleDiscard = () => {
-    setDecision('discarded');
-    toast({ title: 'Denúncia descartada', description: report.id });
-    setTimeout(() => navigate('/gestor/reports'), 1200);
+    if (apiEnabled) {
+      discard.mutate(
+        { id: report.id },
+        {
+          onSuccess: () => {
+            setDecision('discarded');
+            toast({ title: 'Denúncia descartada', description: report.id });
+            setTimeout(() => navigate('/gestor/reports'), 1200);
+          },
+          onError: () => toast({ title: 'Erro ao descartar', description: 'Tente novamente.' }),
+        },
+      );
+    } else {
+      setDecision('discarded');
+      toast({ title: 'Denúncia descartada', description: report.id });
+      setTimeout(() => navigate('/gestor/reports'), 1200);
+    }
   };
+
+  const isBusy = validate.isPending || discard.isPending || convert.isPending;
 
   return (
     <div style={{ padding: 24 }}>
@@ -153,7 +209,7 @@ export default function ReportValidationPage() {
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-lo)', margin: 0, lineHeight: 1.5 }}>
               {area && critical && area.id === critical.areaId
-                ? `Esta denúncia está relacionada ao incidente crítico ${critical.id}. Dados orbitais simulados confirmam ocorrência na área. Confiança: ${critical.confidence}%.`
+                ? `Esta denúncia está relacionada ao incidente crítico ${critical.code ?? critical.id}. Dados orbitais simulados confirmam ocorrência na área. Confiança: ${critical.confidence}%.`
                 : `Sem cruzamento orbital confirmado para esta denúncia no momento. Recomenda-se verificação in loco. — Resposta simulada — protótipo demonstrativo`
               }
             </p>
@@ -181,29 +237,32 @@ export default function ReportValidationPage() {
 
           {decision === 'none' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button onClick={handleValidate} style={{
-                padding: '12px', borderRadius: 6, border: '1px solid color-mix(in oklch, var(--risk-low) 35%, transparent)',
-                cursor: 'pointer',
+              <button onClick={handleValidate} disabled={isBusy} style={{
+                padding: '12px', borderRadius: 6,
+                border: '1px solid color-mix(in oklch, var(--risk-low) 35%, transparent)',
+                cursor: isBusy ? 'default' : 'pointer',
                 background: 'color-mix(in oklch, var(--risk-low) 15%, transparent)',
                 color: 'var(--risk-low)', fontSize: 14, fontWeight: 700,
-                fontFamily: 'inherit',
+                fontFamily: 'inherit', opacity: isBusy ? 0.6 : 1,
               }}>
-                ✓ Validar Denúncia
+                {validate.isPending ? 'Validando...' : '✓ Validar Denúncia'}
               </button>
-              <button onClick={handleConvert} style={{
-                padding: '12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              <button onClick={handleConvert} disabled={isBusy} style={{
+                padding: '12px', borderRadius: 6, border: 'none',
+                cursor: isBusy ? 'default' : 'pointer',
                 background: 'color-mix(in oklch, var(--risk-crit) 15%, transparent)',
                 color: 'var(--risk-crit)', fontSize: 14, fontWeight: 700,
-                fontFamily: 'inherit',
+                fontFamily: 'inherit', opacity: isBusy ? 0.6 : 1,
               }}>
-                ⚡ Converter em Incidente
+                {convert.isPending ? 'Convertendo...' : '⚡ Converter em Incidente'}
               </button>
-              <button onClick={handleDiscard} style={{
-                padding: '12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              <button onClick={handleDiscard} disabled={isBusy} style={{
+                padding: '12px', borderRadius: 6, border: 'none',
+                cursor: isBusy ? 'default' : 'pointer',
                 background: 'var(--bg-raised)', color: 'var(--text-ghost)',
-                fontSize: 14, fontFamily: 'inherit',
+                fontSize: 14, fontFamily: 'inherit', opacity: isBusy ? 0.6 : 1,
               }}>
-                ✗ Descartar
+                {discard.isPending ? 'Descartando...' : '✗ Descartar'}
               </button>
             </div>
           ) : (

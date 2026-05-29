@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
-import { getAreasSortedByRisk } from '@/data/areas';
+import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import type { RiskLevel } from '@/types/domain';
+
+const RISK_ORDER: Record<RiskLevel, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
 function getRiskColor(risk: RiskLevel): string {
   switch (risk) {
@@ -40,7 +42,8 @@ function RiskPill({ risk }: { risk: RiskLevel }) {
 }
 
 export default function RiskRankingPage() {
-  const areas = getAreasSortedByRisk();
+  const { areas: allAreas } = useProtectedAreas();
+  const areas = [...allAreas].sort((a, b) => (RISK_ORDER[a.risk] ?? 3) - (RISK_ORDER[b.risk] ?? 3));
 
   return (
     <div style={{

@@ -24,7 +24,7 @@ export function IncidentCard({ incident }: Props) {
         <div>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
                         fontWeight: 700, color: 'var(--text-hi)', marginBottom: 3 }}>
-            {incident.id}
+            {incident.code ?? incident.id}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-lo)' }}>
             {area?.name ?? incident.areaId}

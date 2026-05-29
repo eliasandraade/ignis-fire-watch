@@ -63,6 +63,7 @@ export interface Evidence {
 
 export interface Incident {
   id: string;
+  code?: string;
   areaId: string;
   type: IncidentType;
   status: IncidentStatus;

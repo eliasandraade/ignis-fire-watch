@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { getIncidentById } from '@/data/incidents';
+import { useIncidentDetail } from '@/hooks/useIncidentDetail';
 import { getAreaById } from '@/data/areas';
 import { TEAMS } from '@/data/operations';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
@@ -14,11 +14,19 @@ import { getPolygonPositions } from '@/lib/geo';
 
 export default function ActiveIncidentPage() {
   const { id } = useParams<{ id: string }>();
-  const incident = id ? getIncidentById(id) : null;
-  const area     = incident ? getAreaById(incident.areaId) : null;
-  const teams    = incident
+  const { incident, loading } = useIncidentDetail(id);
+  const area = incident ? getAreaById(incident.areaId) : null;
+  const teams = incident
     ? TEAMS.filter(t => incident.assignedTeams.includes(t.id))
     : [];
+
+  if (loading) {
+    return (
+      <div style={{ padding: 32 }}>
+        <p style={{ color: 'var(--text-mid)' }}>Carregando incidente...</p>
+      </div>
+    );
+  }
 
   if (!incident) {
     return (
@@ -29,14 +37,14 @@ export default function ActiveIncidentPage() {
     );
   }
 
-  const fireRadius = Math.sqrt(incident.affectedHectares * 10000 / Math.PI);
+  const fireRadius = Math.sqrt((incident.affectedHectares || 1) * 10000 / Math.PI);
   const mapCenter: [number, number] = area?.center ?? [-4.5, -39.0];
 
   const TEAM_STATUS_COLOR: Record<string, string> = {
-    disponivel: 'var(--risk-low)',
-    mobilizado: 'var(--risk-high)',
+    disponivel:    'var(--risk-low)',
+    mobilizado:    'var(--risk-high)',
     'em-transito': 'var(--orbital)',
-    indisponivel: 'var(--text-ghost)',
+    indisponivel:  'var(--text-ghost)',
   };
 
   return (
@@ -48,7 +56,7 @@ export default function ActiveIncidentPage() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 18,
                            fontWeight: 700, color: 'var(--text-hi)' }}>
-              {incident.id}
+              {incident.code ?? incident.id}
             </span>
             <RiskBadge risk={incident.risk} />
             <StatusBadge status={incident.status} />
@@ -87,7 +95,6 @@ export default function ActiveIncidentPage() {
             </OrbitalMap>
           </div>
 
-          {/* Null area fallback */}
           {!area && (
             <div style={{ padding: '10px 14px', background: 'var(--bg-surface)',
                           borderRadius: 6, border: '1px solid var(--bg-raised)',
@@ -96,7 +103,6 @@ export default function ActiveIncidentPage() {
             </div>
           )}
 
-          {/* 3 metric cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             <MetricCard value={incident.affectedHectares} unit="ha" label="Área Afetada"
                         accent="var(--risk-high)" />
@@ -109,7 +115,6 @@ export default function ActiveIncidentPage() {
             />
           </div>
 
-          {/* Weather */}
           <WeatherBlock
             temperature={incident.temperature}
             humidity={incident.humidity}
@@ -132,7 +137,7 @@ export default function ActiveIncidentPage() {
               {incident.aurora.recommendation}
             </p>
             <div style={{ fontSize: 11, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
-              Confiança: {incident.aurora.confidence}% — Resposta simulada — protótipo demonstrativo
+              Confiança: {incident.aurora.confidence}% — Análise rule-based — protótipo demonstrativo
             </div>
           </div>
         </div>
@@ -178,7 +183,13 @@ export default function ActiveIncidentPage() {
                           marginBottom: 12 }}>
               Timeline ({incident.events.length})
             </div>
-            <IncidentTimeline events={incident.events} reverse />
+            {incident.events.length > 0 ? (
+              <IncidentTimeline events={incident.events} reverse />
+            ) : (
+              <p style={{ fontSize: 13, color: 'var(--text-ghost)', margin: 0 }}>
+                Nenhum evento registrado.
+              </p>
+            )}
           </div>
 
           {/* Evidence */}

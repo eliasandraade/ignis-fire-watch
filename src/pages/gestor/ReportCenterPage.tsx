@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ReportTable } from '@/components/gestor/ReportTable';
-import { PUBLIC_REPORTS } from '@/data/reports';
+import { useInternalReports } from '@/hooks/useInternalReports';
 import type { ReportStatus } from '@/types/domain';
 
 const TABS: { key: ReportStatus | 'all'; label: string }[] = [
@@ -14,8 +14,9 @@ const TABS: { key: ReportStatus | 'all'; label: string }[] = [
 export default function ReportCenterPage() {
   const [activeTab, setActiveTab] = useState<ReportStatus | 'all'>('all');
   const [search, setSearch]       = useState('');
+  const { reports, loading, fromApi } = useInternalReports();
 
-  const filtered = PUBLIC_REPORTS
+  const filtered = reports
     .filter(r => activeTab === 'all' || r.status === activeTab)
     .filter(r => {
       if (!search.trim()) return true;
@@ -40,7 +41,10 @@ export default function ReportCenterPage() {
           Central de Denúncias
         </h1>
         <p style={{ fontSize: 13, color: 'var(--text-lo)', margin: '4px 0 0' }}>
-          {PUBLIC_REPORTS.length} denúncias registradas · Protótipo demonstrativo
+          {reports.length} denúncias registradas
+          {fromApi
+            ? ' · dados em tempo real'
+            : ' · dados demonstrativos'}
         </p>
       </div>
 
@@ -64,7 +68,13 @@ export default function ReportCenterPage() {
         />
       </div>
 
-      <ReportTable reports={filtered} />
+      {loading ? (
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-ghost)', fontSize: 14 }}>
+          Carregando denúncias...
+        </div>
+      ) : (
+        <ReportTable reports={filtered} />
+      )}
     </div>
   );
 }

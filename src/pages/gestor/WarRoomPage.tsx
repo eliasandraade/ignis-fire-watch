@@ -6,23 +6,21 @@ import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { IncidentTimeline } from '@/components/gestor/IncidentTimeline';
 import { WeatherBlock } from '@/components/gestor/WeatherBlock';
-import { getCriticalIncident } from '@/data/incidents';
-import { getAreaById } from '@/data/areas';
-import { TEAMS, PROTOCOL_INCENDIO } from '@/data/operations';
+import { useWarRoom } from '@/hooks/useWarRoom';
+import { PROTOCOL_INCENDIO } from '@/data/operations';
 import { getPolygonPositions } from '@/lib/geo';
 import { useToast } from '@/hooks/use-toast';
+import { isApiEnabled } from '@/services/api/client';
+import { activateProtocol } from '@/services/api/incidentsService';
 import type { ProtocolStep } from '@/types/domain';
 
 export default function WarRoomPage() {
-  const incident = getCriticalIncident();
-  const area     = incident ? getAreaById(incident.areaId) : null;
-  const teams    = incident
-    ? TEAMS.filter(t => incident.assignedTeams.includes(t.id))
-    : [];
+  const { incident, area, loading } = useWarRoom();
+  const apiEnabled = isApiEnabled();
 
-  const [clock, setClock]       = useState(new Date());
+  const [clock, setClock]           = useState(new Date());
   const [reinforced, setReinforced] = useState(false);
-  const [steps, setSteps]       = useState<ProtocolStep[]>(PROTOCOL_INCENDIO.steps);
+  const [steps, setSteps]           = useState<ProtocolStep[]>(PROTOCOL_INCENDIO.steps);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,15 +29,32 @@ export default function WarRoomPage() {
   }, []);
 
   const toggleStep = (id: string) => {
-    setSteps(prev => prev.map(s =>
-      s.id === id ? { ...s, completed: !s.completed } : s
-    ));
+    setSteps(prev => prev.map(s => s.id === id ? { ...s, completed: !s.completed } : s));
   };
 
-  const handleReinforce = () => {
+  const handleReinforce = async () => {
+    if (apiEnabled && incident?.id) {
+      try {
+        await activateProtocol(incident.id);
+        toast({ title: 'Protocolo ativado', description: `${incident.code ?? incident.id}` });
+      } catch {
+        toast({ title: 'Protocolo registrado localmente', description: 'API indisponível no momento.' });
+      }
+    } else {
+      toast({ title: 'Protocolo reforçado', description: 'Ação registrada localmente — protótipo' });
+    }
     setReinforced(true);
-    toast({ title: 'Protocolo reforçado', description: 'Ação registrada localmente — protótipo' });
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    height: '100vh', background: 'var(--bg-void)',
+                    flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 18, color: 'var(--text-mid)' }}>Carregando Central Tática...</div>
+      </div>
+    );
+  }
 
   if (!incident || !area) {
     return (
@@ -55,14 +70,13 @@ export default function WarRoomPage() {
   }
 
   const polygonPositions = getPolygonPositions(area.geometry);
-  // Fire circle radius: ~56m per ha (circle approximation)
-  const fireRadius = Math.sqrt(incident.affectedHectares * 10000 / Math.PI);
+  const fireRadius = Math.sqrt((incident.affectedHectares || 1) * 10000 / Math.PI);
 
   const TEAM_DOT: Record<string, string> = {
-    disponivel:  'var(--risk-low)',
-    mobilizado:  'var(--risk-high)',
-    'em-transito':'var(--orbital)',
-    indisponivel:'var(--text-ghost)',
+    disponivel:    'var(--risk-low)',
+    mobilizado:    'var(--risk-high)',
+    'em-transito': 'var(--orbital)',
+    indisponivel:  'var(--text-ghost)',
   };
 
   return (
@@ -84,14 +98,12 @@ export default function WarRoomPage() {
         </span>
         <div style={{ width: 1, height: 20, background: 'var(--bg-raised)', margin: '0 4px' }} />
 
-        {/* Incident ID + status */}
         <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
                        fontWeight: 700, color: 'var(--text-hi)' }}>
-          {incident.id}
+          {incident.code ?? incident.id}
         </span>
         <StatusBadge status={incident.status} size="sm" />
 
-        {/* Weather telemetry */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, alignItems: 'center' }}>
           {[
             { label: 'T', value: `${incident.temperature}°C`, crit: incident.temperature > 35 },
@@ -106,13 +118,11 @@ export default function WarRoomPage() {
               </div>
             </div>
           ))}
-          {/* Live clock */}
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14,
                         fontWeight: 700, color: 'var(--orbital)', minWidth: 72,
                         textAlign: 'right' }}>
             {clock.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
-          {/* Incident link */}
           <Link to={`/gestor/incident/${incident.id}`} style={{
             fontSize: 12, color: 'var(--orbital)', textDecoration: 'none',
             border: '1px solid var(--orbital)', borderRadius: 4, padding: '3px 8px',
@@ -131,7 +141,6 @@ export default function WarRoomPage() {
         <div style={{ background: 'var(--bg-deep)', borderRight: '1px solid var(--bg-raised)',
                       overflowY: 'auto', padding: 14,
                       display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Area + coords */}
           <div>
             <RiskBadge risk={incident.risk} />
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-hi)',
@@ -144,7 +153,6 @@ export default function WarRoomPage() {
             </div>
           </div>
 
-          {/* Metrics */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
               { label: 'Área Afetada', value: `${incident.affectedHectares}ha` },
@@ -166,30 +174,6 @@ export default function WarRoomPage() {
             ))}
           </div>
 
-          {/* Teams */}
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-ghost)', textTransform: 'uppercase',
-                          letterSpacing: '0.08em', marginBottom: 8 }}>
-              Equipes ({teams.length})
-            </div>
-            {teams.map(t => (
-              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8,
-                                       marginBottom: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                              background: TEAM_DOT[t.status] ?? 'var(--text-ghost)' }} />
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-hi)' }}>
-                    {t.name}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-ghost)' }}>
-                    {t.location ?? t.id} · {t.members} membros
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Weather */}
           <WeatherBlock
             temperature={incident.temperature}
             humidity={incident.humidity}
@@ -197,7 +181,6 @@ export default function WarRoomPage() {
             windDirection={incident.windDirection}
           />
 
-          {/* dataQuality warning */}
           {area.dataQuality !== 'official' && (
             <div style={{ padding: '8px 10px',
                           background: 'oklch(70% 0.18 45 / 10%)',
@@ -208,7 +191,6 @@ export default function WarRoomPage() {
             </div>
           )}
 
-          {/* Reinforce button */}
           <button
             onClick={handleReinforce}
             disabled={reinforced}
@@ -220,7 +202,7 @@ export default function WarRoomPage() {
               fontFamily: 'inherit',
             }}
           >
-            {reinforced ? '✓ Protocolo Reforçado' : 'Reforçar Protocolo de Resposta'}
+            {reinforced ? '✓ Protocolo Ativado' : 'Reforçar Protocolo de Resposta'}
           </button>
         </div>
 
@@ -241,7 +223,6 @@ export default function WarRoomPage() {
             <Marker position={area.center} />
           </OrbitalMap>
 
-          {/* Legend */}
           <div style={{
             position: 'absolute', bottom: 16, left: 16, zIndex: 1000,
             background: 'oklch(11% 0.022 240 / 88%)',
@@ -292,7 +273,7 @@ export default function WarRoomPage() {
             </p>
             <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text-ghost)',
                           fontStyle: 'italic' }}>
-              Resposta simulada — protótipo demonstrativo
+              Análise rule-based — protótipo demonstrativo
             </div>
           </div>
 
@@ -300,9 +281,15 @@ export default function WarRoomPage() {
           <div>
             <div style={{ fontSize: 11, color: 'var(--text-ghost)', textTransform: 'uppercase',
                           letterSpacing: '0.08em', marginBottom: 10 }}>
-              Timeline
+              Timeline ({incident.events.length})
             </div>
-            <IncidentTimeline events={incident.events} reverse />
+            {incident.events.length > 0 ? (
+              <IncidentTimeline events={incident.events} reverse />
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
+                Nenhum evento registrado.
+              </div>
+            )}
           </div>
 
           {/* Protocol checklist */}
@@ -332,8 +319,7 @@ export default function WarRoomPage() {
                   </div>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: step.completed ? 600 : 400,
-                                  color: step.completed ? 'var(--risk-low)' : 'var(--text-mid)',
-                                  textDecoration: step.completed ? 'none' : 'none' }}>
+                                  color: step.completed ? 'var(--risk-low)' : 'var(--text-mid)' }}>
                       {step.title}
                     </div>
                     {step.completedBy && (

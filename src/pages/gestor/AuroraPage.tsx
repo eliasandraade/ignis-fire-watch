@@ -1,10 +1,11 @@
 import { AuroraChat } from '@/components/shared/AuroraChat';
-import { getCriticalIncident } from '@/data/incidents';
-import { PROTECTED_AREAS } from '@/data/areas';
+import { useCriticalIncident } from '@/hooks/useIncidents';
+import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 
 export default function AuroraPage() {
-  const critical = getCriticalIncident();
+  const { incident: critical } = useCriticalIncident();
+  const { areas } = useProtectedAreas();
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -32,7 +33,7 @@ export default function AuroraPage() {
             </div>
             <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12,
                           fontWeight: 700, color: 'var(--text-hi)', marginBottom: 4 }}>
-              {critical.id}
+              {critical.code ?? critical.id}
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-lo)', margin: 0, lineHeight: 1.4 }}>
               {critical.description.substring(0, 120)}...
@@ -48,7 +49,7 @@ export default function AuroraPage() {
             Áreas Monitoradas
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {PROTECTED_AREAS.map(area => (
+            {areas.map(area => (
               <div key={area.id} style={{ display: 'flex', justifyContent: 'space-between',
                                           alignItems: 'center', padding: '6px 8px',
                                           background: 'var(--bg-raised)', borderRadius: 5 }}>

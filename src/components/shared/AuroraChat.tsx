@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { isApiEnabled } from '@/services/api/client';
+import { chatWithAurora } from '@/services/api/auroraService';
 
 interface Message {
   id: string;
@@ -49,19 +51,43 @@ export function AuroraChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     if (!text.trim() || loading) return;
-    setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'user', text: text.trim() }]);
+    const userText = text.trim();
+    setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'user', text: userText }]);
     setInput('');
     setLoading(true);
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: crypto.randomUUID(),
-        role: 'aurora',
-        text: getMockResponse(text),
-      }]);
-      setLoading(false);
-    }, 900);
+
+    if (isApiEnabled()) {
+      try {
+        const res = await chatWithAurora({ message: userText });
+        const actions = res.suggested_actions?.length > 0
+          ? '\n\nAções sugeridas:\n' + res.suggested_actions.map(a => `• ${a}`).join('\n')
+          : '';
+        setMessages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          role: 'aurora',
+          text: res.response + actions + `\n\n— Confiança: ${Math.round(res.confidence * 100)}% · Análise rule-based demonstrativa`,
+        }]);
+      } catch {
+        setMessages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          role: 'aurora',
+          text: getMockResponse(userText),
+        }]);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          role: 'aurora',
+          text: getMockResponse(userText),
+        }]);
+        setLoading(false);
+      }, 900);
+    }
   };
 
   return (

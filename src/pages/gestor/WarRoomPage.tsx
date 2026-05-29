@@ -7,6 +7,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { IncidentTimeline } from '@/components/gestor/IncidentTimeline';
 import { WeatherBlock } from '@/components/gestor/WeatherBlock';
 import { useWarRoom } from '@/hooks/useWarRoom';
+import { useTeams } from '@/hooks/useTeams';
+import { useResources } from '@/hooks/useResources';
 import { PROTOCOL_INCENDIO } from '@/data/operations';
 import { getPolygonPositions } from '@/lib/geo';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +18,12 @@ import type { ProtocolStep } from '@/types/domain';
 
 export default function WarRoomPage() {
   const { incident, area, loading } = useWarRoom();
+  const { teams } = useTeams();
+  const { resources } = useResources();
   const apiEnabled = isApiEnabled();
+
+  const mobilizedTeams = teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
+  const deployedResources = resources.filter(r => r.status === 'mobilizado' || r.currentIncident);
 
   const [clock, setClock]           = useState(new Date());
   const [reinforced, setReinforced] = useState(false);
@@ -180,6 +187,61 @@ export default function WarRoomPage() {
             windSpeed={incident.windSpeed}
             windDirection={incident.windDirection}
           />
+
+          {/* Equipes mobilizadas */}
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase',
+                          letterSpacing: '0.08em', marginBottom: 6 }}>
+              Equipes ({mobilizedTeams.length})
+            </div>
+            {mobilizedTeams.length === 0 ? (
+              <div style={{ fontSize: 11, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
+                Nenhuma equipe mobilizada.
+              </div>
+            ) : mobilizedTeams.map(t => (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 7,
+                                       padding: '5px 0',
+                                       borderBottom: '1px solid var(--bg-raised)' }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                              background: TEAM_DOT[t.status] ?? 'var(--text-ghost)' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-hi)',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {t.name}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-ghost)' }}>{t.type}</div>
+                </div>
+                <StatusBadge status={t.status} size="sm" />
+              </div>
+            ))}
+          </div>
+
+          {/* Recursos implantados */}
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase',
+                          letterSpacing: '0.08em', marginBottom: 6 }}>
+              Recursos ({deployedResources.length})
+            </div>
+            {deployedResources.length === 0 ? (
+              <div style={{ fontSize: 11, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
+                Nenhum recurso alocado.
+              </div>
+            ) : deployedResources.map(r => (
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 7,
+                                       padding: '5px 0',
+                                       borderBottom: '1px solid var(--bg-raised)' }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                              background: TEAM_DOT[r.status] ?? 'var(--text-ghost)' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-hi)',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.name}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-ghost)' }}>{r.location}</div>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {area.dataQuality !== 'official' && (
             <div style={{ padding: '8px 10px',

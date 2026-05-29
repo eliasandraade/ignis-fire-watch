@@ -1,7 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useIncidentDetail } from '@/hooks/useIncidentDetail';
+import { useTeams } from '@/hooks/useTeams';
+import { useEvidence } from '@/hooks/useEvidence';
 import { getAreaById } from '@/data/areas';
-import { TEAMS } from '@/data/operations';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -15,10 +16,10 @@ import { getPolygonPositions } from '@/lib/geo';
 export default function ActiveIncidentPage() {
   const { id } = useParams<{ id: string }>();
   const { incident, loading } = useIncidentDetail(id);
+  const { teams: allTeams } = useTeams();
+  const { evidence } = useEvidence(id);
   const area = incident ? getAreaById(incident.areaId) : null;
-  const teams = incident
-    ? TEAMS.filter(t => incident.assignedTeams.includes(t.id))
-    : [];
+  const teams = allTeams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
 
   if (loading) {
     return (
@@ -198,9 +199,9 @@ export default function ActiveIncidentPage() {
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-mid)',
                           textTransform: 'uppercase', letterSpacing: '0.08em',
                           marginBottom: 12 }}>
-              Evidências ({incident.evidence.length})
+              Evidências ({evidence.length})
             </div>
-            <EvidenceGrid evidence={incident.evidence} />
+            <EvidenceGrid evidence={evidence} />
           </div>
         </div>
       </div>

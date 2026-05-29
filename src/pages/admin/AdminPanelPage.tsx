@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { MOCK_USERS } from '@/data/users';
-import { AUDIT_LOG } from '@/data/users';
+import { MOCK_USERS, AUDIT_LOG } from '@/data/users';
+import { useAdminUsers, useAuditLogs } from '@/hooks/useAdminStats';
+import { isApiEnabled } from '@/services/api/client';
 import type { UserRole } from '@/types/domain';
 
 function getRoleColor(role: UserRole): string {
@@ -9,7 +10,9 @@ function getRoleColor(role: UserRole): string {
     case 'gestor':   return 'var(--risk-low)';
     case 'campo':    return 'var(--risk-med)';
     case 'analista': return 'var(--risk-high)';
+    case 'orgao':    return 'var(--risk-med)';
     case 'publico':  return 'var(--text-ghost)';
+    default:         return 'var(--text-ghost)';
   }
 }
 
@@ -19,7 +22,9 @@ function getRoleLabel(role: UserRole): string {
     case 'gestor':   return 'Gestor';
     case 'campo':    return 'Campo';
     case 'analista': return 'Analista';
+    case 'orgao':    return 'Órgão';
     case 'publico':  return 'Público';
+    default:         return role;
   }
 }
 
@@ -33,6 +38,24 @@ function getEntityColor(entity: string): string {
 }
 
 export default function AdminPanelPage() {
+  const apiEnabled = isApiEnabled();
+  const usersQuery = useAdminUsers();
+  const auditQuery = useAuditLogs();
+
+  const apiUsers = apiEnabled && usersQuery.isSuccess ? usersQuery.data.items : null;
+  const apiAudit = apiEnabled && auditQuery.isSuccess ? auditQuery.data.items : null;
+
+  const displayUsers = apiUsers ?? MOCK_USERS;
+  const displayAudit = apiAudit
+    ? apiAudit.map(a => ({
+        id: a.id,
+        ts: a.created_at,
+        user: a.actor_name,
+        action: a.action,
+        entity: a.entity_type,
+      }))
+    : AUDIT_LOG;
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -80,7 +103,7 @@ export default function AdminPanelPage() {
           Usuários
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text-lo)', margin: '0 0 16px 0' }}>
-          {MOCK_USERS.length} usuários cadastrados
+          {displayUsers.length} usuários cadastrados{apiUsers ? ' · dados da API' : ' · protótipo demonstrativo'}
         </p>
 
         <div style={{
@@ -109,8 +132,9 @@ export default function AdminPanelPage() {
           </div>
 
           {/* User rows */}
-          {MOCK_USERS.map(u => {
-            const roleColor = getRoleColor(u.role);
+          {displayUsers.map(u => {
+            const role = (u as { role: UserRole }).role ?? 'publico';
+            const roleColor = getRoleColor(role);
             return (
               <div
                 key={u.id}
@@ -125,7 +149,7 @@ export default function AdminPanelPage() {
                 }}
               >
                 <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-ghost)', fontSize: 11 }}>
-                  {u.id}
+                  {u.id.substring(0, 8)}
                 </span>
                 <span style={{ color: 'var(--text-hi)', fontWeight: 500 }}>
                   {u.name}
@@ -144,18 +168,20 @@ export default function AdminPanelPage() {
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                   }}>
-                    {getRoleLabel(u.role)}
+                    {getRoleLabel(role)}
                   </span>
                 </span>
                 <span style={{ color: 'var(--text-mid)', fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>
-                  {new Date(u.lastLogin).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                  {'lastLogin' in u
+                    ? new Date((u as { lastLogin: string }).lastLogin).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+                    : ('created_at' in u ? new Date((u as { created_at: string }).created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—')}
                 </span>
                 <span style={{
-                  color: u.active ? 'var(--risk-low)' : 'var(--risk-crit)',
+                  color: 'active' in u ? ((u as { active: boolean }).active ? 'var(--risk-low)' : 'var(--risk-crit)') : 'var(--risk-low)',
                   fontSize: 12,
                   fontWeight: 600,
                 }}>
-                  {u.active ? '✓ Ativo' : '✗ Inativo'}
+                  {'active' in u ? ((u as { active: boolean }).active ? '✓ Ativo' : '✗ Inativo') : '✓ Ativo'}
                 </span>
               </div>
             );
@@ -168,7 +194,7 @@ export default function AdminPanelPage() {
         </h2>
 
         <div>
-          {AUDIT_LOG.map(a => {
+          {displayAudit.map(a => {
             const entityColor = getEntityColor(a.entity);
             return (
               <div

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
-import { getCriticalIncident } from '@/data/incidents';
+import { useCriticalIncident } from '@/hooks/useIncidents';
+import { useMissions } from '@/hooks/useMissions';
 import { getAreaById } from '@/data/areas';
-import { MISSIONS } from '@/data/operations';
 import { useToast } from '@/hooks/use-toast';
 
 export default function FieldOperationPage() {
@@ -13,9 +13,10 @@ export default function FieldOperationPage() {
   const [sent, setSent]       = useState(false);
   const { toast } = useToast();
 
-  const incident = getCriticalIncident();
+  const { incident } = useCriticalIncident();
+  const { missions } = useMissions(incident?.id);
   const area     = incident ? getAreaById(incident.areaId) : null;
-  const mission  = MISSIONS[0]; // Active mission for demo
+  const mission  = missions[0];
 
   const mapCenter: [number, number] = area?.center ?? [-4.5, -39.0];
 

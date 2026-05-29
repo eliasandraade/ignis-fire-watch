@@ -48,3 +48,4 @@ coverage/
 bun.lockb
 
 .vercel
+.gstack/

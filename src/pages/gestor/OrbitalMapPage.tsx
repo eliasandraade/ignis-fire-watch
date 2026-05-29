@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Polygon, Circle, Marker } from 'react-leaflet';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
@@ -33,6 +33,19 @@ export default function OrbitalMapPage() {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
 
   const activeIncidents = getActiveIncidents();
+
+  const polygonData = useMemo(
+    () => PROTECTED_AREAS.map(area => ({
+      area,
+      positions: getPolygonPositions(area.geometry),
+    })),
+    []
+  );
+
+  const handleSelectArea = useCallback(
+    (area: ProtectedArea) => setSelected(area),
+    []
+  );
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden', position: 'relative' }}>
@@ -72,10 +85,10 @@ export default function OrbitalMapPage() {
       <div style={{ flex: 1 }}>
         <OrbitalMap center={[-4.5, -39.0]} zoom={7} darkTiles>
           {/* Areas layer */}
-          {layers.areas && PROTECTED_AREAS.map(area => (
+          {layers.areas && polygonData.map(({ area, positions }) => (
             <Polygon
               key={area.id}
-              positions={getPolygonPositions(area.geometry)}
+              positions={positions}
               pathOptions={{
                 color: area.risk === 'critical' ? 'var(--risk-crit)'
                      : area.risk === 'high'     ? 'var(--risk-high)'
@@ -84,7 +97,7 @@ export default function OrbitalMapPage() {
                 fillOpacity: selected?.id === area.id ? 0.3 : 0.12,
                 weight: selected?.id === area.id ? 3 : 1.5,
               }}
-              eventHandlers={{ click: () => setSelected(area) }}
+              eventHandlers={{ click: () => handleSelectArea(area) }}
             />
           ))}
 

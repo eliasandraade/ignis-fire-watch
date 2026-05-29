@@ -76,7 +76,7 @@ export default function SplashPage() {
       {/* Footer note */}
       <div style={{ position: 'absolute', bottom: 24, fontSize: 11,
                     color: 'var(--text-ghost)', textAlign: 'center' }}>
-        FIAP Global Solution 2026 · Elias Sales de Freitas — RM561257
+        FIAP Global Solution 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 **FIAP — Global Solution 2026 · Turma 1TDSPH**
 Elias Sales de Freitas · RM561257
+João Vitor Bernardo · RM566427
 
 ---
 
@@ -136,4 +137,4 @@ Hospedado na Vercel com SPA rewrite via `vercel.json` — todas as 21 rotas resp
 ---
 
 *IGNIS Orbital — Conectando dados, salvando vidas.*
-*FIAP Global Solution 2026 · Elias Sales de Freitas RM561257*
+*FIAP Global Solution 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427*

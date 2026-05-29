@@ -115,7 +115,7 @@ export default function LoginPage() {
                       borderRadius: 6, fontSize: 11, color: 'var(--text-ghost)',
                       textAlign: 'center', lineHeight: 1.5 }}>
           Protótipo demonstrativo — qualquer credencial é aceita.<br />
-          FIAP GS 2026 · Elias Sales de Freitas — RM561257
+          FIAP GS 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427
         </div>
       </motion.div>
     </div>

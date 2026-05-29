@@ -51,12 +51,12 @@ export function AuroraChat() {
 
   const send = (text: string) => {
     if (!text.trim() || loading) return;
-    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: text.trim() }]);
+    setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'user', text: text.trim() }]);
     setInput('');
     setLoading(true);
     setTimeout(() => {
       setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         role: 'aurora',
         text: getMockResponse(text),
       }]);

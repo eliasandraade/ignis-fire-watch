@@ -23,7 +23,8 @@ const FieldOperationPage   = React.lazy(() => import('@/pages/gestor/FieldOperat
 const AuroraPage           = React.lazy(() => import('@/pages/gestor/AuroraPage'));
 const ESGReportPage        = React.lazy(() => import('@/pages/gestor/ESGReportPage'));
 const GestorAreaDetailPage = React.lazy(() => import('@/pages/gestor/GestorAreaDetailPage'));
-const RiskRankingPage      = React.lazy(() => import('@/pages/gestor/RiskRankingPage'));
+const RiskRankingPage        = React.lazy(() => import('@/pages/gestor/RiskRankingPage'));
+const EconomiaEspacialPage   = React.lazy(() => import('@/pages/gestor/EconomiaEspacialPage'));
 const AdminPanelPage       = React.lazy(() => import('@/pages/admin/AdminPanelPage'));
 
 const PageLoader = () => (
@@ -87,7 +88,8 @@ export const router = createBrowserRouter([
           { path: '/gestor/area/:id',     element: withSuspense(<GestorAreaDetailPage />) },
           { path: '/gestor/ranking',      element: withSuspense(<RiskRankingPage />) },
           { path: '/gestor/aurora',       element: withSuspense(<AuroraPage />) },
-          { path: '/gestor/esg',          element: withSuspense(<ESGReportPage />) },
+          { path: '/gestor/esg',              element: withSuspense(<ESGReportPage />) },
+          { path: '/gestor/economia-espacial', element: withSuspense(<EconomiaEspacialPage />) },
         ],
       },
     ],

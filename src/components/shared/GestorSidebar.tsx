@@ -8,7 +8,8 @@ const NAV_ITEMS = [
   { to: '/gestor/mobilization', label: 'Mobilização',      icon: '🚒', end: false },
   { to: '/gestor/ranking',      label: 'Ranking de Risco', icon: '📊', end: false },
   { to: '/gestor/aurora',       label: 'Aurora IA',        icon: '✦',  end: false },
-  { to: '/gestor/esg',          label: 'Relatório ESG',    icon: '🌿', end: false },
+  { to: '/gestor/esg',               label: 'Relatório ESG',    icon: '🌿', end: false },
+  { to: '/gestor/economia-espacial', label: 'Economia Espacial', icon: '🛰', end: false },
 ];
 
 export function GestorSidebar() {

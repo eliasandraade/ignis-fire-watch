@@ -1,5 +1,8 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { UserProfile, UserRole } from '@/types/domain';
+import { isApiEnabled } from '@/services/api/client';
+import { fetchMe, clearSession, getSavedUser } from '@/services/api/authService';
+import { adaptApiUser } from '@/services/adapters/authAdapter';
 
 interface UserCtx {
   profile: UserProfile | null;
@@ -26,8 +29,22 @@ const UserContext = createContext<UserCtx | null>(null);
 export function UserProvider({ children }: { children: ReactNode }) {
   const [profile, setProfileState] = useState<UserProfile | null>(null);
 
-  const setProfile  = (p: UserProfile) => setProfileState(p);
+  const setProfile   = (p: UserProfile) => setProfileState(p);
   const clearProfile = () => setProfileState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('ignis_token');
+    if (!token) return;
+
+    if (isApiEnabled()) {
+      fetchMe()
+        .then(user => setProfileState(adaptApiUser(user)))
+        .catch(() => { clearSession(); });
+    } else {
+      const saved = getSavedUser();
+      if (saved) setProfileState(adaptApiUser(saved));
+    }
+  }, []);
 
   const role = profile?.role ?? null;
 

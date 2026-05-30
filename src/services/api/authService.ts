@@ -1,6 +1,10 @@
 import { apiFetch } from './client';
 import type { ApiTokenResponse, ApiUserRead } from './types';
 
+export async function fetchMe(): Promise<ApiUserRead> {
+  return apiFetch<ApiUserRead>('/api/v1/auth/me');
+}
+
 export async function login(email: string, password: string): Promise<ApiTokenResponse> {
   return apiFetch<ApiTokenResponse>('/api/v1/auth/login', {
     method: 'POST',

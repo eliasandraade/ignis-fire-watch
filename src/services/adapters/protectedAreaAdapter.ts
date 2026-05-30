@@ -16,13 +16,18 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 function parseWktRing(wkt: string): [number, number][] | null {
   try {
-    // Works for both POLYGON ((...)) and first ring of MULTIPOLYGON (((...)))
-    const match = wkt.match(/\(\(([^)]+)\)/);
+    // Works for POLYGON ((lng lat, ...)) and MULTIPOLYGON (((lng lat, ...)))
+    // The captured group may start with '(' for MULTIPOLYGON — strip it.
+    const match = wkt.match(/\(\(+([^)]+)\)/);
     if (!match) return null;
-    return match[1].split(',').map(pair => {
+    const content = match[1].replace(/^\(+/, '');
+    return content.split(',').map(pair => {
       const parts = pair.trim().split(/\s+/);
-      return [parseFloat(parts[0]), parseFloat(parts[1])] as [number, number];
-    });
+      const lng = parseFloat(parts[0]);
+      const lat = parseFloat(parts[1]);
+      if (isNaN(lng) || isNaN(lat)) return null;
+      return [lng, lat] as [number, number];
+    }).filter((p): p is [number, number] => p !== null);
   } catch {
     return null;
   }

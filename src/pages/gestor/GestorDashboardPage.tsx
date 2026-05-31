@@ -58,6 +58,37 @@ export default function GestorDashboardPage() {
         <MetricCard value={18}             label="Tempo Médio Resposta" unit="min" />
       </div>
 
+      {/* Space Economy promo card */}
+      <Link to="/gestor/economia-espacial" style={{ textDecoration: 'none', display: 'block', marginBottom: 20 }}>
+        <div style={{
+          background: 'oklch(60% 0.18 220 / 0.06)',
+          border: '1px solid oklch(60% 0.18 220 / 0.25)',
+          borderLeft: '3px solid var(--orbital)',
+          borderRadius: 8,
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          transition: 'background 0.15s',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>🛰</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--orbital)', marginBottom: 2 }}>
+                Economia Espacial
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-lo)' }}>
+                Da órbita à proteção ambiental — cadeia de valor, fontes orbitais e roadmap de integração.
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--orbital)', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 16 }}>
+            Ver página →
+          </span>
+        </div>
+      </Link>
+
       {/* Charts + Aurora */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px',
                     gap: 20, marginBottom: 28 }}>

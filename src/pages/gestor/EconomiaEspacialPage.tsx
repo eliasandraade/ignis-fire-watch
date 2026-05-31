@@ -264,20 +264,49 @@ export default function EconomiaEspacialPage() {
           </div>
         </div>
 
+        {/* Central message — key phrase */}
+        <div
+          style={{
+            background: 'oklch(60% 0.18 220 / 0.07)',
+            border: '1px solid oklch(60% 0.18 220 / 0.22)',
+            borderLeft: '3px solid var(--orbital)',
+            borderRadius: 6,
+            padding: '10px 16px',
+            marginBottom: 16,
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-hi)', fontWeight: 600, lineHeight: 1.55 }}>
+            O IGNIS Orbital atua na camada de aplicação da economia espacial: transforma
+            infraestrutura orbital em inteligência ambiental e resposta operacional.
+          </p>
+        </div>
+
         <p
           style={{
             fontSize: 13,
             color: 'var(--text-lo)',
-            margin: '0 0 20px',
+            margin: '0 0 14px',
             lineHeight: 1.75,
             maxWidth: 700,
           }}
         >
-          O IGNIS Orbital conecta dados de satélites, sensoriamento remoto e inteligência
-          operacional para transformar infraestrutura espacial em valor ambiental, econômico
-          e institucional. Atuamos como camada de aplicação da economia espacial: cada dado
-          orbital vira protocolo, alerta, relatório ESG ou decisão de resposta em campo.
+          Cada dado orbital vira protocolo, alerta, relatório ESG ou decisão de resposta em campo.
+          APIs espaciais transformam infraestrutura complexa em serviço acessível a gestores
+          públicos e privados — reduzindo custo de monitoramento físico e ampliando cobertura.
         </p>
+
+        {/* Flow chain summary */}
+        <div
+          style={{
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: 11,
+            color: 'var(--text-ghost)',
+            marginBottom: 20,
+            letterSpacing: '0.03em',
+          }}
+        >
+          Satélite → dado orbital → geointeligência → alerta → protocolo → equipe → impacto econômico e ambiental
+        </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {HERO_BADGES.map((b) => (
@@ -452,8 +481,10 @@ export default function EconomiaEspacialPage() {
             fontStyle: 'italic',
           }}
         >
-          * métricas com asterisco são simuladas para demonstração acadêmica · IGNIS Orbital · FIAP GS 2026
-          · áreas e incidentes usam dados reais da API quando disponíveis.
+          Esta página usa métricas demonstrativas acadêmicas e arquitetura preparada para
+          integração futura com fontes orbitais públicas e comerciais. * métricas simuladas
+          para demonstração acadêmica · IGNIS Orbital · FIAP GS 2026 · áreas e incidentes
+          usam dados reais da API quando disponíveis.
         </div>
       </div>
 

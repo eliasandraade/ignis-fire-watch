@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { isApiEnabled } from '@/services/api/client';
+import { createDataSourceMeta, type DataSourceMeta } from '@/services/dataSource';
 import { fetchTeams } from '@/services/api/teamsService';
 import { adaptApiTeam } from '@/services/adapters/teamAdapter';
-import { TEAMS } from '@/data/operations';
+import { FALLBACK_TEAMS } from '@/data/fallback';
 import type { FieldTeam } from '@/types/domain';
 
 export function useTeams() {
@@ -20,16 +21,17 @@ export function useTeams() {
   });
 
   if (!apiEnabled) {
-    return { teams: TEAMS, loading: false, fromApi: false };
+    const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
+    return { teams: FALLBACK_TEAMS, loading: false, fromApi: false, dataSource };
   }
 
-  const teams: FieldTeam[] = query.isSuccess && query.data.length > 0
-    ? query.data
-    : TEAMS;
+  const teams: FieldTeam[] = query.isSuccess ? query.data : FALLBACK_TEAMS;
+  const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {
     teams,
     loading: query.isLoading,
-    fromApi: query.isSuccess && query.data.length > 0,
+    fromApi: query.isSuccess,
+    dataSource,
   };
 }

@@ -5,20 +5,23 @@ import { SpaceMetricCard, MissionGlow } from '@/components/orbital';
 import { staggerContainerVariants, orbitalGlowVariants } from '@/lib/motion';
 import { useActiveIncidents, useCriticalIncident } from '@/hooks/useIncidents';
 import { useInternalReports } from '@/hooks/useInternalReports';
-import { TEAMS } from '@/data/operations';
-import { ESG_DATA } from '@/data/esg';
+import { useTeams } from '@/hooks/useTeams';
+import { useESGReports } from '@/hooks/useESGReports';
+import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
 
 export default function GestorDashboardPage() {
   const reducedMotion = useReducedMotion();
-  const { incidents: active } = useActiveIncidents();
+  const { incidents: active, dataSource } = useActiveIncidents();
   const { incident: critical } = useCriticalIncident();
   const { reports } = useInternalReports();
+  const { teams } = useTeams();
+  const { latest: esgData } = useESGReports();
 
   const pending  = reports.filter(r => r.status === 'em-triagem');
-  const mobilized = TEAMS.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
+  const mobilized = teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
 
   return (
     <div style={{ padding: 24 }}>
@@ -50,6 +53,9 @@ export default function GestorDashboardPage() {
       )}
 
       {/* Metrics */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <DataSourceBadge status={dataSource.status} />
+      </div>
       <motion.div
         variants={staggerContainerVariants}
         initial="hidden"
@@ -119,7 +125,7 @@ export default function GestorDashboardPage() {
             Incidentes por Semana (Jan–Mai 2026)
           </div>
           <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={ESG_DATA.weeklyIncidents}>
+            <AreaChart data={esgData.weeklyIncidents}>
               <defs>
                 <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="oklch(65% 0.17 220)" stopOpacity={0.3} />

@@ -1,8 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { isApiEnabled } from '@/services/api/client';
+import { createDataSourceMeta, type DataSourceMeta } from '@/services/dataSource';
 import { fetchIncidents } from '@/services/api/incidentsService';
 import { adaptApiIncident } from '@/services/adapters/incidentAdapter';
-import { INCIDENTS, getActiveIncidents, getCriticalIncident } from '@/data/incidents';
+import {
+  FALLBACK_INCIDENTS,
+  getFallbackActiveIncidents,
+  getFallbackCriticalIncident,
+} from '@/data/fallback';
 import type { Incident } from '@/types/domain';
 
 export function useIncidents() {
@@ -20,33 +25,34 @@ export function useIncidents() {
   });
 
   if (!apiEnabled) {
-    return { incidents: INCIDENTS, loading: false, fromApi: false, error: null };
+    const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
+    return { incidents: FALLBACK_INCIDENTS, loading: false, fromApi: false, dataSource, error: null };
   }
 
-  const incidents: Incident[] = query.isSuccess && query.data.length > 0
-    ? query.data
-    : INCIDENTS;
+  const incidents: Incident[] = query.isSuccess ? query.data : FALLBACK_INCIDENTS;
+  const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {
     incidents,
     loading: query.isLoading,
-    fromApi: query.isSuccess && query.data.length > 0,
+    fromApi: query.isSuccess,
+    dataSource,
     error: query.isError ? query.error : null,
   };
 }
 
 export function useActiveIncidents() {
-  const { incidents, loading, fromApi, error } = useIncidents();
+  const { incidents, loading, fromApi, dataSource, error } = useIncidents();
   const active = fromApi
     ? incidents.filter(i => !['extinto', 'encerrado'].includes(i.status))
-    : getActiveIncidents();
-  return { incidents: active, loading, fromApi, error };
+    : getFallbackActiveIncidents();
+  return { incidents: active, loading, fromApi, dataSource, error };
 }
 
 export function useCriticalIncident() {
-  const { incidents, loading, fromApi, error } = useIncidents();
+  const { incidents, loading, fromApi, dataSource, error } = useIncidents();
   const critical = fromApi
     ? incidents.find(i => i.risk === 'critical' && !['extinto', 'encerrado'].includes(i.status)) ?? null
-    : getCriticalIncident() ?? null;
-  return { incident: critical, loading, fromApi, error };
+    : getFallbackCriticalIncident() ?? null;
+  return { incident: critical, loading, fromApi, dataSource, error };
 }

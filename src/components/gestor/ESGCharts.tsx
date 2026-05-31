@@ -1,7 +1,7 @@
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { ESG_DATA } from '@/data/esg';
+import { useESGReports } from '@/hooks/useESGReports';
 
 const tooltipStyle = {
   contentStyle: {
@@ -14,6 +14,7 @@ const tooltipStyle = {
 };
 
 export function ESGCharts() {
+  const { latest: ESG_DATA } = useESGReports();
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
       {/* Weekly incidents area chart */}

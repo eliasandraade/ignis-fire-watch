@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
-import { MOCK_USERS, AUDIT_LOG } from '@/data/users';
+import { FALLBACK_USERS, FALLBACK_AUDIT_LOG } from '@/data/fallback';
 import { useAdminUsers, useAuditLogs } from '@/hooks/useAdminStats';
 import { isApiEnabled } from '@/services/api/client';
+import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
+import { createDataSourceMeta } from '@/services/dataSource';
 import type { UserRole } from '@/types/domain';
 
 function getRoleColor(role: UserRole): string {
@@ -43,9 +45,10 @@ export default function AdminPanelPage() {
   const auditQuery = useAuditLogs();
 
   const apiUsers = apiEnabled && usersQuery.isSuccess ? usersQuery.data.items : null;
+  const usersDataSource = createDataSourceMeta(apiEnabled && usersQuery.isSuccess, (apiUsers ?? []).length > 0);
   const apiAudit = apiEnabled && auditQuery.isSuccess ? auditQuery.data.items : null;
 
-  const displayUsers = apiUsers ?? MOCK_USERS;
+  const displayUsers = apiUsers ?? FALLBACK_USERS;
   const displayAudit = apiAudit
     ? apiAudit.map(a => ({
         id: a.id,
@@ -54,7 +57,7 @@ export default function AdminPanelPage() {
         action: a.action,
         entity: a.entity_type,
       }))
-    : AUDIT_LOG;
+    : FALLBACK_AUDIT_LOG;
 
   return (
     <div style={{
@@ -99,11 +102,12 @@ export default function AdminPanelPage() {
       <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
 
         {/* Section 1 — Users */}
-        <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px 0' }}>
-          Usuários
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Usuários</h2>
+          <DataSourceBadge status={usersDataSource.status} />
+        </div>
         <p style={{ fontSize: 13, color: 'var(--text-lo)', margin: '0 0 16px 0' }}>
-          {displayUsers.length} usuários cadastrados{apiUsers ? ' · dados da API' : ' · protótipo demonstrativo'}
+          {displayUsers.length} usuários cadastrados
         </p>
 
         <div style={{

@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
-import { getAreaById } from '@/data/areas';
-import { getIncidentsByArea } from '@/data/incidents';
+import { useArea } from '@/hooks/useArea';
+import { useIncidents } from '@/hooks/useIncidents';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Polygon } from 'react-leaflet';
@@ -46,7 +46,17 @@ function RiskPill({ risk }: { risk: RiskLevel }) {
 
 export default function GestorAreaDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const area = id ? getAreaById(id) : undefined;
+  const { area, loading: areaLoading } = useArea(id);
+  const { incidents: allIncidents } = useIncidents();
+  const incidents = allIncidents.filter(i => i.areaId === id);
+
+  if (areaLoading) {
+    return (
+      <div style={{ padding: 32 }}>
+        <p style={{ color: 'var(--text-mid)' }}>Carregando área...</p>
+      </div>
+    );
+  }
 
   if (!area) {
     return (
@@ -58,8 +68,6 @@ export default function GestorAreaDetailPage() {
       </div>
     );
   }
-
-  const incidents = getIncidentsByArea(area.id);
   const riskColor = getRiskColor(area.risk);
   const polygonPositions = getPolygonPositions(area.geometry);
 

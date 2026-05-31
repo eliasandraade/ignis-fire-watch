@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { isApiEnabled } from '@/services/api/client';
+import { createDataSourceMeta, type DataSourceMeta } from '@/services/dataSource';
 import { fetchResources } from '@/services/api/resourcesService';
 import { adaptApiResource } from '@/services/adapters/resourceAdapter';
-import { RESOURCES } from '@/data/operations';
+import { FALLBACK_RESOURCES } from '@/data/fallback';
 import type { Resource } from '@/types/domain';
 
 export function useResources(incidentId?: string) {
@@ -20,16 +21,17 @@ export function useResources(incidentId?: string) {
   });
 
   if (!apiEnabled) {
-    return { resources: RESOURCES, loading: false, fromApi: false };
+    const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
+    return { resources: FALLBACK_RESOURCES, loading: false, fromApi: false, dataSource };
   }
 
-  const resources: Resource[] = query.isSuccess && query.data.length > 0
-    ? query.data
-    : RESOURCES;
+  const resources: Resource[] = query.isSuccess ? query.data : FALLBACK_RESOURCES;
+  const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {
     resources,
     loading: query.isLoading,
-    fromApi: query.isSuccess && query.data.length > 0,
+    fromApi: query.isSuccess,
+    dataSource,
   };
 }

@@ -2,14 +2,14 @@ import { Link } from 'react-router-dom';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
-import { getActiveIncidents } from '@/data/incidents';
 import { Polygon } from 'react-leaflet';
 import { getPolygonPositions } from '@/lib/geo';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
+import { useActiveIncidents } from '@/hooks/useIncidents';
 
 export default function PublicDashboardPage() {
-  const activeIncidents = getActiveIncidents();
   const { areas: PROTECTED_AREAS } = useProtectedAreas();
+  const { incidents: activeIncidents } = useActiveIncidents();
 
   return (
     <div style={{ background: 'var(--bg-void)', minHeight: '100vh' }}>

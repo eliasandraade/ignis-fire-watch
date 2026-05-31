@@ -12,6 +12,7 @@ import { criticalPulseVariants, orbitalGlowVariants } from '@/lib/motion';
 import { useWarRoom } from '@/hooks/useWarRoom';
 import { useTeams } from '@/hooks/useTeams';
 import { useResources } from '@/hooks/useResources';
+import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 import { PROTOCOL_INCENDIO } from '@/data/operations';
 import { getPolygonPositions } from '@/lib/geo';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +21,7 @@ import { activateProtocol } from '@/services/api/incidentsService';
 import type { ProtocolStep } from '@/types/domain';
 
 export default function WarRoomPage() {
-  const { incident, area, loading } = useWarRoom();
+  const { incident, area, loading, dataSource } = useWarRoom();
   const { teams } = useTeams();
   const { resources } = useResources();
   const apiEnabled = isApiEnabled();
@@ -133,6 +134,7 @@ export default function WarRoomPage() {
           </span>
         )}
         <StatusBadge status={incident.status} size="sm" />
+        <DataSourceBadge status={dataSource.status} style={{ marginLeft: 4 }} />
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, alignItems: 'center' }}>
           {/* Change 5: blinking alert for critical telemetry metrics */}

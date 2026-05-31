@@ -1,6 +1,7 @@
 import { MetricCard } from '@/components/shared/MetricCard';
 import { ESGCharts } from '@/components/gestor/ESGCharts';
 import { useESGReports } from '@/hooks/useESGReports';
+import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 
 const ODS_LIST = [
   { id: 2,  label: 'Fome Zero',              color: '#D3A029' },
@@ -12,7 +13,7 @@ const ODS_LIST = [
 ];
 
 export default function ESGReportPage() {
-  const { latest: ESG_DATA, fromApi } = useESGReports();
+  const { latest: ESG_DATA, dataSource } = useESGReports();
 
   return (
     <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto' }}>
@@ -27,10 +28,7 @@ export default function ESGReportPage() {
             Período: {ESG_DATA.period}
           </p>
         </div>
-        <div style={{ padding: '6px 12px', background: 'var(--bg-raised)', borderRadius: 6,
-                      fontSize: 11, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
-          {fromApi ? 'Dados da API · base demonstrativa acadêmica' : 'Dados demonstrativos — FIAP GS 2026'}
-        </div>
+        <DataSourceBadge status={dataSource.status} />
       </div>
 
       {/* 4 MetricCards */}

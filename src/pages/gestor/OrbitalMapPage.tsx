@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { Polygon, Circle, Marker } from 'react-leaflet';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
-import { PROTECTED_AREAS } from '@/data/areas';
-import { getActiveIncidents } from '@/data/incidents';
-import { TEAMS } from '@/data/operations';
+import { useProtectedAreas } from '@/hooks/useProtectedAreas';
+import { useActiveIncidents } from '@/hooks/useIncidents';
+import { useTeams } from '@/hooks/useTeams';
 import { getPolygonPositions } from '@/lib/geo';
 import type { ProtectedArea } from '@/types/domain';
 
@@ -29,17 +29,19 @@ export default function OrbitalMapPage() {
   });
   const [selected, setSelected] = useState<ProtectedArea | null>(null);
 
+  const { areas } = useProtectedAreas();
+  const { incidents: activeIncidents } = useActiveIncidents();
+  const { teams } = useTeams();
+
   const toggleLayer = (key: LayerKey) =>
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const activeIncidents = getActiveIncidents();
-
   const polygonData = useMemo(
-    () => PROTECTED_AREAS.map(area => ({
+    () => areas.map(area => ({
       area,
       positions: getPolygonPositions(area.geometry),
     })),
-    []
+    [areas]
   );
 
   const handleSelectArea = useCallback(
@@ -103,7 +105,7 @@ export default function OrbitalMapPage() {
 
           {/* Incidents layer */}
           {layers.incidents && activeIncidents.map(inc => {
-            const area = PROTECTED_AREAS.find(a => a.id === inc.areaId);
+            const area = areas.find(a => a.id === inc.areaId);
             if (!area) return null;
             const radius = Math.sqrt(inc.affectedHectares * 10000 / Math.PI);
             return (
@@ -119,12 +121,9 @@ export default function OrbitalMapPage() {
           })}
 
           {/* Teams layer */}
-          {layers.teams && TEAMS.filter(t => t.status === 'mobilizado' || t.status === 'em-transito').map(t => {
-            // Use critical area center as approximate team location
-            const area = PROTECTED_AREAS.find(a => a.risk === 'critical');
+          {layers.teams && teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito').map((t, idx) => {
+            const area = areas.find(a => a.risk === 'critical');
             if (!area) return null;
-            // Offset slightly for each team
-            const idx = TEAMS.indexOf(t);
             const offset: [number, number] = [area.center[0] + idx * 0.01, area.center[1] + idx * 0.01];
             return <Marker key={t.id} position={offset} />;
           })}
@@ -159,7 +158,6 @@ export default function OrbitalMapPage() {
 
           <RiskBadge risk={selected.risk} />
 
-          {/* dataQuality warning */}
           <div style={{ padding: '8px 10px',
                         background: 'oklch(70% 0.18 45 / 10%)',
                         border: '1px solid oklch(70% 0.18 45 / 25%)',

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { isApiEnabled } from '@/services/api/client';
 import { useInternalReportDetail, useReportActions } from '@/hooks/useInternalReports';
 import { OCCURRENCE_LABEL } from '@/lib/labels';
-import { getAreaById } from '@/data/areas';
+import { useArea } from '@/hooks/useArea';
 import { useCriticalIncident } from '@/hooks/useIncidents';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
@@ -23,7 +23,7 @@ export default function ReportValidationPage() {
   const { incident: critical } = useCriticalIncident();
   const { validate, discard, convert } = useReportActions();
 
-  const area = report?.areaId ? getAreaById(report.areaId) : null;
+  const { area } = useArea(report?.areaId ?? undefined);
 
   const mapCenter: [number, number] = area
     ? area.center

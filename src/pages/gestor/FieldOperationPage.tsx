@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { useCriticalIncident } from '@/hooks/useIncidents';
 import { useMissions } from '@/hooks/useMissions';
-import { getAreaById } from '@/data/areas';
+import { useArea } from '@/hooks/useArea';
 import { useToast } from '@/hooks/use-toast';
 
 export default function FieldOperationPage() {
@@ -15,7 +15,7 @@ export default function FieldOperationPage() {
 
   const { incident } = useCriticalIncident();
   const { missions } = useMissions(incident?.id);
-  const area     = incident ? getAreaById(incident.areaId) : null;
+  const { area } = useArea(incident?.areaId);
   const mission  = missions[0];
 
   const mapCenter: [number, number] = area?.center ?? [-4.5, -39.0];

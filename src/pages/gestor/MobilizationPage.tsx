@@ -1,25 +1,52 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResourceGrid } from '@/components/gestor/ResourceGrid';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { TEAMS, RESOURCES } from '@/data/operations';
+import { useTeams } from '@/hooks/useTeams';
+import { useResources } from '@/hooks/useResources';
+import { isApiMode } from '@/services/dataSource';
+import { updateTeam } from '@/services/api/teamsService';
 import { useToast } from '@/hooks/use-toast';
 import type { FieldTeam } from '@/types/domain';
 
 type TeamFilter = 'all' | 'Combate' | 'Reconhecimento' | 'Apoio Logístico';
 
 export default function MobilizationPage() {
-  const [filter, setFilter]     = useState<TeamFilter>('all');
-  const [teams, setTeams]       = useState<FieldTeam[]>(TEAMS);
+  const [filter, setFilter] = useState<TeamFilter>('all');
+  const [localOverrides, setLocalOverrides] = useState<Record<string, FieldTeam['status']>>({});
+
+  const { teams: hookTeams } = useTeams();
+  const { resources } = useResources();
+  const qc = useQueryClient();
   const { toast } = useToast();
 
-  const filtered = filter === 'all' ? teams : teams.filter(t => t.type === filter);
+  // Demo mode: merge local status overrides on top of hook data
+  const teams = useMemo(
+    () => hookTeams.map(t => localOverrides[t.id] ? { ...t, status: localOverrides[t.id]! } : t),
+    [hookTeams, localOverrides]
+  );
+
+  const mobilizeMutation = useMutation({
+    mutationFn: (id: string) => updateTeam(id, { status: 'mobilizado' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['teams'] });
+      toast({ title: 'Equipe mobilizada' });
+    },
+    onError: (_err, id) => {
+      toast({ title: 'Erro ao mobilizar equipe', description: id });
+    },
+  });
 
   const handleMobilize = (id: string) => {
-    setTeams(prev => prev.map(t =>
-      t.id === id ? { ...t, status: 'mobilizado' as const } : t
-    ));
-    toast({ title: 'Equipe mobilizada (protótipo)', description: id });
+    if (isApiMode()) {
+      mobilizeMutation.mutate(id);
+    } else {
+      setLocalOverrides(prev => ({ ...prev, [id]: 'mobilizado' }));
+      toast({ title: 'Equipe mobilizada (demo)', description: id });
+    }
   };
+
+  const filtered = filter === 'all' ? teams : teams.filter(t => t.type === filter);
 
   const tabStyle = (key: TeamFilter): React.CSSProperties => ({
     padding: '6px 14px', borderRadius: 6, fontSize: 13, cursor: 'pointer',
@@ -43,7 +70,7 @@ export default function MobilizationPage() {
           Mobilização e Recursos
         </h1>
         <p style={{ fontSize: 13, color: 'var(--text-lo)', margin: '4px 0 0' }}>
-          {teams.length} equipes cadastradas · Protótipo demonstrativo
+          {teams.length} equipes cadastradas · {isApiMode() ? 'Dados em tempo real' : 'Protótipo demonstrativo'}
         </p>
       </div>
 
@@ -88,7 +115,7 @@ export default function MobilizationPage() {
             <StatusBadge status={t.status} size="sm" />
             <button
               onClick={() => t.status === 'disponivel' && handleMobilize(t.id)}
-              disabled={t.status !== 'disponivel'}
+              disabled={t.status !== 'disponivel' || mobilizeMutation.isPending}
               style={{
                 padding: '6px 12px', borderRadius: 4, border: 'none', cursor: 'pointer',
                 background: t.status === 'disponivel' ? 'var(--orbital)' : 'var(--bg-raised)',
@@ -107,9 +134,9 @@ export default function MobilizationPage() {
         <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-mid)',
                      textTransform: 'uppercase', letterSpacing: '0.08em',
                      marginBottom: 12 }}>
-          Recursos ({RESOURCES.length})
+          Recursos ({resources.length})
         </h2>
-        <ResourceGrid resources={RESOURCES} />
+        <ResourceGrid resources={resources} />
       </div>
     </div>
   );

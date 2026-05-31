@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isApiEnabled } from '@/services/api/client';
+import { createDataSourceMeta, type DataSourceMeta } from '@/services/dataSource';
 import {
   fetchInternalReports,
   fetchInternalReport,
@@ -8,7 +9,7 @@ import {
   convertReportToIncident,
 } from '@/services/api/internalReportsService';
 import { adaptApiReport } from '@/services/adapters/internalReportAdapter';
-import { PUBLIC_REPORTS, getReportById } from '@/data/reports';
+import { FALLBACK_REPORTS, getFallbackReportById } from '@/data/fallback';
 import type { PublicReport } from '@/types/domain';
 
 export function useInternalReports() {
@@ -26,17 +27,18 @@ export function useInternalReports() {
   });
 
   if (!apiEnabled) {
-    return { reports: PUBLIC_REPORTS, loading: false, fromApi: false, error: null };
+    const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
+    return { reports: FALLBACK_REPORTS, loading: false, fromApi: false, dataSource, error: null };
   }
 
-  const reports: PublicReport[] = query.isSuccess && query.data.length > 0
-    ? query.data
-    : PUBLIC_REPORTS;
+  const reports: PublicReport[] = query.isSuccess ? query.data : FALLBACK_REPORTS;
+  const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {
     reports,
     loading: query.isLoading,
-    fromApi: query.isSuccess && query.data.length > 0,
+    fromApi: query.isSuccess,
+    dataSource,
     error: query.isError ? query.error : null,
   };
 }
@@ -53,18 +55,21 @@ export function useInternalReportDetail(id: string | undefined) {
   });
 
   if (!apiEnabled) {
-    const mock = id ? getReportById(id) ?? null : null;
-    return { report: mock, loading: false, fromApi: false, error: null };
+    const report = id ? getFallbackReportById(id) ?? null : null;
+    const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
+    return { report, loading: false, fromApi: false, dataSource, error: null };
   }
 
   const report: PublicReport | null = query.isSuccess
     ? query.data
-    : (id ? getReportById(id) ?? null : null);
+    : (id ? getFallbackReportById(id) ?? null : null);
+  const dataSource = createDataSourceMeta(query.isSuccess, report !== null);
 
   return {
     report,
     loading: query.isLoading,
     fromApi: query.isSuccess,
+    dataSource,
     error: query.isError ? query.error : null,
   };
 }

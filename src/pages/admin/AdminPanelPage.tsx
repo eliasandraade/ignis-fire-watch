@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MOCK_USERS, AUDIT_LOG } from '@/data/users';
+import { FALLBACK_USERS, FALLBACK_AUDIT_LOG } from '@/data/fallback';
 import { useAdminUsers, useAuditLogs } from '@/hooks/useAdminStats';
 import { isApiEnabled } from '@/services/api/client';
 import type { UserRole } from '@/types/domain';
@@ -45,7 +45,7 @@ export default function AdminPanelPage() {
   const apiUsers = apiEnabled && usersQuery.isSuccess ? usersQuery.data.items : null;
   const apiAudit = apiEnabled && auditQuery.isSuccess ? auditQuery.data.items : null;
 
-  const displayUsers = apiUsers ?? MOCK_USERS;
+  const displayUsers = apiUsers ?? FALLBACK_USERS;
   const displayAudit = apiAudit
     ? apiAudit.map(a => ({
         id: a.id,
@@ -54,7 +54,7 @@ export default function AdminPanelPage() {
         action: a.action,
         entity: a.entity_type,
       }))
-    : AUDIT_LOG;
+    : FALLBACK_AUDIT_LOG;
 
   return (
     <div style={{

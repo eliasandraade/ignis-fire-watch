@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getReportById } from '@/data/reports';
+import { getFallbackReportById } from '@/data/fallback';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import type { ReportStatus } from '@/types/domain';
 import { isApiEnabled } from '@/services/api/client';
@@ -61,7 +61,7 @@ export default function ReportStatusPage() {
 
   // Priority: API response → sessionStorage → mock DB → fallback
   const sessionReport = id ? getSessionReport(id) : null;
-  const dbReport      = id && !sessionReport ? getReportById(id) : null;
+  const dbReport      = id && !sessionReport ? getFallbackReportById(id) : null;
 
   const apiStatus: ReportStatus | undefined = apiQuery.data
     ? adaptApiReportStatus(apiQuery.data).status

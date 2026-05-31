@@ -18,6 +18,9 @@ export {
 // ── Reports ──────────────────────────────────────────────────────────────────
 export {
   PUBLIC_REPORTS as FALLBACK_REPORTS,
+  getReportById as getFallbackReportById,
+  getReportsByStatus as getFallbackReportsByStatus,
+  getPendingReports as getFallbackPendingReports,
 } from '@/data/reports';
 
 // ── Operations ───────────────────────────────────────────────────────────────

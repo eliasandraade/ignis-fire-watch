@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { isApiEnabled } from '@/services/api/client';
+import { createDataSourceMeta, type DataSourceMeta } from '@/services/dataSource';
 import { fetchMissions } from '@/services/api/missionsService';
 import { adaptApiMission } from '@/services/adapters/missionAdapter';
-import { MISSIONS } from '@/data/operations';
+import { FALLBACK_MISSIONS } from '@/data/fallback';
 import type { Mission } from '@/types/domain';
 
 export function useMissions(incidentId?: string) {
@@ -20,16 +21,17 @@ export function useMissions(incidentId?: string) {
   });
 
   if (!apiEnabled) {
-    return { missions: MISSIONS, loading: false, fromApi: false };
+    const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
+    return { missions: FALLBACK_MISSIONS, loading: false, fromApi: false, dataSource };
   }
 
-  const missions: Mission[] = query.isSuccess && query.data.length > 0
-    ? query.data
-    : MISSIONS;
+  const missions: Mission[] = query.isSuccess ? query.data : FALLBACK_MISSIONS;
+  const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {
     missions,
     loading: query.isLoading,
-    fromApi: query.isSuccess && query.data.length > 0,
+    fromApi: query.isSuccess,
+    dataSource,
   };
 }

@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { PROTECTED_AREAS } from '@/data/areas';
+import { FALLBACK_AREAS } from '@/data/fallback';
 import type { ProtectedArea } from '@/types/domain';
 import { isApiEnabled } from '@/services/api/client';
+import { createDataSourceMeta, type DataSourceMeta } from '@/services/dataSource';
 import { fetchProtectedAreas } from '@/services/api/protectedAreasService';
 import { adaptProtectedArea } from '@/services/adapters/protectedAreaAdapter';
 
@@ -20,16 +21,18 @@ export function useProtectedAreas() {
   });
 
   if (!apiEnabled) {
-    return { areas: PROTECTED_AREAS, loading: false, fromApi: false, error: null };
+    const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
+    return { areas: FALLBACK_AREAS, loading: false, fromApi: false, dataSource, error: null };
   }
 
-  const areas: ProtectedArea[] =
-    query.isSuccess && query.data.length > 0 ? query.data : PROTECTED_AREAS;
+  const areas: ProtectedArea[] = query.isSuccess ? query.data : FALLBACK_AREAS;
+  const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {
     areas,
     loading: query.isLoading,
-    fromApi: query.isSuccess && query.data.length > 0,
-    error:   query.isError ? query.error : null,
+    fromApi: query.isSuccess,
+    dataSource,
+    error: query.isError ? query.error : null,
   };
 }

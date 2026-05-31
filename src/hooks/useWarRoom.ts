@@ -1,21 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { isApiEnabled } from '@/services/api/client';
+import { createDataSourceMeta, type DataSourceMeta } from '@/services/dataSource';
 import { fetchWarRoom } from '@/services/api/warRoomService';
 import { fetchIncidentTimeline } from '@/services/api/incidentsService';
 import { fetchProtectedArea } from '@/services/api/protectedAreasService';
 import { adaptWarRoomSummary } from '@/services/adapters/warRoomAdapter';
 import { adaptApiIncident } from '@/services/adapters/incidentAdapter';
 import { adaptProtectedArea } from '@/services/adapters/protectedAreaAdapter';
-import { getCriticalIncident } from '@/data/incidents';
-import { getAreaById } from '@/data/areas';
-import type { Incident } from '@/types/domain';
-import type { ProtectedArea } from '@/types/domain';
+import { getFallbackCriticalIncident, getFallbackAreaById } from '@/data/fallback';
+import type { Incident, ProtectedArea } from '@/types/domain';
 
 export interface WarRoomState {
   incident: Incident | null;
   area: ProtectedArea | null;
   loading: boolean;
   fromApi: boolean;
+  dataSource: DataSourceMeta;
 }
 
 export function useWarRoom(): WarRoomState {
@@ -55,13 +55,15 @@ export function useWarRoom(): WarRoomState {
   });
 
   if (!apiEnabled) {
-    const inc = getCriticalIncident() ?? null;
-    const area = inc ? (getAreaById(inc.areaId) ?? null) : null;
-    return { incident: inc, area, loading: false, fromApi: false };
+    const inc = getFallbackCriticalIncident() ?? null;
+    const area = inc ? (getFallbackAreaById(inc.areaId) ?? null) : null;
+    const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
+    return { incident: inc, area, loading: false, fromApi: false, dataSource };
   }
 
   if (summaryQuery.isLoading || (criticalAreaId && areaQuery.isLoading)) {
-    return { incident: null, area: null, loading: true, fromApi: false };
+    const dataSource = createDataSourceMeta(false, false);
+    return { incident: null, area: null, loading: true, fromApi: false, dataSource };
   }
 
   if (summaryQuery.isSuccess && summaryQuery.data) {
@@ -80,14 +82,17 @@ export function useWarRoom(): WarRoomState {
       if (areaQuery.isSuccess && areaQuery.data) {
         area = adaptProtectedArea(areaQuery.data);
       } else {
-        area = getAreaById(critical.areaId) ?? null;
+        area = getFallbackAreaById(critical.areaId) ?? null;
       }
     }
-    return { incident: critical, area, loading: false, fromApi: true };
+
+    const dataSource = createDataSourceMeta(true, critical !== null);
+    return { incident: critical, area, loading: false, fromApi: true, dataSource };
   }
 
-  // API failed — fall back to mock
-  const inc = getCriticalIncident() ?? null;
-  const area = inc ? (getAreaById(inc.areaId) ?? null) : null;
-  return { incident: inc, area, loading: false, fromApi: false };
+  // API failed — fall back to demo data
+  const inc = getFallbackCriticalIncident() ?? null;
+  const area = inc ? (getFallbackAreaById(inc.areaId) ?? null) : null;
+  const dataSource = createDataSourceMeta(false, false);
+  return { incident: inc, area, loading: false, fromApi: false, dataSource };
 }

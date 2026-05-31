@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { getCriticalIncident } from '@/data/incidents';
+import { useCriticalIncident } from '@/hooks/useIncidents';
 
 function getTitle(pathname: string): string {
   const exact: Record<string, string> = {
@@ -20,7 +20,7 @@ function getTitle(pathname: string): string {
 
 export function GestorTopbar() {
   const { pathname } = useLocation();
-  const critical = getCriticalIncident();
+  const { incident: critical } = useCriticalIncident();
 
   return (
     <div style={{

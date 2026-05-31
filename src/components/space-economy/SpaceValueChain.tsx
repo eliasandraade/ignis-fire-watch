@@ -1,3 +1,7 @@
+import { motion, useReducedMotion } from 'framer-motion';
+import { OrbitalSectionHeader } from '@/components/orbital';
+import { fadeUpVariants, staggerContainerVariants } from '@/lib/motion';
+
 interface ChainStep {
   step: number;
   title: string;
@@ -74,24 +78,26 @@ const CHAIN_STEPS: ChainStep[] = [
 ];
 
 export function SpaceValueChain() {
+  const reducedMotion = useReducedMotion();
+
   return (
     <div>
-      <h2
-        style={{
-          fontSize: 14,
-          fontWeight: 700,
-          color: 'var(--text-mid)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          marginBottom: 24,
-        }}
-      >
-        Cadeia de Valor Espacial
-      </h2>
+      <div style={{ marginBottom: 24 }}>
+        <OrbitalSectionHeader icon="🛰">Cadeia de Valor Espacial</OrbitalSectionHeader>
+      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <motion.div
+        variants={staggerContainerVariants}
+        initial={reducedMotion ? false : 'hidden'}
+        animate="visible"
+        style={{ display: 'flex', flexDirection: 'column' }}
+      >
         {CHAIN_STEPS.map((s, i) => (
-          <div key={s.step} style={{ display: 'flex', gap: 16 }}>
+          <motion.div
+            key={s.step}
+            variants={fadeUpVariants}
+            style={{ display: 'flex', gap: 16 }}
+          >
             {/* Timeline column */}
             <div
               style={{
@@ -102,7 +108,23 @@ export function SpaceValueChain() {
                 flexShrink: 0,
               }}
             >
-              <div
+              {/* Animated dot */}
+              <motion.div
+                animate={
+                  reducedMotion
+                    ? {}
+                    : { scale: [1, 1.3, 1] }
+                }
+                transition={
+                  reducedMotion
+                    ? {}
+                    : {
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: i * 0.3,
+                      }
+                }
                 style={{
                   width: 14,
                   height: 14,
@@ -115,21 +137,26 @@ export function SpaceValueChain() {
                 }}
               />
               {i < CHAIN_STEPS.length - 1 && (
-                <div
+                <motion.div
+                  initial={reducedMotion ? {} : { opacity: 0 }}
+                  animate={reducedMotion ? {} : { opacity: 0.4 }}
+                  transition={{ duration: 0.5, delay: 0.2 + i * 0.1 }}
                   style={{
                     flex: 1,
                     width: 2,
                     marginTop: 4,
                     marginBottom: 4,
                     background: s.lineColor,
-                    opacity: 0.4,
+                    opacity: reducedMotion ? 0.4 : undefined,
                   }}
                 />
               )}
             </div>
 
             {/* Card */}
-            <div
+            <motion.div
+              whileHover={reducedMotion ? {} : { scale: 1.01 }}
+              transition={{ duration: 0.15 }}
               style={{
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--bg-raised)',
@@ -190,10 +217,10 @@ export function SpaceValueChain() {
               >
                 {s.tag}
               </span>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

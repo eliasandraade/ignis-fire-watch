@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
-import { MetricCard } from '@/components/shared/MetricCard';
+import { motion, useReducedMotion } from 'framer-motion';
 import { IncidentCard } from '@/components/gestor/IncidentCard';
+import { SpaceMetricCard, MissionGlow } from '@/components/orbital';
+import { staggerContainerVariants, orbitalGlowVariants } from '@/lib/motion';
 import { useActiveIncidents, useCriticalIncident } from '@/hooks/useIncidents';
 import { useInternalReports } from '@/hooks/useInternalReports';
 import { TEAMS } from '@/data/operations';
@@ -10,6 +12,7 @@ import {
 } from 'recharts';
 
 export default function GestorDashboardPage() {
+  const reducedMotion = useReducedMotion();
   const { incidents: active } = useActiveIncidents();
   const { incident: critical } = useCriticalIncident();
   const { reports } = useInternalReports();
@@ -47,31 +50,47 @@ export default function GestorDashboardPage() {
       )}
 
       {/* Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)',
-                    gap: 12, marginBottom: 28 }}>
-        <MetricCard value={8}              label="Áreas Monitoradas" />
-        <MetricCard value={active.length}  label="Incidentes Ativos"  accent="var(--risk-high)" />
-        <MetricCard value={pending.length} label="Denúncias Pendentes" accent="var(--risk-med)" />
-        <MetricCard value={mobilized.length} label="Equipes Mobilizadas" accent="var(--orbital)" />
-        <MetricCard value={active.filter(i => i.risk === 'critical').length}
-                    label="Alertas Críticos" accent="var(--risk-crit)" />
-        <MetricCard value={18}             label="Tempo Médio Resposta" unit="min" />
-      </div>
+      <motion.div
+        variants={staggerContainerVariants}
+        initial="hidden"
+        animate="visible"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)',
+                  gap: 12, marginBottom: 28 }}
+      >
+        <SpaceMetricCard value={8}               label="Áreas Monitoradas"   sublabel="cobertura orbital"   delay={0} />
+        <SpaceMetricCard value={active.length}   label="Incidentes Ativos"   accent="var(--risk-high)" sublabel="dados orbitais"     delay={0.05} />
+        <SpaceMetricCard value={pending.length}  label="Denúncias Pendentes" accent="var(--risk-med)"  sublabel="geointeligência"     delay={0.10} />
+        <SpaceMetricCard value={mobilized.length} label="Equipes Mobilizadas" accent="var(--orbital)"  sublabel="resposta tática"     delay={0.15} />
+        <SpaceMetricCard value={active.filter(i => i.risk === 'critical').length}
+                          label="Alertas Críticos" accent="var(--risk-crit)"  sublabel="risco operacional"   delay={0.20} />
+        <SpaceMetricCard value={18}              label="Tempo Médio Resposta" unit="min"               sublabel="eficiência"          delay={0.25} />
+      </motion.div>
 
       {/* Space Economy promo card */}
       <Link to="/gestor/economia-espacial" style={{ textDecoration: 'none', display: 'block', marginBottom: 20 }}>
-        <div style={{
-          background: 'oklch(60% 0.18 220 / 0.06)',
-          border: '1px solid oklch(60% 0.18 220 / 0.25)',
-          borderLeft: '3px solid var(--orbital)',
-          borderRadius: 8,
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          transition: 'background 0.15s',
-        }}>
+        <motion.div
+          variants={reducedMotion ? {} : orbitalGlowVariants}
+          animate={reducedMotion ? undefined : 'glow'}
+          style={{
+            background: 'oklch(60% 0.18 220 / 0.06)',
+            border: '1px solid oklch(60% 0.18 220 / 0.25)',
+            borderLeft: '3px solid var(--orbital)',
+            borderRadius: 8,
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            transition: 'background 0.15s',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <MissionGlow
+            size={120}
+            opacity={0.08}
+            style={{ position: 'absolute', top: -40, right: -20, pointerEvents: 'none' }}
+          />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 18, lineHeight: 1 }}>🛰</span>
             <div>
@@ -86,7 +105,7 @@ export default function GestorDashboardPage() {
           <span style={{ fontSize: 12, color: 'var(--orbital)', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 16 }}>
             Ver página →
           </span>
-        </div>
+        </motion.div>
       </Link>
 
       {/* Charts + Aurora */}

@@ -1,8 +1,15 @@
-import { MetricCard } from '@/components/shared/MetricCard';
+import { motion, useReducedMotion } from 'framer-motion';
 import { SpaceValueChain } from '@/components/space-economy/SpaceValueChain';
 import { SpaceImpactChart } from '@/components/space-economy/SpaceImpactChart';
+import {
+  OrbitalBackground,
+  MissionGlow,
+  SpaceMetricCard,
+  OrbitalSectionHeader,
+} from '@/components/orbital';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { useIncidents } from '@/hooks/useIncidents';
+import { fadeUpVariants, staggerContainerVariants } from '@/lib/motion';
 
 // ── Static data ───────────────────────────────────────────────────────────
 
@@ -164,30 +171,12 @@ const ROADMAP = [
   },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-function SectionTitle({ children }: { children: string }) {
-  return (
-    <h2
-      style={{
-        fontSize: 14,
-        fontWeight: 700,
-        color: 'var(--text-mid)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        marginBottom: 20,
-      }}
-    >
-      {children}
-    </h2>
-  );
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function EconomiaEspacialPage() {
   const { areas } = useProtectedAreas();
   const { incidents } = useIncidents();
+  const reducedMotion = useReducedMotion();
 
   const totalHa = areas.reduce((sum, a) => sum + (a.hectares ?? 0), 0);
   const haLabel =
@@ -210,122 +199,138 @@ export default function EconomiaEspacialPage() {
           overflow: 'hidden',
         }}
       >
-        {/* Orbital glow accent */}
-        <div
+        {/* Orbital background layer */}
+        <OrbitalBackground intensity="low" showGrid showOrbits showDots />
+
+        {/* Mission glow accent */}
+        <MissionGlow
+          size={320}
+          opacity={0.09}
           style={{
             position: 'absolute',
-            top: -60,
-            right: -60,
-            width: 240,
-            height: 240,
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, oklch(60% 0.18 220 / 0.09) 0%, transparent 70%)',
+            top: -100,
+            right: -80,
             pointerEvents: 'none',
           }}
         />
 
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: 14,
-          }}
+        {/* Animated hero content */}
+        <motion.div
+          variants={fadeUpVariants}
+          initial={reducedMotion ? false : 'hidden'}
+          animate="visible"
+          custom={0}
+          style={{ position: 'relative', zIndex: 1 }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 24, lineHeight: 1 }}>🛰</span>
-            <h1
-              style={{
-                fontSize: 20,
-                fontWeight: 800,
-                margin: 0,
-                color: 'var(--text-hi)',
-                lineHeight: 1.2,
-              }}
-            >
-              Economia Espacial aplicada à proteção ambiental
-            </h1>
-          </div>
           <div
             style={{
-              padding: '5px 11px',
-              background: 'var(--bg-raised)',
-              borderRadius: 5,
-              fontSize: 10,
-              color: 'var(--text-ghost)',
-              fontStyle: 'italic',
-              flexShrink: 0,
-              marginLeft: 20,
-              whiteSpace: 'nowrap',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: 14,
             }}
           >
-            dados simulados · demonstração acadêmica FIAP GS 2026
-          </div>
-        </div>
-
-        {/* Central message — key phrase */}
-        <div
-          style={{
-            background: 'oklch(60% 0.18 220 / 0.07)',
-            border: '1px solid oklch(60% 0.18 220 / 0.22)',
-            borderLeft: '3px solid var(--orbital)',
-            borderRadius: 6,
-            padding: '10px 16px',
-            marginBottom: 16,
-          }}
-        >
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-hi)', fontWeight: 600, lineHeight: 1.55 }}>
-            O IGNIS Orbital atua na camada de aplicação da economia espacial: transforma
-            infraestrutura orbital em inteligência ambiental e resposta operacional.
-          </p>
-        </div>
-
-        <p
-          style={{
-            fontSize: 13,
-            color: 'var(--text-lo)',
-            margin: '0 0 14px',
-            lineHeight: 1.75,
-            maxWidth: 700,
-          }}
-        >
-          Cada dado orbital vira protocolo, alerta, relatório ESG ou decisão de resposta em campo.
-          APIs espaciais transformam infraestrutura complexa em serviço acessível a gestores
-          públicos e privados — reduzindo custo de monitoramento físico e ampliando cobertura.
-        </p>
-
-        {/* Flow chain summary */}
-        <div
-          style={{
-            fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 11,
-            color: 'var(--text-ghost)',
-            marginBottom: 20,
-            letterSpacing: '0.03em',
-          }}
-        >
-          Satélite → dado orbital → geointeligência → alerta → protocolo → equipe → impacto econômico e ambiental
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {HERO_BADGES.map((b) => (
-            <span
-              key={b.label}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 24, lineHeight: 1 }}>🛰</span>
+              <h1
+                style={{
+                  fontSize: 20,
+                  fontWeight: 800,
+                  margin: 0,
+                  color: 'var(--text-hi)',
+                  lineHeight: 1.2,
+                }}
+              >
+                Economia Espacial aplicada à proteção ambiental
+              </h1>
+            </div>
+            <div
               style={{
-                padding: '4px 13px',
-                borderRadius: 20,
-                fontSize: 11,
-                fontWeight: 600,
-                background: `${b.color}22`,
-                color: b.color,
-                border: `1px solid ${b.color}44`,
+                padding: '5px 11px',
+                background: 'var(--bg-raised)',
+                borderRadius: 5,
+                fontSize: 10,
+                color: 'var(--text-ghost)',
+                fontStyle: 'italic',
+                flexShrink: 0,
+                marginLeft: 20,
+                whiteSpace: 'nowrap',
               }}
             >
-              {b.label}
-            </span>
-          ))}
-        </div>
+              dados simulados · demonstração acadêmica FIAP GS 2026
+            </div>
+          </div>
+
+          {/* Central message — key phrase */}
+          <div
+            style={{
+              background: 'oklch(60% 0.18 220 / 0.07)',
+              border: '1px solid oklch(60% 0.18 220 / 0.22)',
+              borderLeft: '3px solid var(--orbital)',
+              borderRadius: 6,
+              padding: '10px 16px',
+              marginBottom: 16,
+            }}
+          >
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-hi)', fontWeight: 600, lineHeight: 1.55 }}>
+              O IGNIS Orbital atua na camada de aplicação da economia espacial: transforma
+              infraestrutura orbital em inteligência ambiental e resposta operacional.
+            </p>
+          </div>
+
+          <p
+            style={{
+              fontSize: 13,
+              color: 'var(--text-lo)',
+              margin: '0 0 14px',
+              lineHeight: 1.75,
+              maxWidth: 700,
+            }}
+          >
+            Cada dado orbital vira protocolo, alerta, relatório ESG ou decisão de resposta em campo.
+            APIs espaciais transformam infraestrutura complexa em serviço acessível a gestores
+            públicos e privados — reduzindo custo de monitoramento físico e ampliando cobertura.
+          </p>
+
+          {/* Flow chain summary */}
+          <div
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: 11,
+              color: 'var(--text-ghost)',
+              marginBottom: 20,
+              letterSpacing: '0.03em',
+            }}
+          >
+            Satélite → dado orbital → geointeligência → alerta → protocolo → equipe → impacto econômico e ambiental
+          </div>
+
+          {/* Animated badges */}
+          <motion.div
+            variants={staggerContainerVariants}
+            initial={reducedMotion ? false : 'hidden'}
+            animate="visible"
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
+          >
+            {HERO_BADGES.map((b) => (
+              <motion.span
+                key={b.label}
+                variants={fadeUpVariants}
+                style={{
+                  padding: '4px 13px',
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: `${b.color}22`,
+                  color: b.color,
+                  border: `1px solid ${b.color}44`,
+                }}
+              >
+                {b.label}
+              </motion.span>
+            ))}
+          </motion.div>
+        </motion.div>
       </div>
 
       {/* ── Bloco 2: Cadeia de valor ───────────────────────────────── */}
@@ -335,8 +340,13 @@ export default function EconomiaEspacialPage() {
 
       {/* ── Bloco 3: Fontes orbitais ───────────────────────────────── */}
       <div style={{ marginBottom: 44 }}>
-        <SectionTitle>Fontes Orbitais e Espaciais</SectionTitle>
-        <div
+        <div style={{ marginBottom: 20 }}>
+          <OrbitalSectionHeader icon="📡">Fontes Orbitais e Espaciais</OrbitalSectionHeader>
+        </div>
+        <motion.div
+          variants={staggerContainerVariants}
+          initial={reducedMotion ? false : 'hidden'}
+          animate="visible"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -344,8 +354,10 @@ export default function EconomiaEspacialPage() {
           }}
         >
           {ORBITAL_SOURCES.map((src) => (
-            <div
+            <motion.div
               key={src.name}
+              variants={fadeUpVariants}
+              whileHover={reducedMotion ? {} : { y: -2 }}
               style={{
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--bg-raised)',
@@ -408,14 +420,16 @@ export default function EconomiaEspacialPage() {
               >
                 {src.status}
               </span>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {/* ── Bloco 4: Métricas ──────────────────────────────────────── */}
       <div style={{ marginBottom: 44 }}>
-        <SectionTitle>Métricas de Economia Espacial</SectionTitle>
+        <div style={{ marginBottom: 20 }}>
+          <OrbitalSectionHeader icon="📊">Métricas de Economia Espacial</OrbitalSectionHeader>
+        </div>
         <div
           style={{
             display: 'grid',
@@ -424,25 +438,33 @@ export default function EconomiaEspacialPage() {
             marginBottom: 14,
           }}
         >
-          <MetricCard
+          <SpaceMetricCard
             value={haLabel}
             label="Área monitorada (orbital)"
             accent="var(--orbital)"
+            sublabel="observação da Terra"
+            delay={0}
           />
-          <MetricCard
+          <SpaceMetricCard
             value={37}
             label="Alertas orbitais simulados"
             accent="#f97316"
+            sublabel="dados orbitais"
+            delay={0.05}
           />
-          <MetricCard
+          <SpaceMetricCard
             value="até 42%"
             label="Redução no tempo de triagem"
             accent="#22c55e"
+            sublabel="eficiência geoespacial"
+            delay={0.10}
           />
-          <MetricCard
+          <SpaceMetricCard
             value="R$ 184k"
             label="Custo de resposta evitado*"
             accent="#a855f7"
+            sublabel="impacto econômico"
+            delay={0.15}
           />
         </div>
         <div
@@ -452,25 +474,33 @@ export default function EconomiaEspacialPage() {
             gap: 14,
           }}
         >
-          <MetricCard
+          <SpaceMetricCard
             value={incidents.length}
             label="Incidentes com suporte geo."
             accent="#ef4444"
+            sublabel="API real"
+            delay={0.20}
           />
-          <MetricCard
+          <SpaceMetricCard
             value={areas.length}
             label="Áreas protegidas monitoradas"
             accent="var(--orbital)"
+            sublabel="geodados"
+            delay={0.25}
           />
-          <MetricCard
+          <SpaceMetricCard
             value={6}
             label="Fontes orbitais potenciais"
             accent="#38bdf8"
+            sublabel="sensoriamento remoto"
+            delay={0.30}
           />
-          <MetricCard
+          <SpaceMetricCard
             value={5}
             label="Fases de integração espacial"
             accent="#f59e0b"
+            sublabel="roadmap orbital"
+            delay={0.35}
           />
         </div>
         <div
@@ -495,7 +525,9 @@ export default function EconomiaEspacialPage() {
 
       {/* ── Bloco 6: Casos de uso ──────────────────────────────────── */}
       <div style={{ marginBottom: 44 }}>
-        <SectionTitle>Casos de Uso</SectionTitle>
+        <div style={{ marginBottom: 20 }}>
+          <OrbitalSectionHeader icon="💡">Casos de Uso</OrbitalSectionHeader>
+        </div>
         <div
           style={{
             display: 'grid',
@@ -536,7 +568,9 @@ export default function EconomiaEspacialPage() {
 
       {/* ── Bloco 7: Modelo econômico ──────────────────────────────── */}
       <div style={{ marginBottom: 44 }}>
-        <SectionTitle>Como a Economia Espacial gera valor aqui</SectionTitle>
+        <div style={{ marginBottom: 20 }}>
+          <OrbitalSectionHeader icon="⚡">Como a Economia Espacial gera valor aqui</OrbitalSectionHeader>
+        </div>
         <div
           style={{
             display: 'grid',
@@ -624,7 +658,9 @@ export default function EconomiaEspacialPage() {
 
       {/* ── Bloco 8: Roadmap ───────────────────────────────────────── */}
       <div style={{ marginBottom: 16 }}>
-        <SectionTitle>Próximas Integrações Espaciais</SectionTitle>
+        <div style={{ marginBottom: 20 }}>
+          <OrbitalSectionHeader icon="🗺️">Próximas Integrações Espaciais</OrbitalSectionHeader>
+        </div>
         <div
           style={{
             display: 'flex',

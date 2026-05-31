@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { getAreaById } from '@/data/areas';
+import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import type { PublicReport } from '@/types/domain';
 import { useToast } from '@/hooks/use-toast';
 import { OCCURRENCE_LABEL } from '@/lib/labels';
@@ -12,6 +12,7 @@ interface Props {
 
 export function ReportTable({ reports }: Props) {
   const { toast } = useToast();
+  const { areas } = useProtectedAreas();
 
   if (reports.length === 0) {
     return (
@@ -44,7 +45,7 @@ export function ReportTable({ reports }: Props) {
 
       {/* Rows */}
       {reports.map(r => {
-        const area = r.areaId ? getAreaById(r.areaId) : null;
+        const area = r.areaId ? areas.find(a => a.id === r.areaId) ?? null : null;
         return (
           <div key={r.id} style={{
             display: 'grid',

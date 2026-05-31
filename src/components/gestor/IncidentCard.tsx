@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { getAreaById } from '@/data/areas';
+import { useArea } from '@/hooks/useArea';
 import type { Incident } from '@/types/domain';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function IncidentCard({ incident }: Props) {
-  const area = getAreaById(incident.areaId);
+  const { area } = useArea(incident.areaId);
 
   return (
     <div style={{

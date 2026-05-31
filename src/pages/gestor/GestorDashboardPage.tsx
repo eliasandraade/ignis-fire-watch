@@ -7,13 +7,14 @@ import { useActiveIncidents, useCriticalIncident } from '@/hooks/useIncidents';
 import { useInternalReports } from '@/hooks/useInternalReports';
 import { useTeams } from '@/hooks/useTeams';
 import { useESGReports } from '@/hooks/useESGReports';
+import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
 
 export default function GestorDashboardPage() {
   const reducedMotion = useReducedMotion();
-  const { incidents: active } = useActiveIncidents();
+  const { incidents: active, dataSource } = useActiveIncidents();
   const { incident: critical } = useCriticalIncident();
   const { reports } = useInternalReports();
   const { teams } = useTeams();
@@ -52,6 +53,9 @@ export default function GestorDashboardPage() {
       )}
 
       {/* Metrics */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <DataSourceBadge status={dataSource.status} />
+      </div>
       <motion.div
         variants={staggerContainerVariants}
         initial="hidden"

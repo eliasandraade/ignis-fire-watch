@@ -9,8 +9,7 @@ import {
   convertReportToIncident,
 } from '@/services/api/internalReportsService';
 import { adaptApiReport } from '@/services/adapters/internalReportAdapter';
-import { FALLBACK_REPORTS } from '@/data/fallback';
-import { getReportById } from '@/data/reports';
+import { FALLBACK_REPORTS, getFallbackReportById } from '@/data/fallback';
 import type { PublicReport } from '@/types/domain';
 
 export function useInternalReports() {
@@ -56,14 +55,14 @@ export function useInternalReportDetail(id: string | undefined) {
   });
 
   if (!apiEnabled) {
-    const report = id ? getReportById(id) ?? null : null;
+    const report = id ? getFallbackReportById(id) ?? null : null;
     const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
     return { report, loading: false, fromApi: false, dataSource, error: null };
   }
 
   const report: PublicReport | null = query.isSuccess
     ? query.data
-    : (id ? getReportById(id) ?? null : null);
+    : (id ? getFallbackReportById(id) ?? null : null);
   const dataSource = createDataSourceMeta(query.isSuccess, report !== null);
 
   return {

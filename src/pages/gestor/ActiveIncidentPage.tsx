@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useIncidentDetail } from '@/hooks/useIncidentDetail';
 import { useTeams } from '@/hooks/useTeams';
 import { useEvidence } from '@/hooks/useEvidence';
-import { getAreaById } from '@/data/areas';
+import { useArea } from '@/hooks/useArea';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -18,7 +18,7 @@ export default function ActiveIncidentPage() {
   const { incident, loading } = useIncidentDetail(id);
   const { teams: allTeams } = useTeams();
   const { evidence } = useEvidence(id);
-  const area = incident ? getAreaById(incident.areaId) : null;
+  const { area } = useArea(incident?.areaId);
   const teams = allTeams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
 
   if (loading) {

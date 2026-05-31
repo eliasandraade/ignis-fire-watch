@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Circle, Marker, Polygon } from 'react-leaflet';
+import { motion, useReducedMotion } from 'framer-motion';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { IncidentTimeline } from '@/components/gestor/IncidentTimeline';
 import { WeatherBlock } from '@/components/gestor/WeatherBlock';
+import { OrbitalGrid, RadarSweep } from '@/components/orbital';
+import { criticalPulseVariants, orbitalGlowVariants } from '@/lib/motion';
 import { useWarRoom } from '@/hooks/useWarRoom';
 import { useTeams } from '@/hooks/useTeams';
 import { useResources } from '@/hooks/useResources';
@@ -21,6 +24,7 @@ export default function WarRoomPage() {
   const { teams } = useTeams();
   const { resources } = useResources();
   const apiEnabled = isApiEnabled();
+  const reducedMotion = useReducedMotion();
 
   const mobilizedTeams = teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
   const deployedResources = resources.filter(r => r.status === 'mobilizado' || r.currentIncident);
@@ -105,13 +109,33 @@ export default function WarRoomPage() {
         </span>
         <div style={{ width: 1, height: 20, background: 'var(--bg-raised)', margin: '0 4px' }} />
 
-        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
-                       fontWeight: 700, color: 'var(--text-hi)' }}>
-          {incident.code ?? incident.id}
-        </span>
+        {/* Change 2: critical pulse on incident code */}
+        {incident.risk === 'critical' && !reducedMotion ? (
+          <motion.span
+            animate="pulse"
+            variants={criticalPulseVariants}
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: 13,
+              fontWeight: 700,
+              color: 'var(--text-hi)',
+              padding: '2px 6px',
+              borderRadius: 4,
+              border: '1px solid var(--risk-crit)',
+            }}
+          >
+            {incident.code ?? incident.id}
+          </motion.span>
+        ) : (
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
+                         fontWeight: 700, color: 'var(--text-hi)' }}>
+            {incident.code ?? incident.id}
+          </span>
+        )}
         <StatusBadge status={incident.status} size="sm" />
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, alignItems: 'center' }}>
+          {/* Change 5: blinking alert for critical telemetry metrics */}
           {[
             { label: 'T', value: `${incident.temperature}°C`, crit: incident.temperature > 35 },
             { label: 'UR', value: `${incident.humidity}%`,    crit: incident.humidity < 20 },
@@ -119,10 +143,21 @@ export default function WarRoomPage() {
           ].map(m => (
             <div key={m.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 11, color: 'var(--text-ghost)' }}>{m.label}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
-                            color: m.crit ? 'var(--risk-crit)' : 'var(--text-hi)' }}>
-                {m.value}
-              </div>
+              {m.crit && !reducedMotion ? (
+                <motion.div
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
+                           color: 'var(--risk-crit)' }}
+                >
+                  {m.value}
+                </motion.div>
+              ) : (
+                <div style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
+                              color: m.crit ? 'var(--risk-crit)' : 'var(--text-hi)' }}>
+                  {m.value}
+                </div>
+              )}
             </div>
           ))}
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14,
@@ -145,9 +180,12 @@ export default function WarRoomPage() {
                     overflow: 'hidden' }}>
 
         {/* ── Left panel ── */}
+        {/* Change 3: position:relative + OrbitalGrid overlay */}
         <div style={{ background: 'var(--bg-deep)', borderRight: '1px solid var(--bg-raised)',
-                      overflowY: 'auto', padding: 14,
+                      overflowY: 'auto', padding: 14, position: 'relative',
                       display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <OrbitalGrid style={{ position: 'absolute', inset: 0 }} type="dots" />
+
           <div>
             <RiskBadge risk={incident.risk} />
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-hi)',
@@ -187,6 +225,11 @@ export default function WarRoomPage() {
             windSpeed={incident.windSpeed}
             windDirection={incident.windDirection}
           />
+
+          {/* Change 1: RadarSweep between weather and teams */}
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0', opacity: 0.7 }}>
+            <RadarSweep size={72} color="#3b82f6" speed={8} />
+          </div>
 
           {/* Equipes mobilizadas */}
           <div>
@@ -314,9 +357,13 @@ export default function WarRoomPage() {
         <div style={{ background: 'var(--bg-deep)', borderLeft: '1px solid var(--bg-raised)',
                       overflowY: 'auto', padding: 14,
                       display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Aurora block */}
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 14,
-                        border: '1px solid var(--bg-raised)' }}>
+          {/* Change 4: Aurora block wrapped in motion.div with orbital glow */}
+          <motion.div
+            animate={reducedMotion ? undefined : 'glow'}
+            variants={reducedMotion ? undefined : orbitalGlowVariants}
+            style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 14,
+                     border: '1px solid var(--bg-raised)' }}
+          >
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--orbital)',
                           textTransform: 'uppercase', letterSpacing: '0.1em',
                           marginBottom: 6 }}>
@@ -337,7 +384,7 @@ export default function WarRoomPage() {
                           fontStyle: 'italic' }}>
               Análise rule-based — protótipo demonstrativo
             </div>
-          </div>
+          </motion.div>
 
           {/* Timeline */}
           <div>

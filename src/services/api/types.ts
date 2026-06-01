@@ -85,3 +85,78 @@ export interface ApiHealthResponse {
   version: string;
   environment: string;
 }
+
+// ── External integrations ─────────────────────────────────────────────────
+
+export type ExternalSourceStatus = 'live' | 'cached' | 'unavailable';
+export type OrbitalSourceStatus =
+  | 'live'
+  | 'cached'
+  | 'disabled_missing_api_key'
+  | 'unavailable';
+export type RiskLevel = 'low' | 'moderate' | 'high' | 'critical';
+
+export interface ApiWeatherRiskFactor {
+  name: string;
+  impact: 'low' | 'moderate' | 'high';
+  description: string;
+}
+
+export interface ApiWeatherRiskResponse {
+  source: string;
+  source_status: ExternalSourceStatus;
+  latitude: number;
+  longitude: number;
+  temperature_c: number | null;
+  relative_humidity: number | null;
+  wind_speed_kmh: number | null;
+  wind_direction: number | null;
+  precipitation_mm: number | null;
+  risk_level: RiskLevel;
+  risk_score: number;
+  factors: ApiWeatherRiskFactor[];
+  recommendation: string;
+  fetched_at: string;
+  cache_ttl_minutes: number;
+}
+
+export interface ApiOrbitalAlert {
+  id: string;
+  type: 'heat_spot' | 'burn_confirmed' | 'deforestation' | 'anomaly';
+  lat: number;
+  lng: number;
+  area_id: string | null;
+  confidence: number;
+  source: string;
+  detected_at: string;
+  fetched_at: string;
+  converted_to_incident_id: string | null;
+}
+
+export interface ApiOrbitalAlertListResponse {
+  items: ApiOrbitalAlert[];
+  total: number;
+  source_status: OrbitalSourceStatus;
+  since: string | null;
+  cached_at: string | null;
+}
+
+export interface ApiIngestResponse {
+  status: 'ok' | 'partial' | 'disabled_missing_api_key' | 'error';
+  message: string;
+  records_fetched: number;
+  records_inserted: number;
+  records_skipped: number;
+}
+
+export interface ApiReverseGeocodingResponse {
+  source: string;
+  latitude: number;
+  longitude: number;
+  display_name: string | null;
+  municipality: string | null;
+  state: string | null;
+  country: string | null;
+  cached: boolean;
+  fetched_at: string;
+}

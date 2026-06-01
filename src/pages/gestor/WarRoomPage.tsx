@@ -12,6 +12,8 @@ import { criticalPulseVariants, orbitalGlowVariants } from '@/lib/motion';
 import { useWarRoom } from '@/hooks/useWarRoom';
 import { useTeams } from '@/hooks/useTeams';
 import { useResources } from '@/hooks/useResources';
+import { useWeatherRisk } from '@/hooks/useWeatherRisk';
+import { useOrbitalAlerts } from '@/hooks/useOrbitalAlerts';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 import { PROTOCOL_INCENDIO } from '@/data/operations';
 import { getPolygonPositions } from '@/lib/geo';
@@ -19,6 +21,20 @@ import { useToast } from '@/hooks/use-toast';
 import { isApiEnabled } from '@/services/api/client';
 import { activateProtocol } from '@/services/api/incidentsService';
 import type { ProtocolStep } from '@/types/domain';
+
+const RISK_LEVEL_COLOR: Record<string, string> = {
+  low: 'var(--risk-low)',
+  moderate: 'var(--risk-med)',
+  high: 'var(--risk-high)',
+  critical: 'var(--risk-crit)',
+};
+
+const RISK_LEVEL_LABEL: Record<string, string> = {
+  low: 'Baixo',
+  moderate: 'Moderado',
+  high: 'Alto',
+  critical: 'Crítico',
+};
 
 export default function WarRoomPage() {
   const { incident, area, loading, dataSource } = useWarRoom();
@@ -29,6 +45,11 @@ export default function WarRoomPage() {
 
   const mobilizedTeams = teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
   const deployedResources = resources.filter(r => r.status === 'mobilizado' || r.currentIncident);
+
+  const areaLat = area?.center[0];
+  const areaLng = area?.center[1];
+  const { weatherRisk, fromApi: weatherFromApi } = useWeatherRisk(areaLat, areaLng);
+  const { isKeyMissing: firmsKeyMissing, total: firmsAlerts } = useOrbitalAlerts();
 
   const [clock, setClock]           = useState(new Date());
   const [reinforced, setReinforced] = useState(false);
@@ -222,11 +243,91 @@ export default function WarRoomPage() {
           </div>
 
           <WeatherBlock
-            temperature={incident.temperature}
-            humidity={incident.humidity}
-            windSpeed={incident.windSpeed}
+            temperature={
+              weatherFromApi && weatherRisk.temperature_c != null
+                ? weatherRisk.temperature_c
+                : incident.temperature
+            }
+            humidity={
+              weatherFromApi && weatherRisk.relative_humidity != null
+                ? weatherRisk.relative_humidity
+                : incident.humidity
+            }
+            windSpeed={
+              weatherFromApi && weatherRisk.wind_speed_kmh != null
+                ? Math.round(weatherRisk.wind_speed_kmh)
+                : incident.windSpeed
+            }
             windDirection={incident.windDirection}
           />
+
+          {/* Risco meteorológico — Open-Meteo */}
+          <div style={{
+            background: 'var(--bg-raised)',
+            borderRadius: 6,
+            padding: '10px 12px',
+            borderLeft: `3px solid ${RISK_LEVEL_COLOR[weatherRisk.risk_level] ?? 'var(--bg-raised)'}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Risco Meteorológico
+              </span>
+              <span style={{
+                fontSize: 9, fontWeight: 600,
+                color: weatherFromApi ? '#22c55e' : weatherRisk.source_status === 'cached' ? '#f59e0b' : 'var(--text-ghost)',
+                padding: '1px 6px', borderRadius: 3,
+                background: weatherFromApi ? '#22c55e18' : '#f59e0b18',
+                border: `1px solid ${weatherFromApi ? '#22c55e33' : '#f59e0b33'}`,
+              }}>
+                {weatherFromApi
+                  ? weatherRisk.source_status === 'cached' ? 'cache' : 'Open-Meteo'
+                  : 'fonte indisponível'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                fontSize: 18, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
+                color: RISK_LEVEL_COLOR[weatherRisk.risk_level],
+              }}>
+                {weatherRisk.risk_score}
+              </span>
+              <span style={{ fontSize: 11, color: RISK_LEVEL_COLOR[weatherRisk.risk_level], fontWeight: 600 }}>
+                {RISK_LEVEL_LABEL[weatherRisk.risk_level]}
+              </span>
+            </div>
+            {weatherRisk.precipitation_mm != null && weatherRisk.precipitation_mm > 0 && (
+              <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 3 }}>
+                🌧 {weatherRisk.precipitation_mm.toFixed(1)} mm recentes
+              </div>
+            )}
+          </div>
+
+          {/* NASA FIRMS status */}
+          <div style={{
+            background: 'var(--bg-raised)',
+            borderRadius: 6,
+            padding: '8px 12px',
+            borderLeft: `3px solid ${firmsKeyMissing ? '#f59e0b' : '#22c55e'}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Alertas Orbitais
+              </span>
+              <span style={{
+                fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
+                color: firmsKeyMissing ? '#f59e0b' : '#22c55e',
+                background: firmsKeyMissing ? '#f59e0b18' : '#22c55e18',
+                border: `1px solid ${firmsKeyMissing ? '#f59e0b33' : '#22c55e33'}`,
+              }}>
+                {firmsKeyMissing ? 'aguardando chave' : 'NASA FIRMS'}
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-hi)', fontWeight: 600, marginTop: 2 }}>
+              {firmsKeyMissing
+                ? 'NASA_FIRMS_MAP_KEY não configurada'
+                : `${firmsAlerts} focos detectados`}
+            </div>
+          </div>
 
           {/* Change 1: RadarSweep between weather and teams */}
           <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0', opacity: 0.7 }}>

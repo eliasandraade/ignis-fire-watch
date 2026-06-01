@@ -7,6 +7,8 @@ import { useActiveIncidents, useCriticalIncident } from '@/hooks/useIncidents';
 import { useInternalReports } from '@/hooks/useInternalReports';
 import { useTeams } from '@/hooks/useTeams';
 import { useESGReports } from '@/hooks/useESGReports';
+import { useWeatherRisk } from '@/hooks/useWeatherRisk';
+import { useOrbitalAlerts } from '@/hooks/useOrbitalAlerts';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer
@@ -22,6 +24,12 @@ export default function GestorDashboardPage() {
 
   const pending  = reports.filter(r => r.status === 'em-triagem');
   const mobilized = teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
+
+  // Default CE center coords for weather risk (no lat/lng in incident domain type)
+  const critLat = -4.005;
+  const critLng = -39.46;
+  const { weatherRisk, fromApi: weatherFromApi } = useWeatherRisk(critLat, critLng);
+  const { isKeyMissing: firmsKeyMissing, total: firmsTotal } = useOrbitalAlerts();
 
   return (
     <div style={{ padding: 24 }}>
@@ -172,6 +180,110 @@ export default function GestorDashboardPage() {
               Nenhum incidente crítico ativo.
             </p>
           )}
+        </div>
+      </div>
+
+      {/* External integrations status row */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase',
+                      letterSpacing: '0.1em', marginBottom: 8 }}>
+          Fontes Externas
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {/* Open-Meteo */}
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 8, padding: '14px 16px',
+            border: '1px solid var(--bg-raised)',
+            borderLeft: `3px solid ${weatherFromApi ? '#22c55e' : 'var(--bg-raised)'}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>
+                🌤 Risco Meteorológico
+              </span>
+              <span style={{
+                fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
+                color: weatherFromApi ? '#22c55e' : 'var(--text-ghost)',
+                background: weatherFromApi ? '#22c55e18' : 'var(--bg-raised)',
+                border: `1px solid ${weatherFromApi ? '#22c55e33' : 'var(--bg-raised)'}`,
+              }}>
+                {weatherFromApi
+                  ? weatherRisk.source_status === 'cached' ? 'cache' : 'Open-Meteo'
+                  : 'indisponível'}
+              </span>
+            </div>
+            <div style={{
+              fontSize: 22, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
+              color: { low: 'var(--risk-low)', moderate: 'var(--risk-med)',
+                       high: 'var(--risk-high)', critical: 'var(--risk-crit)' }[weatherRisk.risk_level] ?? 'var(--text-hi)',
+            }}>
+              {weatherRisk.risk_score}
+              <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 4, color: 'var(--text-ghost)' }}>
+                / 100
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-lo)' }}>
+              {weatherRisk.temperature_c != null ? `${weatherRisk.temperature_c.toFixed(1)}°C` : '—'}{' · '}
+              {weatherRisk.relative_humidity != null ? `${weatherRisk.relative_humidity.toFixed(0)}% UR` : '—'}
+            </div>
+          </div>
+
+          {/* NASA FIRMS */}
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 8, padding: '14px 16px',
+            border: '1px solid var(--bg-raised)',
+            borderLeft: `3px solid ${firmsKeyMissing ? '#f59e0b' : '#22c55e'}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>
+                🛰 Alertas Orbitais
+              </span>
+              <span style={{
+                fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
+                color: firmsKeyMissing ? '#f59e0b' : '#22c55e',
+                background: firmsKeyMissing ? '#f59e0b18' : '#22c55e18',
+                border: `1px solid ${firmsKeyMissing ? '#f59e0b33' : '#22c55e33'}`,
+              }}>
+                {firmsKeyMissing ? 'aguardando chave' : 'NASA FIRMS'}
+              </span>
+            </div>
+            <div style={{
+              fontSize: 22, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
+              color: firmsKeyMissing ? '#f59e0b' : 'var(--text-hi)',
+            }}>
+              {firmsTotal}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-lo)' }}>
+              {firmsKeyMissing ? 'dados demo — chave ausente' : 'focos detectados'}
+            </div>
+          </div>
+
+          {/* OSM/Nominatim */}
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 8, padding: '14px 16px',
+            border: '1px solid var(--bg-raised)',
+            borderLeft: '3px solid #22c55e',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>
+                📍 Geocodificação
+              </span>
+              <span style={{
+                fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
+                color: '#22c55e', background: '#22c55e18', border: '1px solid #22c55e33',
+              }}>
+                OSM/Nominatim
+              </span>
+            </div>
+            <div style={{
+              fontSize: 22, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
+              color: 'var(--text-hi)',
+            }}>
+              ativo
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-lo)' }}>
+              reverse geocoding com cache
+            </div>
+          </div>
         </div>
       </div>
 

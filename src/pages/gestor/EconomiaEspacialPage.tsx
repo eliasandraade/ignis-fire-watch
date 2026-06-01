@@ -9,6 +9,7 @@ import {
 } from '@/components/orbital';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { useIncidents } from '@/hooks/useIncidents';
+import { useOrbitalAlerts } from '@/hooks/useOrbitalAlerts';
 import { fadeUpVariants, staggerContainerVariants } from '@/lib/motion';
 
 // ── Static data ───────────────────────────────────────────────────────────
@@ -24,12 +25,28 @@ const HERO_BADGES = [
 
 const ORBITAL_SOURCES = [
   {
+    name: 'Open-Meteo',
+    type: 'Clima real e risco meteorológico',
+    use: 'Temperatura, umidade, vento e precipitação em tempo real — calcula score de risco de incêndio (0-100). Sem chave de API.',
+    status: 'API real integrada',
+    statusColor: '#22c55e',
+    dot: '#22c55e',
+  },
+  {
     name: 'NASA FIRMS',
     type: 'Focos de calor e incêndios',
-    use: 'Alertas de incêndio preventivos antes da denúncia chegar por canais tradicionais.',
-    status: 'Fonte pública potencial',
-    statusColor: '#3b82f6',
+    use: 'Alertas VIIRS/MODIS NRT de focos de calor detectados por satélite. Ingestão CSV com deduplicação e join PostGIS. Aguarda MAP_KEY.',
+    status: 'Integração ativa — aguardando chave',
+    statusColor: '#f59e0b',
     dot: '#f97316',
+  },
+  {
+    name: 'OSM / Nominatim',
+    type: 'Reverse geocoding com cache',
+    use: 'Resolve coordenadas para endereço legível (município, estado). Cache obrigatório por grade de ~111m. Sem chave de API.',
+    status: 'API real integrada',
+    statusColor: '#22c55e',
+    dot: '#3b82f6',
   },
   {
     name: 'Sentinel / Copernicus',
@@ -40,36 +57,20 @@ const ORBITAL_SOURCES = [
     dot: '#22c55e',
   },
   {
-    name: 'Landsat',
-    type: 'Histórico de cobertura do solo',
-    use: 'Análise de uso e ocupação do solo ao longo do tempo por bioma.',
-    status: 'Fonte pública potencial',
-    statusColor: '#3b82f6',
-    dot: '#3b82f6',
-  },
-  {
     name: 'INPE / Queimadas',
     type: 'Focos de calor no Brasil',
     use: 'Base nacional de referência para alertas por bioma e estado.',
-    status: 'Integração prevista',
-    statusColor: '#a855f7',
+    status: 'Fase posterior',
+    statusColor: '#6366f1',
     dot: '#ef4444',
   },
   {
     name: 'MapBiomas',
     type: 'Cobertura e uso da terra',
     use: 'Zoneamento, identificação de biomas e quantificação de áreas degradadas.',
-    status: 'Fonte pública potencial',
-    statusColor: '#3b82f6',
+    status: 'Fase posterior',
+    statusColor: '#6366f1',
     dot: '#10b981',
-  },
-  {
-    name: 'NOAA / Meteorologia',
-    type: 'Variáveis climáticas e atmosféricas',
-    use: 'Correlação entre padrões climáticos orbitais e risco ambiental sazonal.',
-    status: 'Fonte pública potencial',
-    statusColor: '#3b82f6',
-    dot: '#60a5fa',
   },
 ];
 
@@ -151,9 +152,9 @@ const ROADMAP = [
   {
     phase: 3,
     title: 'Integração com Dados Orbitais Públicos',
-    desc: 'Focos de calor NASA FIRMS e INPE, imagens Sentinel/Copernicus via API.',
-    status: 'Planejado',
-    active: false,
+    desc: 'Open-Meteo (clima real), NASA FIRMS (focos de calor — aguardando chave), OSM/Nominatim (geocodificação). Backend ativo em feature/orbital-api-integrations.',
+    status: 'Em andamento',
+    active: true,
   },
   {
     phase: 4,
@@ -176,6 +177,7 @@ const ROADMAP = [
 export default function EconomiaEspacialPage() {
   const { areas } = useProtectedAreas();
   const { incidents } = useIncidents();
+  const { isKeyMissing: firmsKeyMissing, total: firmsTotal, sourceStatus } = useOrbitalAlerts();
   const reducedMotion = useReducedMotion();
 
   const totalHa = areas.reduce((sum, a) => sum + (a.hectares ?? 0), 0);
@@ -336,6 +338,72 @@ export default function EconomiaEspacialPage() {
       {/* ── Bloco 2: Cadeia de valor ───────────────────────────────── */}
       <div style={{ marginBottom: 44 }}>
         <SpaceValueChain />
+      </div>
+
+      {/* ── Bloco 2.5: Status de integrações externas ─────────────── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--bg-raised)',
+          borderRadius: 8,
+          padding: '16px 20px',
+        }}>
+          <div style={{ fontSize: 11, color: 'var(--text-ghost)', textTransform: 'uppercase',
+                        letterSpacing: '0.1em', marginBottom: 12 }}>
+            Integrações externas ativas nesta versão
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <div style={{ padding: '10px 12px', background: 'var(--bg-raised)', borderRadius: 6,
+                          borderLeft: '3px solid #22c55e' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', marginBottom: 2 }}>
+                Open-Meteo
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-lo)', lineHeight: 1.5 }}>
+                Dados climáticos reais · sem chave de API · cache 60 min
+              </div>
+              <span style={{ fontSize: 9, color: '#22c55e', background: '#22c55e14',
+                             border: '1px solid #22c55e33', padding: '1px 6px',
+                             borderRadius: 3, fontWeight: 600, marginTop: 6, display: 'inline-block' }}>
+                API real ativa
+              </span>
+            </div>
+            <div style={{ padding: '10px 12px', background: 'var(--bg-raised)', borderRadius: 6,
+                          borderLeft: `3px solid ${firmsKeyMissing ? '#f59e0b' : '#22c55e'}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700,
+                            color: firmsKeyMissing ? '#f59e0b' : '#22c55e', marginBottom: 2 }}>
+                NASA FIRMS · {firmsTotal} focos
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-lo)', lineHeight: 1.5 }}>
+                {firmsKeyMissing
+                  ? 'Módulo pronto — aguardando NASA_FIRMS_MAP_KEY no Railway'
+                  : 'Ingestão VIIRS ativa · deduplicação · join PostGIS'}
+              </div>
+              <span style={{
+                fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
+                marginTop: 6, display: 'inline-block',
+                color: firmsKeyMissing ? '#f59e0b' : '#22c55e',
+                background: firmsKeyMissing ? '#f59e0b14' : '#22c55e14',
+                border: `1px solid ${firmsKeyMissing ? '#f59e0b33' : '#22c55e33'}`,
+              }}>
+                {firmsKeyMissing ? 'aguardando chave' : sourceStatus}
+              </span>
+            </div>
+            <div style={{ padding: '10px 12px', background: 'var(--bg-raised)', borderRadius: 6,
+                          borderLeft: '3px solid #22c55e' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', marginBottom: 2 }}>
+                OSM / Nominatim
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-lo)', lineHeight: 1.5 }}>
+                Reverse geocoding · cache por grade 111 m · política de uso respeitada
+              </div>
+              <span style={{ fontSize: 9, color: '#22c55e', background: '#22c55e14',
+                             border: '1px solid #22c55e33', padding: '1px 6px',
+                             borderRadius: 3, fontWeight: 600, marginTop: 6, display: 'inline-block' }}>
+                API real ativa
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Bloco 3: Fontes orbitais ───────────────────────────────── */}

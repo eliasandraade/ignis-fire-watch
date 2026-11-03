@@ -1,0 +1,12 @@
+# Build context: sources only. Never local env files, dependencies or VCS data.
+.git/
+.github/
+node_modules/
+dist/
+coverage/
+docs/
+.env
+.env.*
+!.env.example
+*.log
+.vercel/

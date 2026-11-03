@@ -232,9 +232,9 @@ Job de atualização INPE (focos): `scripts/sync_inpe_hotfoci.py` (cron diário)
 | Tokens JWT | Expiry curto (15min access / 7d refresh), revogação via blacklist Redis |
 | Dados pessoais (denúncias) | reporterName e reporterContact são opcionais; anonimização disponível |
 | Endpoints públicos | Apenas leitura de status por protocolo e criação de denúncia |
-| CORS | Restrito às origens do frontend (ignis-fire-watch-main.vercel.app) |
+| CORS | Restrito às origens HTTPS do serviço `web` do mesmo ambiente Railway |
 | Rate limiting | FastAPI + slowapi: 10 req/min para endpoints públicos |
-| HTTPS | Obrigatório em produção (Vercel já garante no frontend; backend via Railway/Nginx+Let's Encrypt) |
+| HTTPS | Obrigatório em produção (o Railway termina o TLS de `web` e `api`) |
 | Logs de auditoria | Imutáveis — append only, sem DELETE |
 
 ---

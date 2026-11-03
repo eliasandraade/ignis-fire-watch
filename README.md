@@ -38,7 +38,7 @@ O sistema integra dados orbitais simulados (INPE/MODIS), geolocalização de ár
 | Mapas | react-leaflet 4 + Leaflet |
 | Gráficos | Recharts 2.12 |
 | Animações | Framer Motion |
-| Deploy | Vercel |
+| Deploy | Railway (Docker: nginx não-root, SPA fallback, `/healthz`, CSP) |
 
 ---
 
@@ -136,9 +136,21 @@ docs/
 
 ## Deploy
 
-**URL de produção:** https://ignis-fire-watch-main.vercel.app
+Hospedagem exclusiva no **Railway** (serviço `web`), nos ambientes staging e production:
 
-Hospedado na Vercel com SPA rewrite via `vercel.json` — todas as rotas respondem HTTP 200 em produção.
+- `Dockerfile`: build Vite (Node 22) → nginx-unprivileged; escuta no `PORT` injetado pelo Railway.
+- Build args `VITE_USE_API`/`VITE_API_URL` (domínio público da API do mesmo ambiente). URL inválida, sem HTTPS ou não resolvida **falha o build** (`deploy/build-env.mjs`).
+- `deploy/nginx/default.conf.template`: `/healthz`, fallback SPA para `index.html` (sempre revalidado), assets com hash em cache de 1 ano, CSP e headers de segurança.
+- Staging publica `master`; produção publica `production`, movido só pelo workflow **Promover para produção** (fast-forward, CI aprovada, aprovação manual).
+
+Rodar a imagem localmente:
+
+```bash
+docker build -t ignis-web --build-arg VITE_USE_API=true --build-arg VITE_API_URL=http://localhost:8000 .
+docker run --rm -p 8080:8080 ignis-web
+```
+
+Plano completo: [RAILWAY-DEPLOYMENT.md](https://github.com/eliasandraade/ignis-orbital-api/blob/infra/railway-only/docs/IGNIS/RAILWAY-DEPLOYMENT.md) · Branches: [docs/IGNIS/BRANCH-STRATEGY.md](docs/IGNIS/BRANCH-STRATEGY.md).
 
 ---
 

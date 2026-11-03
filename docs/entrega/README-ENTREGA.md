@@ -1,5 +1,7 @@
 # IGNIS Orbital — Documentação de Entrega
 
+> **Documento histórico** (entrega FIAP Global Solution 2026). Os endereços `*.vercel.app` citados aqui não são mais operacionais: desde 03/11/2026 o IGNIS é hospedado **exclusivamente no Railway** ([plano de implantação](https://github.com/eliasandraade/ignis-orbital-api/blob/infra/railway-only/docs/IGNIS/RAILWAY-DEPLOYMENT.md)). As credenciais demonstrativas citadas aqui são públicas e **não** existem em staging/production.
+
 **FIAP · Análise e Desenvolvimento de Sistemas · Global Solution 2026**
 
 | | |

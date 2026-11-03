@@ -7,60 +7,38 @@ O frontend IGNIS Orbital suporta dois modos de operação controlados por variá
 | Variável | Valor padrão | Produção |
 |---|---|---|
 | `VITE_USE_API` | `false` | `true` |
-| `VITE_API_URL` | *(vazio)* | `https://ignis-api-production.up.railway.app` |
+| `VITE_API_URL` | `http://localhost:8000` | domínio público da API no mesmo ambiente Railway |
 
 Quando `VITE_USE_API=false`, todas as páginas funcionam com dados mock estáticos do diretório `src/data/`. Quando `true`, os hooks de dados usam `isApiEnabled()` para rotear chamadas para a API real na Railway.
 
-## Estado Atual de Produção
+## Hospedagem (Railway)
 
-- **Frontend (Vercel):** https://ignis-fire-watch.vercel.app
-- **Backend (Railway):** https://ignis-api-production.up.railway.app
-- **`VITE_USE_API`:** `true`
-- **`VITE_API_URL`:** `https://ignis-api-production.up.railway.app`
+Desde 03/11/2026 o frontend roda **exclusivamente no Railway** (serviço `web`, ambientes staging e production). A antiga hospedagem na Vercel e a API em `ignis-api-production.up.railway.app` estão desativadas.
 
-## Configuração Local
+| Variável (serviço `web`) | staging / production |
+|---|---|
+| `VITE_USE_API` | `true` |
+| `VITE_API_URL` | `https://${{api.RAILWAY_PUBLIC_DOMAIN}}` (domínio da API **do mesmo ambiente**) |
 
-Crie ou edite `ignis-fire-watch-main/.env.local`:
+O Railway passa essas variáveis como *build args* do `Dockerfile`. Por isso, **qualquer mudança exige um novo build**: o Railway redeploya sozinho quando a variável muda. Se a URL estiver vazia, sem HTTPS ou com caminho, o build falha (`deploy/build-env.mjs`). A origem da API também entra no `connect-src` da CSP.
+
+## Configuração local
+
+Crie ou edite `.env.local` (fica no `.gitignore` e não é versionado):
 
 ```env
-VITE_API_URL=https://ignis-api-production.up.railway.app
+VITE_API_URL=http://localhost:8000
 VITE_USE_API=true
 ```
 
-O arquivo `.env.local` está no `.gitignore` e não é versionado.
+## Voltar ao modo demonstrativo
 
-## Configuração no Vercel
+Se a API ficar instável, a primeira opção é o *Redeploy* da versão anterior da API no Railway (RAILWAY-DEPLOYMENT §9).
 
-As variáveis estão definidas como **Environment Variables** no projeto `ignis-fire-watch` para o ambiente `Production`. Para atualizar:
+Só com **decisão do proprietário**, colocar `VITE_USE_API=false` no serviço `web`. Remover também `VITE_API_URL`, porque o build recusa a URL sem o modo API. O frontend volta aos dados de `src/data/`, identificados como demonstrativos pelo banner e pelas tags, e não faz nenhuma chamada à API.
 
-```bash
-vercel env rm VITE_USE_API production
-echo "true" | vercel env add VITE_USE_API production
+## Fluxos validados com API real (histórico, Railway antigo)
 
-vercel env rm VITE_API_URL production
-echo "https://ignis-api-production.up.railway.app" | vercel env add VITE_API_URL production
-```
-
-Após alterar variáveis, é necessário redeployar:
-
-```bash
-vercel --prod
-```
-
-## Rollback para Mock
-
-Caso a API de produção fique instável:
-
-1. Altere `VITE_USE_API` para `false` no Vercel:
-   ```bash
-   vercel env rm VITE_USE_API production
-   echo "false" | vercel env add VITE_USE_API production
-   vercel --prod
-   ```
-2. O frontend voltará a usar dados mock. Nenhuma chamada à Railway será feita.
-3. Localmente, basta alterar `.env.local` e reiniciar o servidor de desenvolvimento.
-
-## Fluxos Validados com API Real
 
 Os seguintes fluxos foram testados com `VITE_USE_API=true` apontando para Railway:
 

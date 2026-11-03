@@ -1,5 +1,7 @@
 # IGNIS Orbital — Slides: Copiar e Colar
 
+> **Documento histórico** (entrega FIAP Global Solution 2026). Os endereços `*.vercel.app` citados aqui não são mais operacionais: desde 03/11/2026 o IGNIS é hospedado **exclusivamente no Railway** ([plano de implantação](https://github.com/eliasandraade/ignis-orbital-api/blob/infra/railway-only/docs/IGNIS/RAILWAY-DEPLOYMENT.md)). As credenciais demonstrativas citadas aqui são públicas e **não** existem em staging/production.
+
 **FIAP GS 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427**
 
 > Este arquivo contém o texto exato de cada slide para copiar e colar no PowerPoint / Google Slides / Canva.  

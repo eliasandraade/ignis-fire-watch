@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useReducer } from 'react';
 import { Link } from 'react-router-dom';
 import { Circle, Marker, Polygon } from 'react-leaflet';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -15,7 +15,8 @@ import { useResources } from '@/hooks/useResources';
 import { useWeatherRisk } from '@/hooks/useWeatherRisk';
 import { useOrbitalAlerts, orbitalStatusLabel } from '@/hooks/useOrbitalAlerts';
 import { ActionStateTag } from '@/components/shared/ActionStateTag';
-import { unbackedActionState, type ActionState } from '@/lib/actionState';
+import { unbackedActionState } from '@/lib/actionState';
+import { protocolReducer, protocolButtonView } from '@/lib/protocolActivation';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 import { PROTOCOL_INCENDIO } from '@/data/operations';
 import { getPolygonPositions } from '@/lib/geo';
@@ -55,10 +56,18 @@ export default function WarRoomPage() {
   const firmsAccent = orbital.isRealData ? '#22c55e' : orbital.isDemo ? '#60a5fa' : '#f59e0b';
 
   const [clock, setClock]           = useState(new Date());
-  // Protocol activation: "confirmado" only after the backend confirms.
-  const [protocolState, setProtocolState] = useState<ActionState | 'confirmado' | 'simulado'>(
-    apiEnabled ? 'funcional' : 'demonstrativo',
-  );
+  // Protocol activation: confirmed only after the backend answers. Availability
+  // is derived from the current data source (see protocolButtonView), so a
+  // war-room query that recovers re-enables the action without a remount.
+  const [protocolPhase, dispatchProtocol] = useReducer(protocolReducer, 'idle');
+  const protocolView = protocolButtonView(protocolPhase, {
+    apiEnabled,
+    incidentFromApi: dataSource.isApi,
+    hasIncident: !!incident?.id,
+  });
+  useEffect(() => {
+    dispatchProtocol({ type: 'incident-changed' });
+  }, [incident?.id]);
   const [steps, setSteps]           = useState<ProtocolStep[]>(PROTOCOL_INCENDIO.steps);
   // The checklist is local UI state only: never persisted, never notifies anyone.
   const checklistState = unbackedActionState(apiEnabled);
@@ -76,15 +85,14 @@ export default function WarRoomPage() {
 
   const handleReinforce = async () => {
     if (!apiEnabled) {
-      setProtocolState('simulado');
+      dispatchProtocol({ type: 'simulate' });
       toast({
         title: 'Simulação — nenhum protocolo foi ativado',
         description: 'Modo demonstrativo: nada foi registrado nem enviado a qualquer órgão.',
       });
       return;
     }
-    if (!incident?.id || !dataSource.isApi) {
-      setProtocolState('indisponivel');
+    if (protocolView.disabled || !incident?.id) {
       toast({ title: 'Não executado', description: 'Incidente não carregado da API.' });
       return;
     }
@@ -94,17 +102,17 @@ export default function WarRoomPage() {
       'NÃO notifica Bombeiros, Defesa Civil ou qualquer órgão externo.',
     );
     if (!ok) return;
-    setProtocolState('aguardando-confirmacao');
+    dispatchProtocol({ type: 'submit' });
     try {
       await activateProtocol(incident.id);
-      setProtocolState('confirmado');
+      dispatchProtocol({ type: 'success' });
       toast({
         title: 'Ativação registrada no IGNIS',
         description: `${incident.code ?? incident.id} — nenhum órgão externo foi notificado.`,
       });
     } catch {
       // Never report success on failure.
-      setProtocolState('erro');
+      dispatchProtocol({ type: 'failure' });
       toast({
         title: 'Falha — protocolo NÃO foi registrado',
         description: 'A API não confirmou a operação. Tente novamente.',
@@ -437,15 +445,8 @@ export default function WarRoomPage() {
           )}
 
           {(() => {
-            const locked = protocolState === 'confirmado' || protocolState === 'aguardando-confirmacao'
-              || protocolState === 'indisponivel';
-            const label = {
-              confirmado: '✓ Ativação registrada no IGNIS',
-              simulado: 'Simulação concluída — nada registrado',
-              'aguardando-confirmacao': 'Aguardando confirmação da API…',
-              erro: 'Falhou — tentar novamente',
-              indisponivel: 'Indisponível (incidente fora da API)',
-            }[protocolState as string] ?? 'Registrar Ativação de Protocolo';
+            const locked = protocolView.disabled;
+            const label = protocolView.label;
             return (
               <>
                 <button

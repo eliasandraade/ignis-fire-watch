@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, apiFetchItems } from './client';
 
 export interface ApiEvidenceRead {
   id: string;
@@ -27,7 +27,7 @@ export interface ApiEvidenceCreate {
 
 export function fetchEvidence(incidentId?: string): Promise<ApiEvidenceRead[]> {
   const qs = incidentId ? `?incident_id=${incidentId}` : '';
-  return apiFetch(`/api/v1/evidence${qs}`);
+  return apiFetchItems(`/api/v1/evidence${qs}`);
 }
 
 export function fetchEvidenceItem(id: string): Promise<ApiEvidenceRead> {

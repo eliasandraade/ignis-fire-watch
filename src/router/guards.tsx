@@ -1,5 +1,11 @@
 import { Navigate, Outlet, Link } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
+import { isApiEnabled } from '@/services/api/client';
+
+/** Where to send users without a valid profile: login with the real API, profile picker in demo. */
+export function entryRoute(): string {
+  return isApiEnabled() ? '/login' : '/select-profile';
+}
 
 /**
  * Redireciona para /select-profile se nenhum perfil estiver ativo.
@@ -9,9 +15,9 @@ import { useUser } from '@/context/UserContext';
 export function RequireGestorAccess() {
   const { profile, canAccessGestorPanel, isFieldAgent } = useUser();
 
-  if (!profile)             return <Navigate to="/select-profile" replace />;
+  if (!profile)             return <Navigate to={entryRoute()} replace />;
   if (isFieldAgent)         return <Navigate to="/gestor/field"   replace />;
-  if (!canAccessGestorPanel) return <Navigate to="/select-profile" replace />;
+  if (!canAccessGestorPanel) return <Navigate to={entryRoute()} replace />;
 
   return <Outlet />;
 }
@@ -22,7 +28,7 @@ export function RequireGestorAccess() {
 export function RequireAuthenticatedAccess() {
   const { profile, isPublic } = useUser();
 
-  if (!profile || isPublic) return <Navigate to="/select-profile" replace />;
+  if (!profile || isPublic) return <Navigate to={entryRoute()} replace />;
   return <Outlet />;
 }
 
@@ -50,11 +56,11 @@ export function RequireAdminAccess() {
             : 'Nenhum perfil ativo. Selecione um perfil para continuar.'}
         </div>
         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-          <Link to="/select-profile" style={{
+          <Link to={entryRoute()} style={{
             padding: '10px 20px', background: 'var(--orbital)', color: 'white',
             borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: 600,
           }}>
-            Selecionar Perfil
+            {isApiEnabled() ? 'Entrar' : 'Selecionar Perfil'}
           </Link>
           <Link to="/gestor" style={{
             padding: '10px 20px', border: '1px solid var(--bg-raised)',

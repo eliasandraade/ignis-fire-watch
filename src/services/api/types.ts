@@ -42,9 +42,17 @@ export interface ApiReportRead {
   id: string;
   protocol: string;
   type: string;
+  description: string;
   urgency: string;
   status: string;
+  reporter_name: string | null;
+  contact: string | null;
   is_anonymous: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  evidence_urls: string[] | null;
+  validation_notes: string | null;
+  linked_incident_id: string | null;
   protected_area_id: string | null;
   created_at: string;
   updated_at: string;
@@ -89,9 +97,12 @@ export interface ApiHealthResponse {
 // ── External integrations ─────────────────────────────────────────────────
 
 export type ExternalSourceStatus = 'live' | 'cached' | 'unavailable';
+// live/cached: NASA FIRMS (see fetched_at) · demo: fictitious, flagged by the
+// backend · disabled_missing_api_key / unavailable: no data at all.
 export type OrbitalSourceStatus =
   | 'live'
   | 'cached'
+  | 'demo'
   | 'disabled_missing_api_key'
   | 'unavailable';
 export type RiskLevel = 'low' | 'moderate' | 'high' | 'critical';
@@ -113,7 +124,8 @@ export interface ApiWeatherRiskResponse {
   wind_direction: number | null;
   precipitation_mm: number | null;
   risk_level: RiskLevel;
-  risk_score: number;
+  // null when the weather source is unavailable (never an invented score)
+  risk_score: number | null;
   factors: ApiWeatherRiskFactor[];
   recommendation: string;
   fetched_at: string;
@@ -131,6 +143,7 @@ export interface ApiOrbitalAlert {
   detected_at: string;
   fetched_at: string;
   converted_to_incident_id: string | null;
+  is_demo?: boolean;
 }
 
 export interface ApiOrbitalAlertListResponse {
@@ -139,13 +152,28 @@ export interface ApiOrbitalAlertListResponse {
   source_status: OrbitalSourceStatus;
   since: string | null;
   cached_at: string | null;
+  // Added in Sprint 0 (optional for older API deployments)
+  data_origin?: 'nasa_firms' | 'demo' | 'none';
+  persisted?: boolean;
+  fetched_at?: string | null;
+  message?: string | null;
+  disclaimer?: string;
 }
 
 export interface ApiIngestResponse {
-  status: 'ok' | 'partial' | 'disabled_missing_api_key' | 'error';
+  status:
+    | 'ok'
+    | 'partial'
+    | 'processed_not_persisted'
+    | 'disabled_missing_api_key'
+    | 'unavailable'
+    | 'error';
   message: string;
   records_fetched: number;
+  records_valid?: number;
+  // Rows written to the database. Always 0 until orbital alerts are persisted.
   records_inserted: number;
+  persisted?: boolean;
   records_skipped: number;
 }
 

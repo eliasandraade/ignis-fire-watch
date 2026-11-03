@@ -1,13 +1,14 @@
 interface Props {
-  temperature: number;
-  humidity: number;
-  windSpeed: number;
-  windDirection: string;
+  temperature: number | null;
+  humidity: number | null;
+  windSpeed: number | null;
+  windDirection: string | null;
 }
 
 export function WeatherBlock({ temperature, humidity, windSpeed, windDirection }: Props) {
-  const tempCritical = temperature > 35;
-  const humidCritical = humidity < 20;
+  const tempCritical = temperature != null && temperature > 35;
+  const humidCritical = humidity != null && humidity < 20;
+  const show = (v: number | null) => (v == null ? '—' : v);
 
   const metric = (
     label: string,
@@ -31,9 +32,9 @@ export function WeatherBlock({ temperature, humidity, windSpeed, windDirection }
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
                   padding: '12px', background: 'var(--bg-raised)', borderRadius: 6 }}>
-      {metric('Temperatura', temperature, '°C', tempCritical)}
-      {metric('Umidade', humidity, '%', humidCritical)}
-      {metric('Vento', `${windSpeed} ${windDirection}`, 'km/h', false)}
+      {metric('Temperatura', show(temperature), temperature == null ? '' : '°C', tempCritical)}
+      {metric('Umidade', show(humidity), humidity == null ? '' : '%', humidCritical)}
+      {metric('Vento', windSpeed == null ? '—' : `${windSpeed} ${windDirection ?? ''}`, windSpeed == null ? '' : 'km/h', false)}
     </div>
   );
 }

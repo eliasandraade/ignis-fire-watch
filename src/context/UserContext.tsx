@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { UserProfile, UserRole } from '@/types/domain';
-import { isApiEnabled } from '@/services/api/client';
+import { isApiEnabled, SESSION_EXPIRED_EVENT } from '@/services/api/client';
 import { fetchMe, clearSession, getSavedUser } from '@/services/api/authService';
 import { adaptApiUser } from '@/services/adapters/authAdapter';
 
@@ -31,6 +31,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const setProfile   = (p: UserProfile) => setProfileState(p);
   const clearProfile = () => setProfileState(null);
+
+  useEffect(() => {
+    const onExpired = () => setProfileState(null);
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('ignis_token');

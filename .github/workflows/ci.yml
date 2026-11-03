@@ -3,7 +3,8 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [master]
+    # production: Railway's production environment deploys from it (Wait for CI).
+    branches: [master, production]
 
 permissions:
   contents: read
@@ -42,6 +43,43 @@ jobs:
           name: frontend-coverage
           path: coverage/lcov.info
           retention-days: 14
+
+  image:
+    name: Imagem Railway (nginx, SPA, healthcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Build em modo API (mesmos build args que o Railway passa)
+        run: >
+          docker build -t ignis-web:ci
+          --build-arg VITE_USE_API=true
+          --build-arg VITE_API_URL=https://ignis-api-ci.up.railway.app .
+      - name: Build recusa URL da API inválida (domínio público não resolvido)
+        run: |
+          if docker build --build-arg VITE_USE_API=true --build-arg VITE_API_URL=https:// . ; then
+            echo "::error::build aceitou VITE_API_URL vazio"; exit 1
+          fi
+      - name: Contêiner responde no PORT injetado, com SPA fallback e headers
+        run: |
+          docker run -d --name web -p 9090:9090 -e PORT=9090 ignis-web:ci
+          for _ in $(seq 1 20); do curl -sf localhost:9090/healthz && break; sleep 1; done
+          test "$(curl -s localhost:9090/healthz)" = "ok"
+          # Deep link served by the app shell, never cached.
+          curl -sf localhost:9090/gestor/war-room | grep -q '<div id="root">'
+          curl -sI localhost:9090/gestor/war-room | grep -qi '^cache-control: no-cache'
+          # Fingerprinted asset cached; a missing one is 404, not HTML.
+          asset=$(curl -s localhost:9090/ | grep -o '/assets/index-[^"]*\.js' | head -1)
+          curl -sI "localhost:9090$asset" | grep -qi '^cache-control: max-age=31536000'
+          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:9090/assets/missing.js)" = "404"
+          headers=$(curl -sI localhost:9090/)
+          csp="content-security-policy: .*connect-src 'self' https://ignis-api-ci.up.railway.app"
+          for h in "$csp" "x-frame-options: DENY" "x-content-type-options: nosniff"; do
+            echo "$headers" | grep -qi "$h" || { echo "::error::header ausente: $h"; exit 1; }
+          done
+          test "$(docker exec web id -u)" != "0"
+          if docker exec web sh -c "touch /usr/share/nginx/html/x"; then
+            echo "::error::site gravável pelo usuário de runtime"; exit 1
+          fi
 
   dependencies:
     name: npm audit

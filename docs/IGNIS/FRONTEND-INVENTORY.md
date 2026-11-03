@@ -139,3 +139,13 @@ Teste: `src/lib/sprint0.test.ts` garante que nenhum rótulo de fonte contém "te
 | `npm run build` | OK |
 | Navegador, modo demo | faixa demo; "Registrar Ativação" → "Simulação — nenhum protocolo foi ativado" |
 | Navegador, modo API (API local + PostGIS isolado) | `/select-profile` → `/login`; dashboard com equipes da API; FIRMS "desativada (chave não configurada)"; mobilização persistida (`mobilized`); com a API derrubada, faixa "API indisponível em 2 consultas" |
+
+### Atualização — Sprint 0.1
+
+| Item | Resultado |
+|---|---|
+| CI (`.github/workflows/ci.yml`) | typecheck, lint, Vitest com cobertura, build nos modos API e demo, `npm audit --omit=dev --audit-level=high`; actions fixadas por SHA |
+| Testes | 33 (antes 24). Novos: máquina de estados da ativação de protocolo (7) e lookup 404 vs. falha (2) |
+| Dependências | zod 4.6.7, @hookform/resolvers 5, react-router-dom 7.18.5: 0 vulnerabilidades de runtime. Dev/build: 22 (vite 5, vitest 3), pendência P1 |
+| Correções | Ativação de protocolo volta a ficar disponível após a recuperação da API (Codex P2); protocolo inexistente → "não encontrado" |
+| Validação no navegador (API local) | Formulário com zod 4 (mínimo de 20 caracteres); denúncia "Caça Ilegal" gravada como `wildlife_traffic`; login e guards com react-router 7; botão de protocolo indisponível → disponível após o polling, sem recarregar |

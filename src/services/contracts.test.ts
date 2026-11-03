@@ -125,3 +125,23 @@ describe('apiFetch', () => {
     await expect(apiFetch('/api/v1/reports')).rejects.toMatchObject({ message: 'Erro HTTP 422' });
   });
 });
+
+describe('public protocol lookup', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', new MemoryStorage());
+    vi.stubGlobal('window', new EventTarget());
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('unknown protocol (404) is "not found", not an outage', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(404, { detail: 'Denúncia não encontrada' })));
+    const { lookupReportOrNull } = await import('@/services/api/publicReportsService');
+    await expect(lookupReportOrNull('RP-20991231-ZZZZ')).resolves.toBeNull();
+  });
+
+  it('server failure still surfaces as an error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(503, { detail: 'x' })));
+    const { lookupReportOrNull } = await import('@/services/api/publicReportsService');
+    await expect(lookupReportOrNull('RP-20261103-KP73')).rejects.toMatchObject({ status: 503 });
+  });
+});

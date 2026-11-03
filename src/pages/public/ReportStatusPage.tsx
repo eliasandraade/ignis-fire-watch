@@ -4,7 +4,7 @@ import { getFallbackReportById } from '@/data/fallback';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import type { ReportStatus } from '@/types/domain';
 import { isApiEnabled } from '@/services/api/client';
-import { lookupReport } from '@/services/api/publicReportsService';
+import { lookupReportOrNull } from '@/services/api/publicReportsService';
 import { adaptApiReportStatus } from '@/services/adapters/reportAdapter';
 
 interface SubmittedReport {
@@ -55,7 +55,7 @@ export default function ReportStatusPage() {
   const shouldLookup = !!id && isApiEnabled() && isApiProtocol(id);
   const apiQuery = useQuery({
     queryKey: ['report-status', id],
-    queryFn:  () => lookupReport(id!),
+    queryFn:  () => lookupReportOrNull(id!),
     enabled:  shouldLookup,
     staleTime: 30_000,
     retry: 1,

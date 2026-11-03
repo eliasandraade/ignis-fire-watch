@@ -5,6 +5,7 @@ O índice completo da Sprint 0 fica no repositório do backend (IGNIS Core):
 
 Neste repositório:
 - [FRONTEND-INVENTORY.md](FRONTEND-INVENTORY.md): telas, rotas, matriz de rastreabilidade de dados, estados das ações e verificação.
+- [BRANCH-STRATEGY.md](BRANCH-STRATEGY.md): divergência `main` × `master` (históricos sem ancestral comum) e alinhamento seguro.
 
 Atenção: o desenvolvimento ativo deste repositório está na branch **`master`**. A branch padrão `main` contém um snapshot antigo (ver AUDIT-REPORT X-01).
 

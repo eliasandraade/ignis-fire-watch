@@ -6,9 +6,9 @@ interface DataSourceBadgeProps {
 }
 
 const BADGE_CONFIG: Record<DataSourceStatus, { label: string; color: string }> = {
-  api:      { label: 'API ao vivo',  color: 'oklch(65% 0.15 145)' },
-  demo:     { label: 'Demo',         color: 'oklch(60% 0.14 250)' },
-  fallback: { label: 'Fallback',     color: 'oklch(70% 0.15 85)'  },
+  api:      { label: 'API',                      color: 'oklch(65% 0.15 145)' },
+  demo:     { label: 'Demonstrativo',            color: 'oklch(60% 0.14 250)' },
+  fallback: { label: 'API indisponível · demo',  color: 'oklch(70% 0.15 85)'  },
   mixed:    { label: 'Misto',        color: 'oklch(65% 0.14 310)' },
   partial:  { label: 'Parcial',      color: 'oklch(68% 0.14 50)'  },
 };

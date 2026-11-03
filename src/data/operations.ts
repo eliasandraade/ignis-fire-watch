@@ -16,11 +16,11 @@ export const PROTOCOL_INCENDIO: Protocol = {
     {
       id: 's2',
       order: 2,
-      title: 'Notificação de autoridades',
-      description: 'Acionar SEMACE, IBAMA e Defesa Civil estadual.',
-      completed: true,
-      completedAt: '2026-05-26T09:55:00Z',
-      completedBy: 'Sistema IGNIS',
+      // O IGNIS não tem integração com nenhum órgão: este passo nunca é
+      // concluído automaticamente pelo sistema.
+      title: 'Notificação de autoridades (manual, fora do sistema)',
+      description: 'Contatar os órgãos competentes pelos canais oficiais. O IGNIS não envia notificações.',
+      completed: false,
     },
     {
       id: 's3',

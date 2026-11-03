@@ -8,7 +8,8 @@ import { useInternalReports } from '@/hooks/useInternalReports';
 import { useTeams } from '@/hooks/useTeams';
 import { useESGReports } from '@/hooks/useESGReports';
 import { useWeatherRisk } from '@/hooks/useWeatherRisk';
-import { useOrbitalAlerts } from '@/hooks/useOrbitalAlerts';
+import { useOrbitalAlerts, orbitalStatusLabel } from '@/hooks/useOrbitalAlerts';
+import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer
@@ -21,15 +22,18 @@ export default function GestorDashboardPage() {
   const { reports } = useInternalReports();
   const { teams } = useTeams();
   const { latest: esgData } = useESGReports();
+  const { areas } = useProtectedAreas();
 
   const pending  = reports.filter(r => r.status === 'em-triagem');
   const mobilized = teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
 
-  // Default CE center coords for weather risk (no lat/lng in incident domain type)
+  // Fixed reference point in Ceará (incidents have no lat/lng in the domain type yet).
+  // The card states this explicitly; it is not the critical incident's location.
   const critLat = -4.005;
   const critLng = -39.46;
   const { weatherRisk, fromApi: weatherFromApi } = useWeatherRisk(critLat, critLng);
-  const { isKeyMissing: firmsKeyMissing, total: firmsTotal } = useOrbitalAlerts();
+  const orbital = useOrbitalAlerts();
+  const firmsAccent = orbital.isRealData ? '#22c55e' : orbital.isDemo ? '#60a5fa' : '#f59e0b';
 
   return (
     <div style={{ padding: 24 }}>
@@ -71,13 +75,13 @@ export default function GestorDashboardPage() {
         style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)',
                   gap: 12, marginBottom: 28 }}
       >
-        <SpaceMetricCard value={8}               label="Áreas Monitoradas"   sublabel="cobertura orbital"   delay={0} />
-        <SpaceMetricCard value={active.length}   label="Incidentes Ativos"   accent="var(--risk-high)" sublabel="dados orbitais"     delay={0.05} />
+        <SpaceMetricCard value={areas.length}    label="Áreas Cadastradas"   sublabel="áreas protegidas"    delay={0} />
+        <SpaceMetricCard value={active.length}   label="Incidentes Ativos"   accent="var(--risk-high)" sublabel="registrados no IGNIS" delay={0.05} />
         <SpaceMetricCard value={pending.length}  label="Denúncias Pendentes" accent="var(--risk-med)"  sublabel="geointeligência"     delay={0.10} />
         <SpaceMetricCard value={mobilized.length} label="Equipes Mobilizadas" accent="var(--orbital)"  sublabel="resposta tática"     delay={0.15} />
         <SpaceMetricCard value={active.filter(i => i.risk === 'critical').length}
                           label="Alertas Críticos" accent="var(--risk-crit)"  sublabel="risco operacional"   delay={0.20} />
-        <SpaceMetricCard value={18}              label="Tempo Médio Resposta" unit="min"               sublabel="eficiência"          delay={0.25} />
+        <SpaceMetricCard value="n/d"           label="Tempo Médio Resposta" sublabel="não medido nesta versão" delay={0.25} />
       </motion.div>
 
       {/* Space Economy promo card */}
@@ -216,7 +220,7 @@ export default function GestorDashboardPage() {
               color: { low: 'var(--risk-low)', moderate: 'var(--risk-med)',
                        high: 'var(--risk-high)', critical: 'var(--risk-crit)' }[weatherRisk.risk_level] ?? 'var(--text-hi)',
             }}>
-              {weatherRisk.risk_score}
+              {weatherFromApi && weatherRisk.risk_score != null ? weatherRisk.risk_score : '—'}
               <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 4, color: 'var(--text-ghost)' }}>
                 / 100
               </span>
@@ -225,13 +229,19 @@ export default function GestorDashboardPage() {
               {weatherRisk.temperature_c != null ? `${weatherRisk.temperature_c.toFixed(1)}°C` : '—'}{' · '}
               {weatherRisk.relative_humidity != null ? `${weatherRisk.relative_humidity.toFixed(0)}% UR` : '—'}
             </div>
+            <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 2 }}>
+              ponto fixo de referência (-4.005, -39.46)
+              {weatherFromApi && weatherRisk.fetched_at
+                ? ` · obtido em ${new Date(weatherRisk.fetched_at).toLocaleString('pt-BR')}`
+                : ''}
+            </div>
           </div>
 
           {/* NASA FIRMS */}
           <div style={{
             background: 'var(--bg-surface)', borderRadius: 8, padding: '14px 16px',
             border: '1px solid var(--bg-raised)',
-            borderLeft: `3px solid ${firmsKeyMissing ? '#f59e0b' : '#22c55e'}`,
+            borderLeft: `3px solid ${firmsAccent}`,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>
@@ -239,21 +249,24 @@ export default function GestorDashboardPage() {
               </span>
               <span style={{
                 fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
-                color: firmsKeyMissing ? '#f59e0b' : '#22c55e',
-                background: firmsKeyMissing ? '#f59e0b18' : '#22c55e18',
-                border: `1px solid ${firmsKeyMissing ? '#f59e0b33' : '#22c55e33'}`,
+                color: firmsAccent,
+                background: `${firmsAccent}18`,
+                border: `1px solid ${firmsAccent}33`,
               }}>
-                {firmsKeyMissing ? 'aguardando chave' : 'NASA FIRMS'}
+                {orbital.isRealData ? 'NASA FIRMS' : orbital.isDemo ? 'demo' : 'sem dados'}
               </span>
             </div>
             <div style={{
               fontSize: 22, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
-              color: firmsKeyMissing ? '#f59e0b' : 'var(--text-hi)',
+              color: orbital.isRealData ? 'var(--text-hi)' : firmsAccent,
             }}>
-              {firmsTotal}
+              {orbital.isRealData || orbital.isDemo ? orbital.total : '—'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-lo)' }}>
-              {firmsKeyMissing ? 'dados demo — chave ausente' : 'focos detectados'}
+              {orbitalStatusLabel(orbital)}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 2 }}>
+              anomalias térmicas — não confirmam incêndio
             </div>
           </div>
 
@@ -261,7 +274,7 @@ export default function GestorDashboardPage() {
           <div style={{
             background: 'var(--bg-surface)', borderRadius: 8, padding: '14px 16px',
             border: '1px solid var(--bg-raised)',
-            borderLeft: '3px solid #22c55e',
+            borderLeft: '3px solid var(--bg-raised)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>
@@ -269,19 +282,19 @@ export default function GestorDashboardPage() {
               </span>
               <span style={{
                 fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
-                color: '#22c55e', background: '#22c55e18', border: '1px solid #22c55e33',
+                color: 'var(--text-ghost)', background: 'var(--bg-raised)', border: '1px solid var(--bg-raised)',
               }}>
                 OSM/Nominatim
               </span>
             </div>
             <div style={{
-              fontSize: 22, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
-              color: 'var(--text-hi)',
+              fontSize: 15, fontWeight: 700,
+              color: 'var(--text-mid)',
             }}>
-              ativo
+              não usada nesta tela
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-lo)' }}>
-              reverse geocoding com cache
+              endpoint disponível no backend; status não verificado aqui
             </div>
           </div>
         </div>

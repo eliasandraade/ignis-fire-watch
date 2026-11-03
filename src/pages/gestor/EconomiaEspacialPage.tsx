@@ -9,7 +9,8 @@ import {
 } from '@/components/orbital';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { useIncidents } from '@/hooks/useIncidents';
-import { useOrbitalAlerts } from '@/hooks/useOrbitalAlerts';
+import { useOrbitalAlerts, orbitalStatusLabel } from '@/hooks/useOrbitalAlerts';
+import { isApiEnabled } from '@/services/api/client';
 import { fadeUpVariants, staggerContainerVariants } from '@/lib/motion';
 
 // ── Static data ───────────────────────────────────────────────────────────
@@ -152,7 +153,7 @@ const ROADMAP = [
   {
     phase: 3,
     title: 'Integração com Dados Orbitais Públicos',
-    desc: 'Open-Meteo (clima real), NASA FIRMS (focos de calor — aguardando chave), OSM/Nominatim (geocodificação). Backend ativo em feature/orbital-api-integrations.',
+    desc: 'Open-Meteo (clima real), NASA FIRMS (focos de calor — aguardando chave), OSM/Nominatim (geocodificação). Status real de cada integração varia por ambiente.',
     status: 'Em andamento',
     active: true,
   },
@@ -177,7 +178,8 @@ const ROADMAP = [
 export default function EconomiaEspacialPage() {
   const { areas } = useProtectedAreas();
   const { incidents } = useIncidents();
-  const { isKeyMissing: firmsKeyMissing, total: firmsTotal, sourceStatus } = useOrbitalAlerts();
+  const orbital = useOrbitalAlerts();
+  const firmsAccent = orbital.isRealData ? '#22c55e' : orbital.isDemo ? '#60a5fa' : '#f59e0b';
   const reducedMotion = useReducedMotion();
 
   const totalHa = areas.reduce((sum, a) => sum + (a.hectares ?? 0), 0);
@@ -350,7 +352,7 @@ export default function EconomiaEspacialPage() {
         }}>
           <div style={{ fontSize: 11, color: 'var(--text-ghost)', textTransform: 'uppercase',
                         letterSpacing: '0.1em', marginBottom: 12 }}>
-            Integrações externas ativas nesta versão
+            Integrações externas disponíveis no backend (status não verificado nesta tela, exceto NASA FIRMS)
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             <div style={{ padding: '10px 12px', background: 'var(--bg-raised)', borderRadius: 6,
@@ -361,31 +363,29 @@ export default function EconomiaEspacialPage() {
               <div style={{ fontSize: 10, color: 'var(--text-lo)', lineHeight: 1.5 }}>
                 Dados climáticos reais · sem chave de API · cache 60 min
               </div>
-              <span style={{ fontSize: 9, color: '#22c55e', background: '#22c55e14',
-                             border: '1px solid #22c55e33', padding: '1px 6px',
+              <span style={{ fontSize: 9, color: 'var(--text-lo)', background: 'var(--bg-surface)',
+                             border: '1px solid var(--bg-raised)', padding: '1px 6px',
                              borderRadius: 3, fontWeight: 600, marginTop: 6, display: 'inline-block' }}>
-                API real ativa
+                integração disponível
               </span>
             </div>
             <div style={{ padding: '10px 12px', background: 'var(--bg-raised)', borderRadius: 6,
-                          borderLeft: `3px solid ${firmsKeyMissing ? '#f59e0b' : '#22c55e'}` }}>
+                          borderLeft: `3px solid ${firmsAccent}` }}>
               <div style={{ fontSize: 11, fontWeight: 700,
-                            color: firmsKeyMissing ? '#f59e0b' : '#22c55e', marginBottom: 2 }}>
-                NASA FIRMS · {firmsTotal} focos
+                            color: firmsAccent, marginBottom: 2 }}>
+                NASA FIRMS · {orbital.isRealData || orbital.isDemo ? `${orbital.total} anomalias térmicas` : 'sem dados'}
               </div>
               <div style={{ fontSize: 10, color: 'var(--text-lo)', lineHeight: 1.5 }}>
-                {firmsKeyMissing
-                  ? 'Módulo pronto — aguardando NASA_FIRMS_MAP_KEY no Railway'
-                  : 'Ingestão VIIRS ativa · deduplicação · join PostGIS'}
+                {orbitalStatusLabel(orbital)} · não confirmam incêndio · sem persistência em banco nesta versão
               </div>
               <span style={{
                 fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
                 marginTop: 6, display: 'inline-block',
-                color: firmsKeyMissing ? '#f59e0b' : '#22c55e',
-                background: firmsKeyMissing ? '#f59e0b14' : '#22c55e14',
-                border: `1px solid ${firmsKeyMissing ? '#f59e0b33' : '#22c55e33'}`,
+                color: firmsAccent,
+                background: `${firmsAccent}14`,
+                border: `1px solid ${firmsAccent}33`,
               }}>
-                {firmsKeyMissing ? 'aguardando chave' : sourceStatus}
+                {orbital.sourceStatus}
               </span>
             </div>
             <div style={{ padding: '10px 12px', background: 'var(--bg-raised)', borderRadius: 6,
@@ -396,10 +396,10 @@ export default function EconomiaEspacialPage() {
               <div style={{ fontSize: 10, color: 'var(--text-lo)', lineHeight: 1.5 }}>
                 Reverse geocoding · cache por grade 111 m · política de uso respeitada
               </div>
-              <span style={{ fontSize: 9, color: '#22c55e', background: '#22c55e14',
-                             border: '1px solid #22c55e33', padding: '1px 6px',
+              <span style={{ fontSize: 9, color: 'var(--text-lo)', background: 'var(--bg-surface)',
+                             border: '1px solid var(--bg-raised)', padding: '1px 6px',
                              borderRadius: 3, fontWeight: 600, marginTop: 6, display: 'inline-block' }}>
-                API real ativa
+                integração disponível
               </span>
             </div>
           </div>
@@ -544,9 +544,9 @@ export default function EconomiaEspacialPage() {
         >
           <SpaceMetricCard
             value={incidents.length}
-            label="Incidentes com suporte geo."
+            label="Incidentes registrados"
             accent="#ef4444"
-            sublabel="API real"
+            sublabel={isApiEnabled() ? 'via API (podem ser de demonstração)' : 'demonstrativo'}
             delay={0.20}
           />
           <SpaceMetricCard

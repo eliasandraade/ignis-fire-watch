@@ -13,7 +13,7 @@ export const MOCK_USERS: MockUser[] = [
   {
     id: 'u1',
     name: 'Ana Lima',
-    email: 'ana.lima@ignis.ce.gov.br',
+    email: 'gestora@demo.ignis.example',
     role: 'gestor',
     lastLogin: '2026-05-26T10:30:00Z',
     active: true,
@@ -21,7 +21,7 @@ export const MOCK_USERS: MockUser[] = [
   {
     id: 'u2',
     name: 'Carlos Drummond',
-    email: 'c.drummond@bombeiros.ce.gov.br',
+    email: 'campo@demo.ignis.example',
     role: 'campo',
     lastLogin: '2026-05-26T09:15:00Z',
     active: true,
@@ -29,7 +29,7 @@ export const MOCK_USERS: MockUser[] = [
   {
     id: 'u3',
     name: 'Maria Cecília',
-    email: 'm.cecilia@semace.ce.gov.br',
+    email: 'analista@demo.ignis.example',
     role: 'gestor',
     lastLogin: '2026-05-25T16:00:00Z',
     active: true,
@@ -37,7 +37,7 @@ export const MOCK_USERS: MockUser[] = [
   {
     id: 'u4',
     name: 'Admin IGNIS',
-    email: 'admin@ignis.ce.gov.br',
+    email: 'admin@demo.ignis.example',
     role: 'admin',
     lastLogin: '2026-05-26T08:00:00Z',
     active: true,
@@ -71,7 +71,7 @@ export const AUDIT_LOG = [
     id: 'a3',
     ts: '2026-05-26T09:55:00Z',
     user: 'Sistema IGNIS',
-    action: 'Notificação enviada para SEMACE e IBAMA',
+    action: '(Simulação) Lembrete de contato com órgãos — nenhuma notificação enviada',
     entity: 'system',
   },
   {

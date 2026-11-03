@@ -13,8 +13,9 @@ const FALLBACK_WEATHER_RISK: ApiWeatherRiskResponse = {
   wind_speed_kmh: null,
   wind_direction: null,
   precipitation_mm: null,
+  // No invented score: the UI shows "—" when the source is unavailable.
   risk_level: 'moderate' as RiskLevel,
-  risk_score: 35,
+  risk_score: null,
   factors: [
     {
       name: 'Fonte externa indisponível',
@@ -23,7 +24,7 @@ const FALLBACK_WEATHER_RISK: ApiWeatherRiskResponse = {
     },
   ],
   recommendation: 'Fonte meteorológica externa indisponível. Consulte a equipe de campo.',
-  fetched_at: new Date().toISOString(),
+  fetched_at: '',
   cache_ttl_minutes: 0,
 };
 

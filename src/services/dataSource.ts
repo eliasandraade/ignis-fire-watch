@@ -16,12 +16,14 @@ export function isApiMode(): boolean {
 
 export function getDataSourceLabel(status: DataSourceStatus): string {
   switch (status) {
+    // "api" means the last request succeeded — not real-time, and the
+    // backend database may itself hold demonstration (seed) records.
     case 'api':
-      return 'Dados em tempo real';
+      return 'Dados da API';
     case 'demo':
       return 'Dados demonstrativos';
     case 'fallback':
-      return 'Fallback local';
+      return 'API indisponível — dados demonstrativos';
     case 'mixed':
       return 'Dados mistos';
     case 'partial':

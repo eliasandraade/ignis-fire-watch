@@ -937,7 +937,7 @@ Benefícios:
 
 ### 11.3 Feature flag rigoroso
 
-`ORBITAL_ALERTS_ENABLED` (Railway backend) e `VITE_ORBITAL_ALERTS` (Vercel frontend):
+`ORBITAL_ALERTS_ENABLED` (Railway, serviço `api`) e `VITE_ORBITAL_ALERTS` (Railway, serviço `web`, build arg):
 - `false` por padrão em desenvolvimento e staging.
 - Habilitado em produção apenas após validação completa da Fase 1.
 
@@ -984,7 +984,7 @@ COPERNICUS_CLIENT_ID=<client id>
 COPERNICUS_CLIENT_SECRET=<client secret>
 ```
 
-### 12.2 Frontend (Vercel)
+### 12.2 Frontend (Railway, serviço `web`)
 
 ```env
 # Controla a camada visual de alertas orbitais no frontend

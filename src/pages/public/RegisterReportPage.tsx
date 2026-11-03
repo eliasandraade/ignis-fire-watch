@@ -99,14 +99,18 @@ export default function RegisterReportPage() {
         navigate(`/public/report/status/${result.protocol}`);
         return;
       } catch {
-        setSubmitError('Não foi possível enviar via API. Tente novamente ou use o modo offline.');
+        setSubmitError(
+          'A denúncia NÃO foi enviada: a API não confirmou o recebimento. ' +
+          'Tente novamente. Em emergência, ligue 193 (Corpo de Bombeiros).',
+        );
         return;
       }
     }
 
-    // Mock fallback (VITE_USE_API=false)
+    // Demo mode (VITE_USE_API=false): nothing leaves the browser. The status
+    // page shows this record as a simulation, never as received by anyone.
     await new Promise(r => setTimeout(r, 500));
-    const id = `RPT-${Date.now().toString(36).toUpperCase()}`;
+    const id = `DEMO-${Date.now().toString(36).toUpperCase()}`;
     sessionStorage.setItem(`ignis_report_${id}`, JSON.stringify({
       id,
       occurrenceType: data.occurrenceType,
@@ -118,6 +122,7 @@ export default function RegisterReportPage() {
       coords:         coords ?? null,
       status:         'em-triagem',
       submittedAt:    new Date().toISOString(),
+      simulated:      true,
     }));
     navigate(`/public/report/status/${id}`);
   };
@@ -142,6 +147,13 @@ export default function RegisterReportPage() {
       <p style={{ fontSize: 13, color: 'var(--text-lo)', margin: '0 0 32px' }}>
         Relate ocorrências em áreas protegidas do Ceará. Sua denúncia será avaliada por gestores.
       </p>
+      <div role="note" style={{ margin: '-16px 0 28px', padding: '10px 14px', borderRadius: 6,
+                                 border: '1px solid var(--risk-crit)', fontSize: 13,
+                                 color: 'var(--text-hi)', lineHeight: 1.5,
+                                 background: 'color-mix(in oklch, var(--risk-crit) 10%, transparent)' }}>
+        <strong>Emergência?</strong> Ligue 193 (Corpo de Bombeiros) ou 199 (Defesa Civil).
+        Este canal é um protótipo, não é monitorado em tempo real e não aciona atendimento de emergência.
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32 }}>
@@ -214,7 +226,10 @@ export default function RegisterReportPage() {
               <label htmlFor="decl" style={{ fontSize: 12, color: 'var(--text-lo)',
                                              cursor: 'pointer', lineHeight: 1.4 }}>
                 Declaro que as informações prestadas são verídicas e foram obtidas por
-                observação direta. Protótipo demonstrativo — sem envio real de dados.
+                observação direta.{' '}
+                {isApiEnabled()
+                  ? 'A denúncia é registrada no protótipo IGNIS, que não tem integração com órgãos públicos.'
+                  : 'Modo demonstrativo — a denúncia não será enviada.'}
               </label>
             </div>
             {errors.declaration && (

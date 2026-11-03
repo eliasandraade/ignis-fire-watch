@@ -3,7 +3,6 @@ import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import type { PublicReport } from '@/types/domain';
-import { useToast } from '@/hooks/use-toast';
 import { OCCURRENCE_LABEL } from '@/lib/labels';
 
 interface Props {
@@ -11,7 +10,6 @@ interface Props {
 }
 
 export function ReportTable({ reports }: Props) {
-  const { toast } = useToast();
   const { areas } = useProtectedAreas();
 
   if (reports.length === 0) {
@@ -78,18 +76,16 @@ export function ReportTable({ reports }: Props) {
               }}>
                 Analisar
               </Link>
-              <button
-                onClick={() => toast({ title: 'Denúncia validada (protótipo)',
-                                       description: r.id })}
-                style={{
-                  fontSize: 11, color: 'var(--risk-low)', cursor: 'pointer',
-                  padding: '3px 8px',
-                  border: '1px solid color-mix(in oklch, var(--risk-low) 40%, transparent)',
-                  borderRadius: 4, background: 'transparent', fontFamily: 'inherit',
-                }}
-              >
-                Validar
-              </button>
+              {/* Validation happens on the detail page, which calls the API and
+                  only confirms after the backend responds (no toast-only action). */}
+              <Link to={`/gestor/reports/${r.id}`} style={{
+                fontSize: 11, color: 'var(--risk-low)', textDecoration: 'none',
+                padding: '3px 8px',
+                border: '1px solid color-mix(in oklch, var(--risk-low) 40%, transparent)',
+                borderRadius: 4,
+              }}>
+                Validar…
+              </Link>
             </div>
           </div>
         );

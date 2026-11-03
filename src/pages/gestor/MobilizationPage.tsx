@@ -6,6 +6,7 @@ import { useTeams } from '@/hooks/useTeams';
 import { useResources } from '@/hooks/useResources';
 import { isApiMode } from '@/services/dataSource';
 import { updateTeam } from '@/services/api/teamsService';
+import { TEAM_STATUS_TO_API } from '@/services/adapters/teamAdapter';
 import { useToast } from '@/hooks/use-toast';
 import type { FieldTeam } from '@/types/domain';
 
@@ -15,7 +16,7 @@ export default function MobilizationPage() {
   const [filter, setFilter] = useState<TeamFilter>('all');
   const [localOverrides, setLocalOverrides] = useState<Record<string, FieldTeam['status']>>({});
 
-  const { teams: hookTeams } = useTeams();
+  const { teams: hookTeams, dataSource: teamsSource } = useTeams();
   const { resources } = useResources();
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -27,22 +28,33 @@ export default function MobilizationPage() {
   );
 
   const mobilizeMutation = useMutation({
-    mutationFn: (id: string) => updateTeam(id, { status: 'mobilizado' }),
+    mutationFn: (id: string) => updateTeam(id, { status: TEAM_STATUS_TO_API.mobilizado }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teams'] });
-      toast({ title: 'Equipe mobilizada' });
+      toast({
+        title: 'Status "mobilizada" registrado no IGNIS',
+        description: 'Apenas o cadastro foi atualizado: nenhuma equipe real foi acionada (sem integração com despacho).',
+      });
     },
     onError: (_err, id) => {
-      toast({ title: 'Erro ao mobilizar equipe', description: id });
+      toast({ title: 'Falha — status NÃO foi alterado', description: id, variant: 'destructive' });
     },
   });
 
   const handleMobilize = (id: string) => {
     if (isApiMode()) {
+      // Mock teams shown on API failure do not exist in the backend.
+      if (!teamsSource.isApi) {
+        toast({ title: 'Indisponível', description: 'Equipes não carregadas da API.', variant: 'destructive' });
+        return;
+      }
       mobilizeMutation.mutate(id);
     } else {
       setLocalOverrides(prev => ({ ...prev, [id]: 'mobilizado' }));
-      toast({ title: 'Equipe mobilizada (demo)', description: id });
+      toast({
+        title: 'Simulação — nenhuma equipe foi acionada',
+        description: `Modo demonstrativo: o status de ${id} mudou apenas nesta tela.`,
+      });
     }
   };
 
@@ -70,7 +82,7 @@ export default function MobilizationPage() {
           Mobilização e Recursos
         </h1>
         <p style={{ fontSize: 13, color: 'var(--text-lo)', margin: '4px 0 0' }}>
-          {teams.length} equipes cadastradas · {isApiMode() ? 'Dados em tempo real' : 'Protótipo demonstrativo'}
+          {teams.length} equipes cadastradas · {teamsSource.label} · alterar status não aciona equipes reais
         </p>
       </div>
 
@@ -123,7 +135,7 @@ export default function MobilizationPage() {
                 fontSize: 11, fontFamily: 'inherit', fontWeight: 600, flexShrink: 0,
               }}
             >
-              {t.status === 'disponivel' ? 'Mobilizar' : '—'}
+              {t.status === 'disponivel' ? 'Registrar mobilização' : '—'}
             </button>
           </div>
         ))}

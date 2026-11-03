@@ -6,12 +6,19 @@ import { useCriticalIncident } from '@/hooks/useIncidents';
 import { useMissions } from '@/hooks/useMissions';
 import { useArea } from '@/hooks/useArea';
 import { useToast } from '@/hooks/use-toast';
+import { isApiEnabled } from '@/services/api/client';
+import { ActionStateTag } from '@/components/shared/ActionStateTag';
+import { unbackedActionState } from '@/lib/actionState';
 
 export default function FieldOperationPage() {
   const [arrived, setArrived] = useState(false);
   const [report, setReport]   = useState('');
   const [sent, setSent]       = useState(false);
   const { toast } = useToast();
+  // Field check-in and field reports are not persisted in this version: they can
+  // only be simulated in demo mode and are disabled when the real API is in use.
+  const fieldActionState = unbackedActionState(isApiEnabled());
+  const fieldActionsEnabled = fieldActionState === 'demonstrativo';
 
   const { incident } = useCriticalIncident();
   const { missions } = useMissions(incident?.id);
@@ -21,10 +28,22 @@ export default function FieldOperationPage() {
   const mapCenter: [number, number] = area?.center ?? [-4.5, -39.0];
 
   const handleSend = () => {
-    if (!report.trim()) return;
+    if (!report.trim() || !fieldActionsEnabled) return;
     setSent(true);
-    toast({ title: 'Relatório enviado (protótipo)', description: 'Sem envio real — demonstração' });
+    toast({ title: 'Simulação — relatório NÃO foi enviado', description: 'Modo demonstrativo: nada saiu deste dispositivo.' });
   };
+
+  if (!mission) {
+    return (
+      <div style={{ maxWidth: 390, margin: '0 auto', minHeight: '100vh', padding: 24,
+                    background: 'var(--bg-void)', color: 'var(--text-mid)', fontSize: 14 }}>
+        <Link to="/gestor/mobilization" style={{ color: 'var(--orbital)', textDecoration: 'none' }}>
+          ← Operações
+        </Link>
+        <p style={{ marginTop: 24 }}>Nenhuma missão ativa encontrada para o incidente atual.</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 390, margin: '0 auto', minHeight: '100vh',
@@ -97,8 +116,12 @@ export default function FieldOperationPage() {
 
         {/* Action 1: Cheguei ao Local — minHeight 48px */}
         <motion.button
-          onClick={() => { if (!arrived) setArrived(true); }}
-          disabled={arrived}
+          onClick={() => {
+            if (arrived || !fieldActionsEnabled) return;
+            setArrived(true);
+            toast({ title: 'Simulação — chegada NÃO registrada', description: 'Modo demonstrativo.' });
+          }}
+          disabled={arrived || !fieldActionsEnabled}
           whileTap={!arrived ? { scale: 0.97 } : {}}
           style={{
             width: '100%', minHeight: 48, borderRadius: 8, border: 'none',
@@ -110,7 +133,7 @@ export default function FieldOperationPage() {
             fontFamily: 'inherit', marginBottom: 12,
           } as React.CSSProperties}
         >
-          {arrived ? '✓ Local Confirmado' : '📍 Cheguei ao Local'}
+          {arrived ? 'Chegada simulada (não registrada)' : '📍 Cheguei ao Local'}
         </motion.button>
 
         {/* Action 2: Photo upload placeholder — minHeight 48px */}
@@ -148,7 +171,7 @@ export default function FieldOperationPage() {
         {/* Action 4: Send — minHeight 48px */}
         <button
           onClick={handleSend}
-          disabled={!report.trim() || sent}
+          disabled={!report.trim() || sent || !fieldActionsEnabled}
           style={{
             width: '100%', minHeight: 48, borderRadius: 8, border: 'none',
             background: sent ? 'var(--bg-raised)'
@@ -162,13 +185,19 @@ export default function FieldOperationPage() {
             fontFamily: 'inherit',
           }}
         >
-          {sent ? '✓ Relatório Enviado' : 'Enviar Relatório de Campo'}
+          {sent ? 'Simulação concluída — nada enviado' : 'Enviar Relatório de Campo'}
         </button>
+
+        <div style={{ marginTop: 10, textAlign: 'center' }}>
+          <ActionStateTag state={fieldActionState} />
+        </div>
 
         <div style={{ marginTop: 16, padding: '10px 12px', background: 'var(--bg-panel)',
                       borderRadius: 6, fontSize: 11, color: 'var(--text-ghost)',
                       textAlign: 'center', lineHeight: 1.5 }}>
-          Protótipo demonstrativo — sem envio real de dados
+          {fieldActionsEnabled
+            ? 'Modo demonstrativo — nenhuma ação desta tela é registrada ou enviada.'
+            : 'Registro de campo não implementado nesta versão — ações desabilitadas.'}
         </div>
       </div>
     </div>

@@ -18,6 +18,8 @@ interface SubmittedReport {
   coords: { lat: number; lng: number } | null;
   status: ReportStatus;
   submittedAt: string;
+  /** Demo-mode submission that never left the browser. */
+  simulated?: boolean;
 }
 
 function getSessionReport(id: string): SubmittedReport | null {
@@ -61,7 +63,11 @@ export default function ReportStatusPage() {
 
   // Priority: API response → sessionStorage → mock DB → fallback
   const sessionReport = id ? getSessionReport(id) : null;
-  const dbReport      = id && !sessionReport ? getFallbackReportById(id) : null;
+  // Mock reports only exist in demo mode; never answer an API lookup with them.
+  const dbReport      = id && !sessionReport && !isApiEnabled() ? getFallbackReportById(id) : null;
+  const isSimulated   = !!sessionReport?.simulated;
+  const lookupFailed  = shouldLookup && apiQuery.isError;
+  const found         = !!apiQuery.data || !!sessionReport || !!dbReport;
 
   const apiStatus: ReportStatus | undefined = apiQuery.data
     ? adaptApiReportStatus(apiQuery.data).status
@@ -76,8 +82,48 @@ export default function ReportStatusPage() {
     dbReport?.submittedAt ??
     null;
 
+  if (shouldLookup && apiQuery.isLoading) {
+    return (
+      <div style={{ padding: 48, maxWidth: 680, margin: '0 auto', color: 'var(--text-lo)' }}>
+        Consultando protocolo…
+      </div>
+    );
+  }
+
+  // Unknown protocol: never display a default "Recebida" status.
+  if (!found || (lookupFailed && !apiQuery.data)) {
+    return (
+      <div style={{ padding: 48, maxWidth: 680, margin: '0 auto' }}>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-raised)',
+                      borderRadius: 10, padding: '24px 28px' }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 18,
+                        fontWeight: 700, color: 'var(--text-hi)', marginBottom: 8 }}>
+            {id}
+          </div>
+          <p style={{ fontSize: 14, color: 'var(--text-mid)', margin: 0 }}>
+            {lookupFailed
+              ? 'Não foi possível consultar este protocolo agora (serviço indisponível). Tente novamente mais tarde.'
+              : 'Protocolo não encontrado. Verifique o código informado.'}
+          </p>
+          <Link to="/public" style={{ display: 'inline-block', marginTop: 16, color: 'var(--orbital)' }}>
+            ← Voltar ao portal
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '48px 48px', maxWidth: 680, margin: '0 auto' }}>
+      {isSimulated && (
+        <div role="alert" style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8,
+                                   background: 'color-mix(in oklch, oklch(60% 0.14 250) 15%, transparent)',
+                                   border: '1px solid oklch(60% 0.14 250)', color: 'var(--text-hi)',
+                                   fontSize: 13, lineHeight: 1.5 }}>
+          <strong>SIMULAÇÃO — esta denúncia NÃO foi enviada.</strong> O sistema está em modo
+          demonstrativo e nada saiu deste navegador. Em emergência, ligue 193 (Corpo de Bombeiros).
+        </div>
+      )}
       {/* Protocol card */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-raised)',
                     borderRadius: 10, padding: '24px 28px', marginBottom: 32 }}>

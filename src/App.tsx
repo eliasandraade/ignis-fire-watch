@@ -4,6 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { UserProvider } from '@/context/UserContext';
+import { DataIntegrityBanner } from '@/components/shared/DataIntegrityBanner';
 import { router } from '@/router';
 
 const queryClient = new QueryClient();
@@ -16,6 +17,7 @@ export default function App() {
           <Toaster />
           <Sonner />
           <RouterProvider router={router} />
+          <DataIntegrityBanner />
         </TooltipProvider>
       </UserProvider>
     </QueryClientProvider>

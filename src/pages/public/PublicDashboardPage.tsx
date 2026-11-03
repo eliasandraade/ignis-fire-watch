@@ -65,12 +65,12 @@ export default function PublicDashboardPage() {
       <div style={{ padding: '40px 48px', maxWidth: 960, margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16,
                       marginBottom: 48 }}>
-          <MetricCard value={8}  label="Áreas Monitoradas" unit="áreas" />
+          <MetricCard value={PROTECTED_AREAS.length} label="Áreas Cadastradas" unit="áreas" />
           <MetricCard value={activeIncidents.length} label="Incidentes Ativos"
                       accent="var(--risk-high)" />
-          <MetricCard value="Crítico" label="Nível de Alerta Atual"
-                      accent="var(--risk-crit)" />
-          <MetricCard value={18} label="Tempo Médio de Resposta" unit="min" />
+          <MetricCard value="n/d" label="Nível de Alerta Oficial"
+                      accent="var(--text-ghost)" />
+          <MetricCard value="n/d" label="Tempo Médio de Resposta" />
         </div>
 
         {/* Active alerts */}

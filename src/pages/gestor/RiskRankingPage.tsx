@@ -63,7 +63,8 @@ export default function RiskRankingPage() {
           Ranking de Risco
         </h1>
         <p style={{ fontSize: 12, color: 'var(--text-ghost)', margin: '0 0 8px 0' }}>
-          Áreas protegidas ordenadas por nível de risco · Dados estimados
+          Áreas protegidas ordenadas por nível de risco · Dados estimados ·
+          o backend ainda não calcula risco por área: no modo API todas aparecem com o valor padrão
         </p>
         <span style={{ fontSize: 12, color: 'var(--text-lo)' }}>
           {areas.length} áreas monitoradas

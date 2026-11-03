@@ -1,23 +1,24 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
+import { isApiEnabled } from '@/services/api/client';
 import type { UserProfile } from '@/types/domain';
 
 const PROFILES: (UserProfile & { description: string; route: string })[] = [
   {
-    id: 'u4', name: 'Admin IGNIS', email: 'admin@ignis.ce.gov.br',
+    id: 'u4', name: 'Admin IGNIS', email: 'admin@demo.ignis.example',
     role: 'admin', description: 'Gestão de usuários, áreas e auditoria', route: '/admin',
   },
   {
-    id: 'u1', name: 'Ana Lima — Gestora', email: 'ana.lima@ignis.ce.gov.br',
+    id: 'u1', name: 'Ana Lima — Gestora', email: 'gestora@demo.ignis.example',
     role: 'gestor', description: 'Monitoramento, denúncias e coordenação', route: '/gestor',
   },
   {
-    id: 'u6', name: 'Maria Cecília — Analista', email: 'm.cecilia@semace.ce.gov.br',
+    id: 'u6', name: 'Maria Cecília — Analista', email: 'analista@demo.ignis.example',
     role: 'analista', description: 'Análise de dados e Aurora IA', route: '/gestor/aurora',
   },
   {
-    id: 'u2', name: 'Carlos Drummond — Campo', email: 'c.drummond@bombeiros.ce.gov.br',
+    id: 'u2', name: 'Carlos Drummond — Campo', email: 'campo@demo.ignis.example',
     role: 'campo', description: 'Operações de campo e missões', route: '/gestor/field',
   },
   {
@@ -38,6 +39,11 @@ export default function SelectProfilePage() {
   const { setProfile } = useUser();
   const navigate = useNavigate();
 
+  // Picking a role without credentials is a demo-only feature. With the real
+  // API, access requires login (the backend enforces roles; this avoids showing
+  // privileged screens filled with fallback data to anonymous visitors).
+  if (isApiEnabled()) return <Navigate to="/login" replace />;
+
   const handleSelect = (p: typeof PROFILES[0]) => {
     setProfile({ id: p.id, name: p.name, email: p.email, role: p.role });
     navigate(p.route);
@@ -53,7 +59,7 @@ export default function SelectProfilePage() {
         <div style={{ fontWeight: 800, fontSize: 28, color: 'var(--orbital)',
                       letterSpacing: '-0.04em' }}>IGNIS Orbital</div>
         <div style={{ fontSize: 14, color: 'var(--text-lo)', marginTop: 6 }}>
-          Selecione o perfil de acesso para este protótipo
+          Modo demonstrativo — selecione um perfil fictício (sem login real)
         </div>
       </div>
 

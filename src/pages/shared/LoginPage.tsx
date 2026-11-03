@@ -79,7 +79,7 @@ export default function LoginPage() {
             <input
               {...register('email')}
               type="email"
-              placeholder="usuario@orgao.gov.br"
+              placeholder="usuario@exemplo.org"
               style={{
                 width: '100%', padding: '10px 14px', borderRadius: 6, fontSize: 13,
                 background: 'var(--bg-raised)', border: `1px solid ${errors.email ? 'var(--risk-crit)' : 'var(--bg-void)'}`,

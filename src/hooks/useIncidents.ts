@@ -29,7 +29,9 @@ export function useIncidents() {
     return { incidents: FALLBACK_INCIDENTS, loading: false, fromApi: false, dataSource, error: null };
   }
 
-  const incidents: Incident[] = query.isSuccess ? query.data : FALLBACK_INCIDENTS;
+  // API mode: never substitute mock incidents. A fake "critical incident"
+  // on an API failure is a false alarm (the global banner reports the outage).
+  const incidents: Incident[] = query.isSuccess ? query.data : [];
   const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {
@@ -43,7 +45,7 @@ export function useIncidents() {
 
 export function useActiveIncidents() {
   const { incidents, loading, fromApi, dataSource, error } = useIncidents();
-  const active = fromApi
+  const active = isApiEnabled()
     ? incidents.filter(i => !['extinto', 'encerrado'].includes(i.status))
     : getFallbackActiveIncidents();
   return { incidents: active, loading, fromApi, dataSource, error };
@@ -51,7 +53,7 @@ export function useActiveIncidents() {
 
 export function useCriticalIncident() {
   const { incidents, loading, fromApi, dataSource, error } = useIncidents();
-  const critical = fromApi
+  const critical = isApiEnabled()
     ? incidents.find(i => i.risk === 'critical' && !['extinto', 'encerrado'].includes(i.status)) ?? null
     : getFallbackCriticalIncident() ?? null;
   return { incident: critical, loading, fromApi, dataSource, error };

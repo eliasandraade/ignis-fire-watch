@@ -1,5 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
+import { clearSession } from '@/services/api/authService';
+import { entryRoute } from '@/router/guards';
 
 const NAV_ITEMS = [
   { to: '/gestor',              label: 'Dashboard',        icon: '▦',  end: true },
@@ -17,8 +19,10 @@ export function GestorSidebar() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // Remove the token too: otherwise /auth/me restores the session on reload.
+    clearSession();
     clearProfile();
-    navigate('/select-profile');
+    navigate(entryRoute());
   };
 
   return (

@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, apiFetchItems } from './client';
 
 export interface ApiFieldTeamRead {
   id: string;
@@ -22,7 +22,7 @@ export interface ApiFieldTeamUpdate {
 }
 
 export function fetchTeams(): Promise<ApiFieldTeamRead[]> {
-  return apiFetch('/api/v1/teams');
+  return apiFetchItems('/api/v1/teams');
 }
 
 export function fetchTeam(id: string): Promise<ApiFieldTeamRead> {

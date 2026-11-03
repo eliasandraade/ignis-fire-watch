@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, apiFetchItems } from './client';
 
 export interface ApiMissionRead {
   id: string;
@@ -27,7 +27,7 @@ export interface ApiMissionStatusUpdate {
 
 export function fetchMissions(incidentId?: string): Promise<ApiMissionRead[]> {
   const qs = incidentId ? `?incident_id=${incidentId}` : '';
-  return apiFetch(`/api/v1/missions${qs}`);
+  return apiFetchItems(`/api/v1/missions${qs}`);
 }
 
 export function fetchMission(id: string): Promise<ApiMissionRead> {

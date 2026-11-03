@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, apiFetchItems } from './client';
 
 export interface ApiResourceRead {
   id: string;
@@ -23,7 +23,7 @@ export interface ApiResourceUpdate {
 
 export function fetchResources(incidentId?: string): Promise<ApiResourceRead[]> {
   const qs = incidentId ? `?incident_id=${incidentId}` : '';
-  return apiFetch(`/api/v1/resources${qs}`);
+  return apiFetchItems(`/api/v1/resources${qs}`);
 }
 
 export function fetchResource(id: string): Promise<ApiResourceRead> {

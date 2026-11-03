@@ -80,10 +80,11 @@ export function adaptApiIncident(inc: ApiIncidentRead, events: ApiIncidentEventR
     assignedTeams: [],
     events: events.map(adaptApiEvent),
     evidence: [],
-    temperature: inc.temperature ?? 28,
-    humidity: inc.humidity ?? 50,
-    windSpeed: inc.wind_speed ?? 10,
-    windDirection: inc.wind_direction ?? 'NE',
+    // Missing telemetry stays missing (null → "—" in the UI); never invent values.
+    temperature: inc.temperature ?? null,
+    humidity: inc.humidity ?? null,
+    windSpeed: inc.wind_speed ?? null,
+    windDirection: inc.wind_direction ?? null,
     aurora: {
       priority: aurora.priority,
       recommendation: aurora.recommendation,

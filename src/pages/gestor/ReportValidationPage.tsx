@@ -59,32 +59,33 @@ export default function ReportValidationPage() {
             setDecision('validated');
             toast({ title: 'Denúncia validada ✓', description: report.id });
           },
-          onError: () => toast({ title: 'Erro ao validar', description: 'Tente novamente.' }),
+          onError: () => toast({ title: 'Falha — denúncia NÃO foi validada', description: 'Tente novamente.', variant: 'destructive' }),
         },
       );
     } else {
       setDecision('validated');
-      toast({ title: 'Denúncia validada ✓', description: `${report.id} — protótipo` });
+      toast({ title: 'Simulação — nada foi validado', description: `${report.id} · modo demonstrativo` });
     }
   };
 
   const handleConvert = () => {
     if (apiEnabled) {
       convert.mutate(report.id, {
-        onSuccess: () => {
+        onSuccess: (created) => {
           setDecision('converted');
-          toast({ title: 'Convertida em incidente', description: 'Redirecionando à Central Tática...' });
-          setTimeout(() => navigate('/gestor/war-room'), 1500);
+          // Open the incident that was actually created, not the first critical one.
+          const incidentId = (created as { id?: string } | undefined)?.id;
+          toast({ title: 'Incidente criado no IGNIS', description: 'Nenhum órgão externo foi notificado.' });
+          setTimeout(() => navigate(incidentId ? `/gestor/incident/${incidentId}` : '/gestor'), 1500);
         },
         onError: (err) => {
           const msg = err instanceof Error ? err.message : 'Erro ao converter.';
-          toast({ title: 'Erro ao converter', description: msg });
+          toast({ title: 'Falha — incidente NÃO foi criado', description: msg, variant: 'destructive' });
         },
       });
     } else {
       setDecision('converted');
-      toast({ title: 'Convertida em incidente', description: 'Redirecionando à Central Tática...' });
-      setTimeout(() => navigate('/gestor/war-room'), 1500);
+      toast({ title: 'Simulação — nenhum incidente foi criado', description: 'Modo demonstrativo.' });
     }
   };
 
@@ -98,13 +99,12 @@ export default function ReportValidationPage() {
             toast({ title: 'Denúncia descartada', description: report.id });
             setTimeout(() => navigate('/gestor/reports'), 1200);
           },
-          onError: () => toast({ title: 'Erro ao descartar', description: 'Tente novamente.' }),
+          onError: () => toast({ title: 'Falha — denúncia NÃO foi descartada', description: 'Tente novamente.', variant: 'destructive' }),
         },
       );
     } else {
       setDecision('discarded');
-      toast({ title: 'Denúncia descartada', description: report.id });
-      setTimeout(() => navigate('/gestor/reports'), 1200);
+      toast({ title: 'Simulação — nada foi descartado', description: `${report.id} · modo demonstrativo` });
     }
   };
 
@@ -209,7 +209,7 @@ export default function ReportValidationPage() {
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-lo)', margin: 0, lineHeight: 1.5 }}>
               {area && critical && area.id === critical.areaId
-                ? `Esta denúncia está relacionada ao incidente crítico ${critical.code ?? critical.id}. Dados orbitais simulados confirmam ocorrência na área. Confiança: ${critical.confidence}%.`
+                ? `Esta denúncia está na mesma área do incidente crítico ${critical.code ?? critical.id}. Correlação apenas por área — não há confirmação orbital automática nesta versão.`
                 : `Sem cruzamento orbital confirmado para esta denúncia no momento. Recomenda-se verificação in loco. — Resposta simulada — protótipo demonstrativo`
               }
             </p>

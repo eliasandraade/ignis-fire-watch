@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useReducer } from 'react';
 import { Link } from 'react-router-dom';
 import { Circle, Marker, Polygon } from 'react-leaflet';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -13,7 +13,10 @@ import { useWarRoom } from '@/hooks/useWarRoom';
 import { useTeams } from '@/hooks/useTeams';
 import { useResources } from '@/hooks/useResources';
 import { useWeatherRisk } from '@/hooks/useWeatherRisk';
-import { useOrbitalAlerts } from '@/hooks/useOrbitalAlerts';
+import { useOrbitalAlerts, orbitalStatusLabel } from '@/hooks/useOrbitalAlerts';
+import { ActionStateTag } from '@/components/shared/ActionStateTag';
+import { unbackedActionState } from '@/lib/actionState';
+import { protocolReducer, protocolButtonView } from '@/lib/protocolActivation';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
 import { PROTOCOL_INCENDIO } from '@/data/operations';
 import { getPolygonPositions } from '@/lib/geo';
@@ -49,11 +52,25 @@ export default function WarRoomPage() {
   const areaLat = area?.center[0];
   const areaLng = area?.center[1];
   const { weatherRisk, fromApi: weatherFromApi } = useWeatherRisk(areaLat, areaLng);
-  const { isKeyMissing: firmsKeyMissing, total: firmsAlerts } = useOrbitalAlerts();
+  const orbital = useOrbitalAlerts();
+  const firmsAccent = orbital.isRealData ? '#22c55e' : orbital.isDemo ? '#60a5fa' : '#f59e0b';
 
   const [clock, setClock]           = useState(new Date());
-  const [reinforced, setReinforced] = useState(false);
+  // Protocol activation: confirmed only after the backend answers. Availability
+  // is derived from the current data source (see protocolButtonView), so a
+  // war-room query that recovers re-enables the action without a remount.
+  const [protocolPhase, dispatchProtocol] = useReducer(protocolReducer, 'idle');
+  const protocolView = protocolButtonView(protocolPhase, {
+    apiEnabled,
+    incidentFromApi: dataSource.isApi,
+    hasIncident: !!incident?.id,
+  });
+  useEffect(() => {
+    dispatchProtocol({ type: 'incident-changed' });
+  }, [incident?.id]);
   const [steps, setSteps]           = useState<ProtocolStep[]>(PROTOCOL_INCENDIO.steps);
+  // The checklist is local UI state only: never persisted, never notifies anyone.
+  const checklistState = unbackedActionState(apiEnabled);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -62,21 +79,46 @@ export default function WarRoomPage() {
   }, []);
 
   const toggleStep = (id: string) => {
+    if (checklistState !== 'demonstrativo') return;
     setSteps(prev => prev.map(s => s.id === id ? { ...s, completed: !s.completed } : s));
   };
 
   const handleReinforce = async () => {
-    if (apiEnabled && incident?.id) {
-      try {
-        await activateProtocol(incident.id);
-        toast({ title: 'Protocolo ativado', description: `${incident.code ?? incident.id}` });
-      } catch {
-        toast({ title: 'Protocolo registrado localmente', description: 'API indisponível no momento.' });
-      }
-    } else {
-      toast({ title: 'Protocolo reforçado', description: 'Ação registrada localmente — protótipo' });
+    if (!apiEnabled) {
+      dispatchProtocol({ type: 'simulate' });
+      toast({
+        title: 'Simulação — nenhum protocolo foi ativado',
+        description: 'Modo demonstrativo: nada foi registrado nem enviado a qualquer órgão.',
+      });
+      return;
     }
-    setReinforced(true);
+    if (protocolView.disabled || !incident?.id) {
+      toast({ title: 'Não executado', description: 'Incidente não carregado da API.' });
+      return;
+    }
+    const ok = window.confirm(
+      `Registrar ativação de protocolo no IGNIS para ${incident.code ?? incident.id}?\n\n` +
+      'Isto altera o status do incidente e gera trilha de auditoria. ' +
+      'NÃO notifica Bombeiros, Defesa Civil ou qualquer órgão externo.',
+    );
+    if (!ok) return;
+    dispatchProtocol({ type: 'submit' });
+    try {
+      await activateProtocol(incident.id);
+      dispatchProtocol({ type: 'success' });
+      toast({
+        title: 'Ativação registrada no IGNIS',
+        description: `${incident.code ?? incident.id} — nenhum órgão externo foi notificado.`,
+      });
+    } catch {
+      // Never report success on failure.
+      dispatchProtocol({ type: 'failure' });
+      toast({
+        title: 'Falha — protocolo NÃO foi registrado',
+        description: 'A API não confirmou a operação. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (loading) {
@@ -160,9 +202,9 @@ export default function WarRoomPage() {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, alignItems: 'center' }}>
           {/* Change 5: blinking alert for critical telemetry metrics */}
           {[
-            { label: 'T', value: `${incident.temperature}°C`, crit: incident.temperature > 35 },
-            { label: 'UR', value: `${incident.humidity}%`,    crit: incident.humidity < 20 },
-            { label: '💨', value: `${incident.windSpeed}km/h ${incident.windDirection}`, crit: false },
+            { label: 'T', value: incident.temperature == null ? '—' : `${incident.temperature}°C`, crit: incident.temperature != null && incident.temperature > 35 },
+            { label: 'UR', value: incident.humidity == null ? '—' : `${incident.humidity}%`, crit: incident.humidity != null && incident.humidity < 20 },
+            { label: '💨', value: incident.windSpeed == null ? '—' : `${incident.windSpeed}km/h ${incident.windDirection ?? ''}`, crit: false },
           ].map(m => (
             <div key={m.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 11, color: 'var(--text-ghost)' }}>{m.label}</div>
@@ -266,7 +308,7 @@ export default function WarRoomPage() {
             background: 'var(--bg-raised)',
             borderRadius: 6,
             padding: '10px 12px',
-            borderLeft: `3px solid ${RISK_LEVEL_COLOR[weatherRisk.risk_level] ?? 'var(--bg-raised)'}`,
+            borderLeft: `3px solid ${weatherFromApi ? RISK_LEVEL_COLOR[weatherRisk.risk_level] ?? 'var(--bg-raised)' : 'var(--bg-raised)'}`,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <span style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -287,12 +329,12 @@ export default function WarRoomPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{
                 fontSize: 18, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
-                color: RISK_LEVEL_COLOR[weatherRisk.risk_level],
+                color: weatherFromApi ? RISK_LEVEL_COLOR[weatherRisk.risk_level] : 'var(--text-ghost)',
               }}>
-                {weatherRisk.risk_score}
+                {weatherFromApi && weatherRisk.risk_score != null ? weatherRisk.risk_score : '—'}
               </span>
-              <span style={{ fontSize: 11, color: RISK_LEVEL_COLOR[weatherRisk.risk_level], fontWeight: 600 }}>
-                {RISK_LEVEL_LABEL[weatherRisk.risk_level]}
+              <span style={{ fontSize: 11, color: weatherFromApi ? RISK_LEVEL_COLOR[weatherRisk.risk_level] : 'var(--text-ghost)', fontWeight: 600 }}>
+                {weatherFromApi ? RISK_LEVEL_LABEL[weatherRisk.risk_level] : 'sem dados'}
               </span>
             </div>
             {weatherRisk.precipitation_mm != null && weatherRisk.precipitation_mm > 0 && (
@@ -307,7 +349,7 @@ export default function WarRoomPage() {
             background: 'var(--bg-raised)',
             borderRadius: 6,
             padding: '8px 12px',
-            borderLeft: `3px solid ${firmsKeyMissing ? '#f59e0b' : '#22c55e'}`,
+            borderLeft: `3px solid ${firmsAccent}`,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -315,17 +357,20 @@ export default function WarRoomPage() {
               </span>
               <span style={{
                 fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
-                color: firmsKeyMissing ? '#f59e0b' : '#22c55e',
-                background: firmsKeyMissing ? '#f59e0b18' : '#22c55e18',
-                border: `1px solid ${firmsKeyMissing ? '#f59e0b33' : '#22c55e33'}`,
+                color: firmsAccent,
+                background: `${firmsAccent}18`,
+                border: `1px solid ${firmsAccent}33`,
               }}>
-                {firmsKeyMissing ? 'aguardando chave' : 'NASA FIRMS'}
+                {orbital.isRealData ? 'NASA FIRMS' : orbital.isDemo ? 'demo' : 'sem dados'}
               </span>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-hi)', fontWeight: 600, marginTop: 2 }}>
-              {firmsKeyMissing
-                ? 'NASA_FIRMS_MAP_KEY não configurada'
-                : `${firmsAlerts} focos detectados`}
+              {orbital.isRealData || orbital.isDemo
+                ? `${orbital.total} anomalias térmicas (não confirmam incêndio)`
+                : 'Sem dados orbitais'}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 2 }}>
+              {orbitalStatusLabel(orbital)}
             </div>
           </div>
 
@@ -399,19 +444,32 @@ export default function WarRoomPage() {
             </div>
           )}
 
-          <button
-            onClick={handleReinforce}
-            disabled={reinforced}
-            style={{
-              width: '100%', padding: '10px 0', borderRadius: 6, border: 'none',
-              background: reinforced ? 'var(--bg-raised)' : 'var(--risk-high)',
-              color: reinforced ? 'var(--text-ghost)' : 'white',
-              fontSize: 12, fontWeight: 700, cursor: reinforced ? 'default' : 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            {reinforced ? '✓ Protocolo Ativado' : 'Reforçar Protocolo de Resposta'}
-          </button>
+          {(() => {
+            const locked = protocolView.disabled;
+            const label = protocolView.label;
+            return (
+              <>
+                <button
+                  onClick={handleReinforce}
+                  disabled={locked}
+                  style={{
+                    width: '100%', padding: '10px 0', borderRadius: 6, border: 'none',
+                    background: locked ? 'var(--bg-raised)' : 'var(--risk-high)',
+                    color: locked ? 'var(--text-ghost)' : 'white',
+                    fontSize: 12, fontWeight: 700, cursor: locked ? 'default' : 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {label}
+                </button>
+                <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 4, lineHeight: 1.4 }}>
+                  {apiEnabled
+                    ? 'Registra status e auditoria no IGNIS. Não aciona Bombeiros, Defesa Civil ou outros órgãos.'
+                    : 'Modo demonstrativo: simulação local, nada é registrado.'}
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* ── Center: Map ── */}
@@ -507,16 +565,20 @@ export default function WarRoomPage() {
           {/* Protocol checklist */}
           <div>
             <div style={{ fontSize: 11, color: 'var(--text-ghost)', textTransform: 'uppercase',
-                          letterSpacing: '0.08em', marginBottom: 10 }}>
-              Protocolo de Resposta
+                          letterSpacing: '0.08em', marginBottom: 10,
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+              <span>Protocolo de Resposta (checklist local)</span>
+              <ActionStateTag state={checklistState} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {steps.map(step => (
                 <div key={step.id}
                      onClick={() => toggleStep(step.id)}
+                     aria-disabled={checklistState !== 'demonstrativo'}
                      style={{
                        display: 'flex', alignItems: 'flex-start', gap: 8,
-                       padding: '8px 10px', borderRadius: 5, cursor: 'pointer',
+                       padding: '8px 10px', borderRadius: 5,
+                       cursor: checklistState === 'demonstrativo' ? 'pointer' : 'not-allowed',
                        background: step.completed ? 'color-mix(in oklch, var(--risk-low) 10%, transparent)' : 'var(--bg-surface)',
                        border: `1px solid ${step.completed ? 'color-mix(in oklch, var(--risk-low) 25%, transparent)' : 'var(--bg-raised)'}`,
                      }}>

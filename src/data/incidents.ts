@@ -42,7 +42,7 @@ export const INCIDENTS: Incident[] = [
         id: 'ev3',
         timestamp: '2026-05-26T09:55:00Z',
         type: 'alert',
-        description: 'Notificação enviada para SEMACE, IBAMA e Defesa Civil estadual.',
+        description: '(Simulação) Registro de que os órgãos competentes deveriam ser contatados — o IGNIS não envia notificações.',
         author: 'Sistema IGNIS',
       },
       {

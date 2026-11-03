@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Typecheck, lint, testes e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalação reproduzível
+        run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - name: Vitest + cobertura
+        # A failing test fails this check.
+        run: npm run test:coverage
+      - name: Build de produção (modo API)
+        env:
+          VITE_USE_API: "true"
+          VITE_API_URL: https://api.invalid
+        run: npm run build
+      - name: Build de produção (modo demonstrativo)
+        run: npm run build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: frontend-coverage
+          path: coverage/lcov.info
+          retention-days: 14
+
+  dependencies:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Dependências de runtime (falha com high/critical)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Relatório completo (inclui dev; informativo)
+        run: npm audit || true
+
+  sonarcloud:
+    name: SonarQube Cloud (cobertura)
+    needs: quality
+    # Opt-in: requires a SonarQube Cloud project for this repository, the
+    # SONAR_TOKEN secret and the repository variable SONAR_CI_ANALYSIS=true.
+    if: vars.SONAR_CI_ANALYSIS == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: frontend-coverage
+          path: coverage
+      - uses: SonarSource/sonarqube-scan-action@1a6d90ebcb0e6a6b1d87e37ba693fe453195ae25 # v5.3.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

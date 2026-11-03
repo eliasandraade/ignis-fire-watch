@@ -1,18 +1,36 @@
 import type { PublicReport, OccurrenceType, ReportStatus, RiskLevel } from '@/types/domain';
 import type { ApiReportCreate, ApiReportRead, ApiReportStatusPublic } from '@/services/api/types';
 
-// Frontend occurrenceType → API type
-const OCCURRENCE_TO_API: Record<OccurrenceType, string> = {
+// Frontend occurrenceType → backend ReportType
+// (fire | deforestation | illegal_mining | flood | pollution | invasive_species |
+//  wildlife_traffic | other). Five of these values used to be invalid and the
+// public submission failed with HTTP 422.
+export const OCCURRENCE_TO_API: Record<OccurrenceType, string> = {
   incendio:           'fire',
   queimada:           'fire',
   desmatamento:       'deforestation',
-  caca:               'hunting',
-  'pesca-ilegal':     'fishing',
-  mineracao:          'mining',
-  'despejo-residuos': 'dumping',
+  caca:               'wildlife_traffic',
+  'pesca-ilegal':     'wildlife_traffic',
+  mineracao:          'illegal_mining',
+  'despejo-residuos': 'pollution',
   'especie-invasora': 'invasive_species',
-  'contaminacao-agua':'water_contamination',
+  'contaminacao-agua':'pollution',
   outro:              'other',
+};
+
+export const API_REPORT_TYPES = [
+  'fire', 'deforestation', 'illegal_mining', 'flood', 'pollution',
+  'invasive_species', 'wildlife_traffic', 'other',
+] as const;
+
+// Types that lose detail when mapped to the backend enum: keep the citizen's
+// choice in the description so triage still sees it.
+const OCCURRENCE_DETAIL: Partial<Record<OccurrenceType, string>> = {
+  queimada: 'Queimada',
+  caca: 'Caça',
+  'pesca-ilegal': 'Pesca ilegal',
+  'despejo-residuos': 'Despejo de resíduos',
+  'contaminacao-agua': 'Contaminação de água',
 };
 
 // API status → frontend ReportStatus
@@ -34,7 +52,9 @@ export function buildApiReportBody(
 ): ApiReportCreate {
   return {
     type:               OCCURRENCE_TO_API[occurrenceType] ?? 'other',
-    description,
+    description:        OCCURRENCE_DETAIL[occurrenceType]
+      ? `[Tipo informado: ${OCCURRENCE_DETAIL[occurrenceType]}] ${description}`
+      : description,
     urgency,
     latitude:           coords?.lat ?? null,
     longitude:          coords?.lng ?? null,

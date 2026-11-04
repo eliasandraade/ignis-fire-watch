@@ -27,7 +27,15 @@ interface UserCtx {
 const UserContext = createContext<UserCtx | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfileState] = useState<UserProfile | null>(null);
+  // Restore the saved profile synchronously: on a page reload the route guards
+  // run before /auth/me answers, and an empty profile sent every reload to the
+  // login screen. The token is still verified below (and by every API call);
+  // a rejected token clears the session and the guards redirect.
+  const [profile, setProfileState] = useState<UserProfile | null>(() => {
+    if (!localStorage.getItem('ignis_token')) return null;
+    const saved = getSavedUser();
+    return saved ? adaptApiUser(saved) : null;
+  });
 
   const setProfile   = (p: UserProfile) => setProfileState(p);
   const clearProfile = () => setProfileState(null);
@@ -45,10 +53,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (isApiEnabled()) {
       fetchMe()
         .then(user => setProfileState(adaptApiUser(user)))
-        .catch(() => { clearSession(); });
-    } else {
-      const saved = getSavedUser();
-      if (saved) setProfileState(adaptApiUser(saved));
+        .catch(() => { clearSession(); setProfileState(null); });
     }
   }, []);
 

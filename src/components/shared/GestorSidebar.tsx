@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 import { clearSession } from '@/services/api/authService';
+import { isApiEnabled } from '@/services/api/client';
 import { entryRoute } from '@/router/guards';
 
 const NAV_ITEMS = [
@@ -70,12 +71,12 @@ export function GestorSidebar() {
                       textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {profile?.role ?? '—'}
         </div>
-        <button onClick={handleLogout} style={{
+        <button type="button" data-testid="logout" onClick={handleLogout} style={{
           width: '100%', padding: '7px 0', borderRadius: 4, border: 'none',
           background: 'var(--bg-raised)', color: 'var(--text-lo)', fontSize: 12,
           cursor: 'pointer', fontFamily: 'inherit',
         }}>
-          Trocar Perfil
+          {isApiEnabled() ? 'Sair' : 'Trocar Perfil'}
         </button>
       </div>
     </aside>

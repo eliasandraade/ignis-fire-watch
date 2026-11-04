@@ -50,3 +50,8 @@ bun.lockb
 .vercel
 .gstack/
 .superpowers/
+
+# Playwright (e2e/)
+playwright-report/
+test-results/
+e2e-artifacts/

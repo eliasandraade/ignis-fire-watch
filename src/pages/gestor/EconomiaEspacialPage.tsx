@@ -9,7 +9,7 @@ import {
 } from '@/components/orbital';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { useIncidents } from '@/hooks/useIncidents';
-import { useOrbitalAlerts, orbitalStatusLabel } from '@/hooks/useOrbitalAlerts';
+import { OrbitalSummaryCard } from '@/components/orbital-map/OrbitalSummaryCard';
 import { isApiEnabled } from '@/services/api/client';
 import { fadeUpVariants, staggerContainerVariants } from '@/lib/motion';
 
@@ -178,8 +178,6 @@ const ROADMAP = [
 export default function EconomiaEspacialPage() {
   const { areas } = useProtectedAreas();
   const { incidents } = useIncidents();
-  const orbital = useOrbitalAlerts();
-  const firmsAccent = orbital.isRealData ? '#22c55e' : orbital.isDemo ? '#60a5fa' : '#f59e0b';
   const reducedMotion = useReducedMotion();
 
   const totalHa = areas.reduce((sum, a) => sum + (a.hectares ?? 0), 0);
@@ -369,25 +367,7 @@ export default function EconomiaEspacialPage() {
                 integração disponível
               </span>
             </div>
-            <div style={{ padding: '10px 12px', background: 'var(--bg-raised)', borderRadius: 6,
-                          borderLeft: `3px solid ${firmsAccent}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700,
-                            color: firmsAccent, marginBottom: 2 }}>
-                NASA FIRMS · {orbital.isRealData || orbital.isDemo ? `${orbital.total} anomalias térmicas` : 'sem dados'}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-lo)', lineHeight: 1.5 }}>
-                {orbitalStatusLabel(orbital)} · não confirmam incêndio · sem persistência em banco nesta versão
-              </div>
-              <span style={{
-                fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
-                marginTop: 6, display: 'inline-block',
-                color: firmsAccent,
-                background: `${firmsAccent}14`,
-                border: `1px solid ${firmsAccent}33`,
-              }}>
-                {orbital.sourceStatus}
-              </span>
-            </div>
+            <OrbitalSummaryCard />
             <div style={{ padding: '10px 12px', background: 'var(--bg-raised)', borderRadius: 6,
                           borderLeft: '3px solid #22c55e' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', marginBottom: 2 }}>

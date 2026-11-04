@@ -30,8 +30,9 @@ export function useInternalReports() {
     const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
     return { reports: FALLBACK_REPORTS, loading: false, fromApi: false, dataSource, error: null };
   }
+  // API mode: a failed request yields nothing (dataSource flags it), never demonstration data.
 
-  const reports: PublicReport[] = query.isSuccess ? query.data : FALLBACK_REPORTS;
+  const reports: PublicReport[] = query.isSuccess ? query.data : [];
   const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {

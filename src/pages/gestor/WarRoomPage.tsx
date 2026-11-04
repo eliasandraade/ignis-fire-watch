@@ -13,7 +13,7 @@ import { useWarRoom } from '@/hooks/useWarRoom';
 import { useTeams } from '@/hooks/useTeams';
 import { useResources } from '@/hooks/useResources';
 import { useWeatherRisk } from '@/hooks/useWeatherRisk';
-import { useOrbitalAlerts, orbitalStatusLabel } from '@/hooks/useOrbitalAlerts';
+import { OrbitalSummaryCard } from '@/components/orbital-map/OrbitalSummaryCard';
 import { ActionStateTag } from '@/components/shared/ActionStateTag';
 import { unbackedActionState } from '@/lib/actionState';
 import { protocolReducer, protocolButtonView } from '@/lib/protocolActivation';
@@ -52,8 +52,6 @@ export default function WarRoomPage() {
   const areaLat = area?.center[0];
   const areaLng = area?.center[1];
   const { weatherRisk, fromApi: weatherFromApi } = useWeatherRisk(areaLat, areaLng);
-  const orbital = useOrbitalAlerts();
-  const firmsAccent = orbital.isRealData ? '#22c55e' : orbital.isDemo ? '#60a5fa' : '#f59e0b';
 
   const [clock, setClock]           = useState(new Date());
   // Protocol activation: confirmed only after the backend answers. Availability
@@ -344,35 +342,8 @@ export default function WarRoomPage() {
             )}
           </div>
 
-          {/* NASA FIRMS status */}
-          <div style={{
-            background: 'var(--bg-raised)',
-            borderRadius: 6,
-            padding: '8px 12px',
-            borderLeft: `3px solid ${firmsAccent}`,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                Alertas Orbitais
-              </span>
-              <span style={{
-                fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
-                color: firmsAccent,
-                background: `${firmsAccent}18`,
-                border: `1px solid ${firmsAccent}33`,
-              }}>
-                {orbital.isRealData ? 'NASA FIRMS' : orbital.isDemo ? 'demo' : 'sem dados'}
-              </span>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-hi)', fontWeight: 600, marginTop: 2 }}>
-              {orbital.isRealData || orbital.isDemo
-                ? `${orbital.total} anomalias térmicas (não confirmam incêndio)`
-                : 'Sem dados orbitais'}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 2 }}>
-              {orbitalStatusLabel(orbital)}
-            </div>
-          </div>
+          {/* Persisted heat spots (PostGIS) */}
+          <OrbitalSummaryCard />
 
           {/* Change 1: RadarSweep between weather and teams */}
           <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0', opacity: 0.7 }}>

@@ -24,8 +24,9 @@ export function useResources(incidentId?: string) {
     const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
     return { resources: FALLBACK_RESOURCES, loading: false, fromApi: false, dataSource };
   }
+  // API mode: a failed request yields nothing (dataSource flags it), never demonstration data.
 
-  const resources: Resource[] = query.isSuccess ? query.data : FALLBACK_RESOURCES;
+  const resources: Resource[] = query.isSuccess ? query.data : [];
   const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {

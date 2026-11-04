@@ -2,6 +2,7 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { ESGCharts } from '@/components/gestor/ESGCharts';
 import { useESGReports } from '@/hooks/useESGReports';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
+import { isApiEnabled } from '@/services/api/client';
 
 const ODS_LIST = [
   { id: 2,  label: 'Fome Zero',              color: '#D3A029' },
@@ -13,7 +14,23 @@ const ODS_LIST = [
 ];
 
 export default function ESGReportPage() {
-  const { latest: ESG_DATA, dataSource } = useESGReports();
+  const { latest: ESG_DATA, dataSource, fromApi, reports } = useESGReports();
+
+  // API mode without a persisted report: say so instead of showing the
+  // built-in demonstration figures as if they were this institution's.
+  if (isApiEnabled() && (!fromApi || reports.length === 0)) {
+    return (
+      <div data-testid="esg-unavailable" style={{ padding: 24, maxWidth: 800, margin: '0 auto', color: 'var(--text-lo)' }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-hi)' }}>Relatório ESG</h1>
+        <p>
+          {fromApi
+            ? 'Nenhum relatório ESG foi registrado no banco desta instalação.'
+            : 'Falha ao consultar a API de relatórios ESG.'}{' '}
+          Nenhum valor demonstrativo é exibido em modo operacional.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto' }}>

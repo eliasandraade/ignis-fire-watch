@@ -206,7 +206,9 @@ test.describe('12. portal público sanitizado', () => {
     await page.goto('/public/map');
     await expect(page.getByTestId('orbital-map')).toBeVisible();
     await expect(page.getByTestId('map-legend')).toContainText('não a gravidade');
+    await expect(page.getByRole('note').filter({ hasText: 'não confirma incêndio' })).toBeVisible();
     await page.goto('/public');
+    await expect(page.getByRole('note').filter({ hasText: 'não são incêndios confirmados' })).toBeVisible();
     await expect(page.getByText('Incêndio confirmado', { exact: true })).toBeVisible();
     expect(internal, 'portal público consultou endpoint interno').toEqual([]);
     await page.goto('/public/map');
@@ -260,7 +262,12 @@ test.describe('13-14. sessão e autorização', () => {
 test.describe('15. nenhuma ação sem backend afirma sucesso', () => {
   test('denúncia com API indisponível NÃO é dada como enviada', async ({ page, consoleErrors }) => {
     test.info().annotations.push({ type: 'expected-errors', description: 'API derrubada de propósito' });
-    await page.route(`${API_URL}/api/v1/reports**`, route => route.abort('connectionrefused'));
+    // Intake answers "open" (as in a local stack) so the form renders; the submit itself fails.
+    await page.route(`${API_URL}/api/v1/reports**`, route =>
+      route.request().url().includes('/api/v1/reports/intake')
+        ? route.fulfill({ json: { accepting: true, message: null } })
+        : route.abort('connectionrefused'),
+    );
     await page.goto('/public/report');
     await page.locator('select').first().selectOption({ index: 1 });
     await page.locator('textarea').first().fill('Fumaça vista próximo à estrada, teste automatizado de validação.');
@@ -269,6 +276,30 @@ test.describe('15. nenhuma ação sem backend afirma sucesso', () => {
     await page.locator('button[type="submit"]').click();
     await expect(page.getByText(/NÃO foi enviada/)).toBeVisible();
     await expect(page).toHaveURL(/\/public\/report$/);
+    void consoleErrors;
+  });
+
+  test('recebimento de denúncias fechado: aviso, sem formulário de dados pessoais', async ({ page, consoleErrors }) => {
+    const intake = await (await page.request.get(`${API_URL}/api/v1/reports/intake`)).json();
+    if (intake.accepting) {
+      // Local stack (APP_ENV=development) accepts reports; simulate the operational default.
+      await page.route(`${API_URL}/api/v1/reports/intake`, route =>
+        route.fulfill({ json: { accepting: false, message: 'O recebimento de denúncias está desativado nesta instalação.' } }),
+      );
+    }
+    await page.goto('/public/report');
+    await expect(page.getByRole('status').filter({ hasText: 'desativado nesta instalação' })).toBeVisible();
+    await expect(page.locator('form')).toHaveCount(0);
+    await expect(page.locator('textarea')).toHaveCount(0);
+    void consoleErrors;
+  });
+
+  test('sem confirmação do recebimento, o formulário não aparece (falha fechada)', async ({ page, consoleErrors }) => {
+    test.info().annotations.push({ type: 'expected-errors', description: 'API derrubada de propósito' });
+    await page.route(`${API_URL}/api/v1/reports/intake`, route => route.abort('connectionrefused'));
+    await page.goto('/public/report');
+    await expect(page.getByRole('status').filter({ hasText: 'Não foi possível confirmar' })).toBeVisible();
+    await expect(page.locator('form')).toHaveCount(0);
     void consoleErrors;
   });
 });

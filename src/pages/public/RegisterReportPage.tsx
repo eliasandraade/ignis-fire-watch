@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import type { OccurrenceType, RiskLevel } from '@/types/domain';
 import { Marker, useMapEvents } from 'react-leaflet';
 import { MapPin } from 'lucide-react';
-import { submitReport } from '@/services/api/publicReportsService';
+import { useQuery } from '@tanstack/react-query';
+import { getReportIntake, submitReport } from '@/services/api/publicReportsService';
 import { buildApiReportBody } from '@/services/adapters/reportAdapter';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 
@@ -108,6 +109,32 @@ export default function RegisterReportPage() {
     background: 'var(--bg-raised)', border: `1px solid ${hasError ? 'var(--risk-crit)' : 'var(--bg-void)'}`,
     color: 'var(--text-hi)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
   });
+
+  // Fail closed: the form (personal data) only renders when the API confirms intake.
+  const intake = useQuery({ queryKey: ['report-intake'], queryFn: getReportIntake, staleTime: 60_000 });
+
+  if (!intake.data?.accepting) {
+    const message = intake.isPending
+      ? 'Verificando se esta instalação recebe denúncias…'
+      : intake.isError
+        ? 'Não foi possível confirmar se esta instalação recebe denúncias. Tente novamente mais tarde.'
+        : intake.data?.message ?? 'O recebimento de denúncias está desativado nesta instalação.';
+    return (
+      <div style={{ padding: '40px 48px', maxWidth: 760, margin: '0 auto' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-hi)', margin: '0 0 12px' }}>
+          Registrar Denúncia Ambiental
+        </h1>
+        <div role="status" style={{ padding: '14px 16px', borderRadius: 6, border: '1px solid var(--border)',
+                                    fontSize: 14, color: 'var(--text-hi)', lineHeight: 1.6 }}>
+          {message}
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-lo)', marginTop: 16 }}>
+          Os focos de calor por satélite continuam disponíveis no <Link to="/public/map">mapa público</Link>.
+          Focos de calor indicam anomalias térmicas e não confirmam incêndio.
+        </p>
+      </div>
+    );
+  }
 
   const labelStyle: React.CSSProperties = {
     fontSize: 12, color: 'var(--text-mid)', fontWeight: 500,

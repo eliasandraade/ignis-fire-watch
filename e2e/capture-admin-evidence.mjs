@@ -20,7 +20,10 @@ async function session(role) {
   const r = await fetch(`${API}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: `${role}.validacao@example.org`, password }),
+    body: JSON.stringify({
+      email: process.env[`IGNIS_E2E_EMAIL_${role.toUpperCase()}`] ?? `${role}.validacao@example.org`,
+      password,
+    }),
   });
   if (!r.ok) throw new Error(`login ${role}: HTTP ${r.status}`);
   return r.json();

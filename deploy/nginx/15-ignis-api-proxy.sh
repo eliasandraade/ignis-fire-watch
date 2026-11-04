@@ -43,6 +43,12 @@ cat > "$OUT" <<CONF
 resolver $RESOLVER valid=10s ipv6=on;
 resolver_timeout 5s;
 
+location @ignis_api_unavailable {
+    default_type application/json;
+    expires -1;
+    return 503 '{"detail":"API temporariamente indisponível."}';
+}
+
 location /api/v1/ {
     set \$ignis_api "$UPSTREAM";
     include /etc/nginx/ignis-proxy-params.conf;

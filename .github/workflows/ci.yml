@@ -102,6 +102,11 @@ jobs:
           if curl -s "localhost:9191$asset" | grep -q 'localhost:8000'; then
             echo "::error::bundle same-origin aponta para localhost"; exit 1
           fi
+          # API unreachable: JSON 503 from nginx, never the SPA shell or an HTML error page.
+          docker run -d --name so-down --network ignis-ci -p 9393:9393 -e PORT=9393             -e IGNIS_API_UPSTREAM=http://api:9999 ignis-web:so
+          for _ in $(seq 1 20); do curl -sf localhost:9393/healthz && break; sleep 1; done
+          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:9393/api/v1/auth/me)" = "503"
+          curl -s localhost:9393/api/v1/auth/me | grep -q '"detail"'
           # A malformed upstream refuses to start instead of proxying somewhere unexpected.
           if docker run --rm -e IGNIS_API_UPSTREAM='http://evil;include /etc/passwd' ignis-web:so nginx -t; then
             echo "::error::upstream inválido aceito"; exit 1

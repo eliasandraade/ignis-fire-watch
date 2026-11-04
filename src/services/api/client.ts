@@ -1,7 +1,9 @@
 import { ApiError } from './errors';
 import type { ApiPage } from './types';
 
-const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+// "same-origin" (Railway): relative URLs, nginx proxies /api/v1 to the private API.
+const RAW_API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const API_URL = RAW_API_URL === 'same-origin' ? '' : RAW_API_URL.replace(/\/$/, '');
 export const API_BASE_URL = API_URL;
 
 export const SESSION_EXPIRED_EVENT = 'ignis:session-expired';

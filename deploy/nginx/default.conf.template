@@ -16,7 +16,19 @@ server {
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
     add_header Strict-Transport-Security "max-age=31536000" always;
     # Inline styles: React style props and Leaflet. No inline scripts: Vite emits modules.
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://picsum.photos https://fastly.picsum.photos; connect-src 'self' @IGNIS_API_ORIGIN@; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; connect-src 'self' @IGNIS_API_ORIGIN@; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+
+    # Compression for the bundle and the proxied JSON (Railway's edge does not compress).
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_min_length 1024;
+    gzip_comp_level 5;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+    # Same-origin API proxy (/api/v1/, /health, /ready), rendered at container
+    # start from IGNIS_API_UPSTREAM; empty when the variable is unset.
+    include /tmp/ignis/api-proxy.conf;
 
     # Railway healthcheck: answers without touching disk or the API.
     location = /healthz {

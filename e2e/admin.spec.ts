@@ -190,8 +190,12 @@ test.describe('Admin Cockpit', () => {
     const operations = Object.values(spec.paths as Record<string, object>).reduce((n, item) => n + Object.keys(item).length, 0);
     await expect(page.getByText(`${operations} operações`)).toBeVisible();
     await page.getByRole('button', { name: 'Executar', exact: true }).click();
-    const health = page.locator('.ig-panel', { hasText: 'Liveness' });
-    await expect(health.getByText('HTTP 200')).toBeVisible();
+    // Cada sonda é uma região própria (section + título); o status fica só dentro dela.
+    for (const name of ['Liveness', 'Readiness (banco)', 'Sessão atual', 'Estado das fontes']) {
+      const probe = page.getByRole('region', { name, exact: true });
+      await expect(probe).toHaveCount(1);
+      await expect(probe.getByText('HTTP 200', { exact: true })).toBeVisible();
+    }
     expect(urls.filter(u => /token=|access_token|Bearer/i.test(u))).toEqual([]);
     void consoleErrors;
   });

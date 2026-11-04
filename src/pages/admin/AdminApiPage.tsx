@@ -192,16 +192,23 @@ export default function AdminApiPage() {
           <div className="ig-grid ig-grid-2">
             {DIAGNOSTICS.map(d => {
               const r = diag[d.path];
+              const headingId = `diag-${d.path.replace(/[^a-z0-9]+/gi, '-')}`;
               return (
-                <div key={d.path} className="ig-panel" style={{ padding: 12, background: 'var(--bg-deep)' }}>
+                <section
+                  key={d.path}
+                  aria-labelledby={headingId}
+                  data-testid={`diagnostic-${d.path}`}
+                  className="ig-panel"
+                  style={{ padding: 12, background: 'var(--bg-deep)' }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <strong style={{ fontSize: 13 }}>{d.label}</strong>
+                    <h3 id={headingId} style={{ fontSize: 13, margin: 0 }}>{d.label}</h3>
                     <span className="ig-mono ig-sub" style={{ marginTop: 0 }}>GET {d.path}</span>
                   </div>
                   {r === 'running' && <div style={{ marginTop: 8 }}><Spinner /></div>}
                   {r && r !== 'running' && <ProbeResult result={r} />}
                   {!r && <div className="ig-sub" style={{ marginTop: 8 }}>Ainda não executado.</div>}
-                </div>
+                </section>
               );
             })}
           </div>

@@ -1,163 +1,96 @@
 import { Link } from 'react-router-dom';
-import { MetricCard } from '@/components/shared/MetricCard';
-import { OrbitalMap } from '@/components/shared/OrbitalMap';
-import { RiskBadge } from '@/components/shared/RiskBadge';
-import { Polygon } from 'react-leaflet';
-import { getPolygonPositions } from '@/lib/geo';
-import { useProtectedAreas } from '@/hooks/useProtectedAreas';
-import { useActiveIncidents } from '@/hooks/useIncidents';
+import { OrbitalDashboardSection } from '@/components/orbital-map/OrbitalDashboardSection';
+
+/**
+ * Public portal. Shows only data that can be published: satellite heat spots
+ * (NASA FIRMS / INPE, public) persisted by IGNIS and official IBGE boundaries.
+ * No incidents, reports, people, teams or internal identifiers.
+ */
+const GLOSSARY: { term: string; text: string }[] = [
+  {
+    term: 'Foco de calor (detecção orbital)',
+    text: 'Pixel em que um satélite mediu temperatura anômala. Pode ser queimada, incêndio, chaminé industrial ou reflexo. É o único dado exibido neste portal.',
+  },
+  {
+    term: 'Alerta',
+    text: 'Sinal interno para que um operador analise um ou mais focos. Não é publicado aqui e não aciona nenhum órgão.',
+  },
+  {
+    term: 'Incidente',
+    text: 'Ocorrência registrada e acompanhada por um operador humano autorizado, depois de avaliação. Nenhum foco vira incidente automaticamente.',
+  },
+  {
+    term: 'Incêndio confirmado',
+    text: 'Só existe após verificação em campo ou por órgão competente (Bombeiros, Defesa Civil). Este protótipo não tem integração com esses órgãos.',
+  },
+  {
+    term: 'Simulação / demonstração',
+    text: 'Conteúdo fictício para treino ou apresentação. Quando existir, é sempre rotulado como tal.',
+  },
+];
 
 export default function PublicDashboardPage() {
-  const { areas: PROTECTED_AREAS } = useProtectedAreas();
-  const { incidents: activeIncidents } = useActiveIncidents();
-
   return (
     <div style={{ background: 'var(--bg-void)', minHeight: '100vh' }}>
-      {/* Hero */}
       <div style={{
-        padding: '64px 48px 48px',
+        padding: '48px 24px 32px',
         background: 'linear-gradient(180deg, oklch(12% 0.025 240) 0%, var(--bg-void) 100%)',
         borderBottom: '1px solid var(--bg-raised)',
       }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ fontSize: 11, color: 'var(--orbital)', fontWeight: 700,
-                        letterSpacing: '0.2em', textTransform: 'uppercase',
-                        marginBottom: 16 }}>
-            Plataforma de Monitoramento Ambiental
+        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+          <div style={{ fontSize: 11, color: 'var(--orbital)', fontWeight: 700, letterSpacing: '0.2em',
+                        textTransform: 'uppercase', marginBottom: 12 }}>
+            Monitoramento ambiental do Ceará
           </div>
-          <h1 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text-hi)',
-                       letterSpacing: '-0.03em', margin: '0 0 12px',
-                       lineHeight: 1.1 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-hi)', letterSpacing: '-0.03em',
+                       margin: '0 0 12px', lineHeight: 1.1 }}>
             IGNIS Orbital
           </h1>
-          <p style={{ fontSize: 16, color: 'var(--text-lo)', margin: '0 0 24px',
-                      lineHeight: 1.6, maxWidth: 560 }}>
-            Monitoramento inteligente de áreas protegidas do Ceará com dados orbitais simulados.
-            Detectamos, notificamos e coordenamos a resposta a ameaças ambientais.
+          <p style={{ fontSize: 15, color: 'var(--text-lo)', margin: '0 0 16px', lineHeight: 1.6, maxWidth: 640 }}>
+            Focos de calor detectados por satélite (NASA FIRMS e INPE Programa Queimadas),
+            gravados pelo IGNIS e localizados nos 184 municípios oficiais do Ceará (malha IBGE 2025).
           </p>
-          <div style={{ padding: '10px 16px', background: 'oklch(12% 0.025 240)',
-                        border: '1px solid var(--bg-raised)', borderRadius: 6,
-                        fontSize: 12, color: 'var(--text-ghost)', marginBottom: 24,
-                        display: 'inline-block' }}>
-            ⚠ Dados demonstrativos baseados em lógica de monitoramento orbital e ambiental.
-            Protótipo FIAP GS 2026 — não representa sistema operacional real.
+          <div role="note" style={{ padding: '10px 14px', background: 'oklch(12% 0.025 240)', border: '1px solid var(--bg-raised)',
+                                    borderRadius: 6, fontSize: 12, color: 'var(--text-ghost)', marginBottom: 20, maxWidth: 720 }}>
+            Protótipo em validação, não operacional. Focos de calor não são incêndios confirmados.
+            Em emergência, ligue 193 (Corpo de Bombeiros).
           </div>
-          <div>
-            <Link to="/public/report" style={{
-              display: 'inline-block', padding: '12px 28px', background: 'var(--orbital)',
-              color: 'white', borderRadius: 8, textDecoration: 'none',
-              fontSize: 14, fontWeight: 700, marginRight: 12,
-            }}>
-              Registrar Denúncia
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Link to="/public/map" style={{ display: 'inline-block', padding: '12px 24px', background: 'var(--orbital)',
+                                             color: 'white', borderRadius: 8, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>
+              Ver mapa de focos
             </Link>
-            <Link to="/public/map" style={{
-              display: 'inline-block', padding: '12px 24px',
-              border: '1px solid var(--bg-raised)', color: 'var(--text-mid)',
-              borderRadius: 8, textDecoration: 'none', fontSize: 14,
-            }}>
-              Ver Mapa
+            <Link to="/public/report" style={{ display: 'inline-block', padding: '12px 24px', border: '1px solid var(--bg-raised)',
+                                                color: 'var(--text-mid)', borderRadius: 8, textDecoration: 'none', fontSize: 14 }}>
+              Registrar denúncia
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Metrics */}
-      <div style={{ padding: '40px 48px', maxWidth: 960, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16,
-                      marginBottom: 48 }}>
-          <MetricCard value={PROTECTED_AREAS.length} label="Áreas Cadastradas" unit="áreas" />
-          <MetricCard value={activeIncidents.length} label="Incidentes Ativos"
-                      accent="var(--risk-high)" />
-          <MetricCard value="n/d" label="Nível de Alerta Oficial"
-                      accent="var(--text-ghost)" />
-          <MetricCard value="n/d" label="Tempo Médio de Resposta" />
-        </div>
+      <div style={{ padding: '32px 24px', maxWidth: 960, margin: '0 auto' }}>
+        <OrbitalDashboardSection mapLink="/public/map" />
 
-        {/* Active alerts */}
-        {activeIncidents.length > 0 && (
-          <div style={{ marginBottom: 48 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-mid)',
-                         textTransform: 'uppercase', letterSpacing: '0.08em',
-                         marginBottom: 12 }}>
-              Alertas Ativos
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {activeIncidents.map(inc => (
-                <div key={inc.id} style={{
-                  padding: '12px 16px', background: 'var(--bg-surface)',
-                  border: '1px solid var(--bg-raised)', borderRadius: 8,
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <RiskBadge risk={inc.risk} />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-hi)' }}>
-                        {inc.id}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-lo)' }}>
-                        {inc.description.substring(0, 80)}...
-                      </div>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: 11, color: 'var(--text-ghost)', whiteSpace: 'nowrap' }}>
-                    {new Date(inc.detectedAt).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Map */}
-        <div style={{ marginBottom: 48 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-mid)',
-                       textTransform: 'uppercase', letterSpacing: '0.08em',
-                       marginBottom: 12 }}>
-            Mapa de Áreas Protegidas
+        <section aria-label="Entenda os termos" style={{ marginTop: 8 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-mid)', textTransform: 'uppercase',
+                       letterSpacing: '0.08em', margin: '0 0 12px' }}>
+            Entenda os termos
           </h2>
-          <div style={{ height: 380, borderRadius: 10, overflow: 'hidden',
-                        border: '1px solid var(--bg-raised)' }}>
-            <OrbitalMap center={[-4.5, -39.0]} zoom={7} darkTiles={false}>
-              {PROTECTED_AREAS.map(area => (
-                <Polygon
-                  key={area.id}
-                  positions={getPolygonPositions(area.geometry)}
-                  pathOptions={{
-                    color: area.risk === 'critical' ? '#e74c3c'
-                         : area.risk === 'high'     ? '#f39c12'
-                         : area.risk === 'medium'   ? '#f1c40f'
-                         : '#27ae60',
-                    fillOpacity: 0.2,
-                    weight: 2,
-                  }}
-                />
-              ))}
-            </OrbitalMap>
-          </div>
-        </div>
+          <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10, margin: 0 }}>
+            {GLOSSARY.map(g => (
+              <div key={g.term} style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-raised)', borderRadius: 8, padding: 12 }}>
+                <dt style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-hi)', marginBottom: 4 }}>{g.term}</dt>
+                <dd style={{ fontSize: 12, color: 'var(--text-lo)', margin: 0, lineHeight: 1.5 }}>{g.text}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
-        {/* CTA */}
-        <div style={{
-          textAlign: 'center', padding: '40px 24px',
-          background: 'var(--bg-surface)', borderRadius: 10,
-          border: '1px solid var(--bg-raised)',
-        }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-hi)',
-                       margin: '0 0 8px' }}>
-            Avistou algo suspeito?
-          </h2>
-          <p style={{ fontSize: 14, color: 'var(--text-lo)', margin: '0 0 20px' }}>
-            Qualquer cidadão pode registrar uma denúncia ambiental.
-            Sua observação pode salvar uma área protegida.
-          </p>
-          <Link to="/public/report" style={{
-            display: 'inline-block', padding: '12px 32px', background: 'var(--orbital)',
-            color: 'white', borderRadius: 8, textDecoration: 'none',
-            fontSize: 14, fontWeight: 700,
-          }}>
-            Registrar Denúncia
-          </Link>
-        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-ghost)', marginTop: 24 }}>
+          Fontes: NASA FIRMS (LANCE/EOSDIS) e INPE — Programa Queimadas (dados abertos). Limites
+          municipais: IBGE, Malha Municipal Digital 2025 (finalidade estatística; o IBGE não demarca limites legais).
+          Mapa base: © colaboradores do OpenStreetMap.
+        </p>
       </div>
     </div>
   );

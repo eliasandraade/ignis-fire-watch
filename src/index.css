@@ -117,6 +117,16 @@ body {
 .ignis-dark-map.leaflet-container { background: var(--bg-void); }
 .ignis-fullscreen { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
+/* Orbital explorer and public header on phones (≤ 760 px). */
+@media (max-width: 760px) {
+  .ignis-orbital-aside { width: 100% !important; max-height: none !important; border-right: none !important; }
+  .ignis-map-legend { max-width: 70% !important; font-size: 10px; }
+  .ignis-map-legend > div:last-child { display: none; }
+  .ignis-public-nav { padding: 0 12px !important; }
+  .ignis-public-nav-links { gap: 12px !important; font-size: 13px; }
+  .ignis-hide-mobile { display: none !important; }
+}
+
 @layer base {
   * {
     @apply border-border;

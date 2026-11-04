@@ -6,14 +6,11 @@ import { staggerContainerVariants, orbitalGlowVariants } from '@/lib/motion';
 import { useActiveIncidents, useCriticalIncident } from '@/hooks/useIncidents';
 import { useInternalReports } from '@/hooks/useInternalReports';
 import { useTeams } from '@/hooks/useTeams';
-import { useESGReports } from '@/hooks/useESGReports';
 import { useWeatherRisk } from '@/hooks/useWeatherRisk';
-import { useOrbitalAlerts, orbitalStatusLabel } from '@/hooks/useOrbitalAlerts';
+import { OrbitalSummaryCard } from '@/components/orbital-map/OrbitalSummaryCard';
+import { OrbitalDashboardSection } from '@/components/orbital-map/OrbitalDashboardSection';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer
-} from 'recharts';
 
 export default function GestorDashboardPage() {
   const reducedMotion = useReducedMotion();
@@ -21,7 +18,6 @@ export default function GestorDashboardPage() {
   const { incident: critical } = useCriticalIncident();
   const { reports } = useInternalReports();
   const { teams } = useTeams();
-  const { latest: esgData } = useESGReports();
   const { areas } = useProtectedAreas();
 
   const pending  = reports.filter(r => r.status === 'em-triagem');
@@ -32,8 +28,6 @@ export default function GestorDashboardPage() {
   const critLat = -4.005;
   const critLng = -39.46;
   const { weatherRisk, fromApi: weatherFromApi } = useWeatherRisk(critLat, critLng);
-  const orbital = useOrbitalAlerts();
-  const firmsAccent = orbital.isRealData ? '#22c55e' : orbital.isDemo ? '#60a5fa' : '#f59e0b';
 
   return (
     <div style={{ padding: 24 }}>
@@ -126,37 +120,11 @@ export default function GestorDashboardPage() {
         </motion.div>
       </Link>
 
-      {/* Charts + Aurora */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px',
-                    gap: 20, marginBottom: 28 }}>
-        {/* Incidents chart */}
-        <div style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 20,
-                      border: '1px solid var(--bg-raised)' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-mid)',
-                        marginBottom: 16 }}>
-            Incidentes por Semana (Jan–Mai 2026)
-          </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={esgData.weeklyIncidents}>
-              <defs>
-                <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="oklch(65% 0.17 220)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="oklch(65% 0.17 220)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="week" stroke="var(--text-ghost)" tick={{ fontSize: 11 }} />
-              <YAxis stroke="var(--text-ghost)" tick={{ fontSize: 11 }} width={24} />
-              <Tooltip
-                contentStyle={{ background: 'var(--bg-surface)',
-                                border: '1px solid var(--bg-raised)', borderRadius: 6,
-                                fontSize: 12 }}
-              />
-              <Area type="monotone" dataKey="count" stroke="oklch(65% 0.17 220)"
-                    fill="url(#incGrad)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      <OrbitalDashboardSection />
 
+      {/* Aurora */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)',
+                    gap: 20, marginBottom: 28 }}>
         {/* Aurora insight */}
         <div style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 20,
                       border: '1px solid var(--bg-raised)' }}>
@@ -237,38 +205,8 @@ export default function GestorDashboardPage() {
             </div>
           </div>
 
-          {/* NASA FIRMS */}
-          <div style={{
-            background: 'var(--bg-surface)', borderRadius: 8, padding: '14px 16px',
-            border: '1px solid var(--bg-raised)',
-            borderLeft: `3px solid ${firmsAccent}`,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>
-                🛰 Alertas Orbitais
-              </span>
-              <span style={{
-                fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
-                color: firmsAccent,
-                background: `${firmsAccent}18`,
-                border: `1px solid ${firmsAccent}33`,
-              }}>
-                {orbital.isRealData ? 'NASA FIRMS' : orbital.isDemo ? 'demo' : 'sem dados'}
-              </span>
-            </div>
-            <div style={{
-              fontSize: 22, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
-              color: orbital.isRealData ? 'var(--text-hi)' : firmsAccent,
-            }}>
-              {orbital.isRealData || orbital.isDemo ? orbital.total : '—'}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-lo)' }}>
-              {orbitalStatusLabel(orbital)}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 2 }}>
-              anomalias térmicas — não confirmam incêndio
-            </div>
-          </div>
+          {/* Persisted heat spots (PostGIS) */}
+          <OrbitalSummaryCard />
 
           {/* OSM/Nominatim */}
           <div style={{

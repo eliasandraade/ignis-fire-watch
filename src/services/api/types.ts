@@ -97,14 +97,6 @@ export interface ApiHealthResponse {
 // ── External integrations ─────────────────────────────────────────────────
 
 export type ExternalSourceStatus = 'live' | 'cached' | 'unavailable';
-// live/cached: NASA FIRMS (see fetched_at) · demo: fictitious, flagged by the
-// backend · disabled_missing_api_key / unavailable: no data at all.
-export type OrbitalSourceStatus =
-  | 'live'
-  | 'cached'
-  | 'demo'
-  | 'disabled_missing_api_key'
-  | 'unavailable';
 export type RiskLevel = 'low' | 'moderate' | 'high' | 'critical';
 
 export interface ApiWeatherRiskFactor {
@@ -132,50 +124,7 @@ export interface ApiWeatherRiskResponse {
   cache_ttl_minutes: number;
 }
 
-export interface ApiOrbitalAlert {
-  id: string;
-  type: 'heat_spot' | 'burn_confirmed' | 'deforestation' | 'anomaly';
-  lat: number;
-  lng: number;
-  area_id: string | null;
-  confidence: number;
-  source: string;
-  detected_at: string;
-  fetched_at: string;
-  converted_to_incident_id: string | null;
-  is_demo?: boolean;
-}
-
-export interface ApiOrbitalAlertListResponse {
-  items: ApiOrbitalAlert[];
-  total: number;
-  source_status: OrbitalSourceStatus;
-  since: string | null;
-  cached_at: string | null;
-  // Added in Sprint 0 (optional for older API deployments)
-  data_origin?: 'nasa_firms' | 'demo' | 'none';
-  persisted?: boolean;
-  fetched_at?: string | null;
-  message?: string | null;
-  disclaimer?: string;
-}
-
-export interface ApiIngestResponse {
-  status:
-    | 'ok'
-    | 'partial'
-    | 'processed_not_persisted'
-    | 'disabled_missing_api_key'
-    | 'unavailable'
-    | 'error';
-  message: string;
-  records_fetched: number;
-  records_valid?: number;
-  // Rows written to the database. Always 0 until orbital alerts are persisted.
-  records_inserted: number;
-  persisted?: boolean;
-  records_skipped: number;
-}
+// Orbital detections: see ./orbitalTypes.ts (persisted data, Sprint 1.3).
 
 export interface ApiReverseGeocodingResponse {
   source: string;

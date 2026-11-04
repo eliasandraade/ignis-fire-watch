@@ -24,8 +24,9 @@ export function useMissions(incidentId?: string) {
     const dataSource: DataSourceMeta = createDataSourceMeta(false, false);
     return { missions: FALLBACK_MISSIONS, loading: false, fromApi: false, dataSource };
   }
+  // API mode: a failed request yields nothing (dataSource flags it), never demonstration data.
 
-  const missions: Mission[] = query.isSuccess ? query.data : FALLBACK_MISSIONS;
+  const missions: Mission[] = query.isSuccess ? query.data : [];
   const dataSource = createDataSourceMeta(query.isSuccess, (query.data ?? []).length > 0);
 
   return {

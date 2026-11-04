@@ -242,7 +242,7 @@ test.describe('13-14. sessão e autorização', () => {
   test('perfil não-admin não acessa a área administrativa', async ({ page, api, consoleErrors }) => {
     await login(page, 'gestor');
     await page.goto('/admin');
-    await expect(page.getByText('Acesso Restrito')).toBeVisible();
+    await expect(page.getByText('Acesso não permitido')).toBeVisible();
     const token = apiToken('gestor');
     const r = await api.get('/api/v1/orbital-alerts/ingestion-runs', { headers: { Authorization: `Bearer ${token}` } });
     expect(r.status()).toBe(403);

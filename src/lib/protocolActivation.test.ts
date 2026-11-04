@@ -7,7 +7,6 @@ import {
 } from '@/lib/protocolActivation';
 
 const api = (incidentFromApi: boolean, hasIncident = true) => ({
-  apiEnabled: true,
   incidentFromApi,
   hasIncident,
 });
@@ -75,12 +74,9 @@ describe('protocol activation — API failure and recovery (Codex P2, PR #4)', (
     expect(protocolReducer('pending', { type: 'incident-changed' })).toBe('pending');
   });
 
-  it('demo mode is always a labelled simulation', () => {
-    const view = protocolButtonView(protocolReducer('idle', { type: 'simulate' }), {
-      apiEnabled: false,
-      incidentFromApi: false,
-      hasIncident: true,
-    });
-    expect(view.label).toMatch(/Simulação concluída — nada registrado/);
+  it('without an incident loaded from the API the action stays disabled', () => {
+    const view = protocolButtonView('idle', api(true, false));
+    expect(view.disabled).toBe(true);
+    expect(view.unavailable).toBe(true);
   });
 });

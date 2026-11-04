@@ -27,7 +27,7 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
-  consoleErrors: async ({ page }, use, testInfo) => {
+  consoleErrors: async ({ page }, provide, testInfo) => {
     const errors: string[] = [];
     page.on('console', msg => {
       if (msg.type() === 'error') errors.push(msg.text());
@@ -36,15 +36,15 @@ export const test = base.extend<Fixtures>({
     await page.route(/tile\.openstreetmap\.org/, route =>
       route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG }),
     );
-    await use(errors);
+    await provide(errors);
     // Tests that provoke failures declare it with the "expected-errors" annotation.
     if (!testInfo.annotations.some(a => a.type === 'expected-errors')) {
       expect(errors, 'erros no console do navegador').toEqual([]);
     }
   },
-  api: async ({ playwright }, use) => {
+  api: async ({ playwright }, provide) => {
     const ctx = await playwright.request.newContext({ baseURL: API_URL });
-    await use(ctx);
+    await provide(ctx);
     await ctx.dispose();
   },
 });

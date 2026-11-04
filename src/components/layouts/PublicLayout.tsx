@@ -19,7 +19,7 @@ export function PublicLayout() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-void)' }}>
-      <nav style={{
+      <nav className="ignis-public-nav" style={{
         position: 'sticky', top: 0, zIndex: 100,
         padding: '0 24px', height: 52,
         background: 'oklch(10% 0.022 240 / 92%)',
@@ -31,10 +31,10 @@ export function PublicLayout() {
                                     alignItems: 'center', gap: 8 }}>
           <span style={{ fontWeight: 800, fontSize: 18, color: 'var(--orbital)',
                          letterSpacing: '-0.02em' }}>IGNIS</span>
-          <span style={{ fontSize: 11, color: 'var(--text-ghost)', letterSpacing: '0.1em',
+          <span className="ignis-hide-mobile" style={{ fontSize: 11, color: 'var(--text-ghost)', letterSpacing: '0.1em',
                          textTransform: 'uppercase', marginTop: 1 }}>Orbital</span>
         </Link>
-        <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+        <div className="ignis-public-nav-links" style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
           {navLink('/public', 'Painel')}
           {navLink('/public/map', 'Mapa')}
           {navLink('/public/report', 'Registrar Denúncia')}

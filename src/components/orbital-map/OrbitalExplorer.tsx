@@ -186,7 +186,7 @@ export function OrbitalExplorer({ mode }: Props) {
   const municipalitiesGeo = useJurisdictionGeoJSON('municipality', showMunicipalities);
   const municipalities = useMunicipalities(filters ?? periodWindow('7d', nowKey));
 
-  const items = detections.data?.items ?? [];
+  const items = useMemo(() => detections.data?.items ?? [], [detections.data]);
   const sourceList = sources.data ?? detections.data?.sources ?? [];
   const satellites = useMemo(
     () => Array.from(new Set(items.map(d => d.satellite))).sort(),
@@ -206,7 +206,7 @@ export function OrbitalExplorer({ mode }: Props) {
 
   return (
     <div style={{ display: 'flex', height: '100%', minHeight: 520, overflow: 'hidden', flexWrap: 'wrap' }}>
-      <aside aria-label="Filtros e situação das fontes" style={{
+      <aside aria-label="Filtros e situação das fontes" className="ignis-orbital-aside" style={{
         width: 330, maxWidth: '100%', background: 'var(--bg-panel)', borderRight: '1px solid var(--bg-raised)',
         overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '100%',
       }}>
@@ -355,7 +355,7 @@ export function OrbitalExplorer({ mode }: Props) {
           ))}
         </MapContainer>
 
-        <div aria-label="Legenda" data-testid="map-legend" style={{
+        <div aria-label="Legenda" data-testid="map-legend" className="ignis-map-legend" style={{
           position: 'absolute', left: 10, bottom: 10, zIndex: 1000, ...PANEL, padding: '8px 10px',
           background: 'oklch(14% 0.02 240 / 92%)', maxWidth: 280,
         }}>

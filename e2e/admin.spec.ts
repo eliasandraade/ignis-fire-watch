@@ -5,14 +5,16 @@
  * account (e2e.<timestamp>@example.org). Accounts are never deleted (there is
  * no physical deletion): the test account ends deactivated.
  */
+import { randomBytes } from 'node:crypto';
 import { test, expect, login, apiToken, credentials, API_URL } from './fixtures';
 
 const stamp = Date.now();
 const testUser = {
   name: `Pessoa E2E ${stamp}`,
   email: `e2e.${stamp}@example.org`,
-  password: `e2e-provisoria-${stamp}`,
-  newPassword: `e2e-definitiva-${stamp}`,
+  // Generated per run: no credential-like literal lives in the repository.
+  password: randomBytes(18).toString('base64url'),
+  newPassword: randomBytes(18).toString('base64url'),
 };
 const REASON = 'Validação automatizada do Admin Cockpit';
 
@@ -107,7 +109,7 @@ test.describe('Admin Cockpit', () => {
     let action = page.getByRole('dialog', { name: /Alterar papel/ });
     await action.getByLabel('Novo papel').selectOption('gestor');
     await action.getByLabel('Motivo').fill(REASON);
-    await action.getByLabel('Sua senha').fill('senha-incorreta-123');
+    await action.getByLabel('Sua senha').fill(randomBytes(18).toString('base64url'));
     await action.getByRole('button', { name: 'Alterar papel' }).click();
     await expect(action.getByText('Senha de confirmação incorreta')).toBeVisible();
     await action.getByLabel('Sua senha').fill(adminPassword);

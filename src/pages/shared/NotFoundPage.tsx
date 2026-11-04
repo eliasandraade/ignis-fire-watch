@@ -10,23 +10,23 @@ export default function NotFoundPage() {
       <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 64, fontWeight: 700,
                     color: 'var(--bg-raised)', lineHeight: 1 }}>404</div>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-hi)' }}>
-        Coordenadas não encontradas
+        Página não encontrada
       </div>
       <div style={{ fontSize: 14, color: 'var(--text-lo)', maxWidth: 360 }}>
-        A rota solicitada não existe neste sistema orbital.
+        O endereço não existe ou foi movido.
       </div>
       <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
         <Link to="/public" style={{
           fontSize: 13, color: 'var(--orbital)', textDecoration: 'none',
           padding: '8px 16px', border: '1px solid var(--orbital)', borderRadius: 6,
         }}>
-          Portal Público
+          Portal público
         </Link>
         <Link to="/login" style={{
           fontSize: 13, color: 'var(--text-mid)', textDecoration: 'none',
           padding: '8px 16px', border: '1px solid var(--bg-raised)', borderRadius: 6,
         }}>
-          Login
+          Entrar
         </Link>
       </div>
     </div>

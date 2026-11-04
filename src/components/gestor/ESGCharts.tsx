@@ -1,7 +1,7 @@
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { useESGReports } from '@/hooks/useESGReports';
+import type { ESGReport } from '@/types/domain';
 
 const tooltipStyle = {
   contentStyle: {
@@ -13,8 +13,7 @@ const tooltipStyle = {
   },
 };
 
-export function ESGCharts() {
-  const { latest: ESG_DATA } = useESGReports();
+export function ESGCharts({ report: ESG_DATA }: { report: ESGReport }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
       {/* Weekly incidents area chart */}
@@ -46,7 +45,7 @@ export function ESGCharts() {
                     border: '1px solid var(--bg-raised)' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-mid)',
                       marginBottom: 16 }}>
-          Focos de Calor por Mês (INPE/simulado)
+          Focos de Calor por Mês
         </div>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={ESG_DATA.monthlyFoci}>

@@ -30,13 +30,15 @@ jobs:
       - name: Vitest + cobertura
         # A failing test fails this check.
         run: npm run test:coverage
-      - name: Build de produção (modo API)
+      - name: Build de produção
         env:
-          VITE_USE_API: "true"
           VITE_API_URL: https://api.invalid
         run: npm run build
-      - name: Build de produção (modo demonstrativo)
-        run: npm run build
+      - name: Bundle operacional sem dados fictícios nem referências acadêmicas
+        run: |
+          if grep -rliE "FIAP|Global Solution|RM56[0-9]{4}|MOCK_USERS|FALLBACK_" dist/assets; then
+            echo "::error::bundle contém referências acadêmicas ou dados fictícios"; exit 1
+          fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
@@ -49,14 +51,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Build em modo API (mesmos build args que o Railway passa)
+      - name: Build da imagem (mesmo build arg que o Railway passa)
         run: >
           docker build -t ignis-web:ci
-          --build-arg VITE_USE_API=true
           --build-arg VITE_API_URL=https://ignis-api-ci.up.railway.app .
       - name: Build recusa URL da API inválida (domínio público não resolvido)
         run: |
-          if docker build --build-arg VITE_USE_API=true --build-arg VITE_API_URL=https:// . ; then
+          if docker build --build-arg VITE_API_URL=https:// . ; then
             echo "::error::build aceitou VITE_API_URL vazio"; exit 1
           fi
       - name: Contêiner responde no PORT injetado, com SPA fallback e headers
@@ -120,7 +121,7 @@ jobs:
     env:
       # The other repository's branch to integrate with (a repository variable
       # overrides it once the human-validation branches are merged).
-      OTHER_REF: ${{ vars.IGNIS_API_REF || 'feat/ignis-human-validation' }}
+      OTHER_REF: ${{ vars.IGNIS_API_REF || 'feat/ignis-admin-cockpit' }}
       IGNIS_WEB_DIR: ${{ github.workspace }}/web
       # Deterministic data: the documented INPE sample, never the live server.
       IGNIS_INGEST: fixture

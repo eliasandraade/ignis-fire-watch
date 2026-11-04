@@ -51,7 +51,7 @@ export function SpaceImpactChart() {
               marginBottom: 12,
             }}
           >
-            Capacidade orbital atual · simulado
+            Capacidade orbital · valores ilustrativos
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <RadarChart
@@ -151,7 +151,7 @@ export function SpaceImpactChart() {
               fontStyle: 'italic',
             }}
           >
-            valores simulados para demonstração acadêmica · FIAP GS 2026
+            valores ilustrativos — não são medições
           </div>
         </div>
       </div>

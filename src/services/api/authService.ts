@@ -12,6 +12,17 @@ export async function login(email: string, password: string): Promise<ApiTokenRe
   });
 }
 
+/** Changes the caller's own password; the API returns a fresh session (old tokens stop working). */
+export async function changeOwnPassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<ApiTokenResponse> {
+  return apiFetch<ApiTokenResponse>('/api/v1/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}
+
 export function saveSession(token: ApiTokenResponse): void {
   localStorage.setItem('ignis_token', token.access_token);
   localStorage.setItem('ignis_user', JSON.stringify(token.user));

@@ -2,157 +2,99 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { isApiEnabled } from '@/services/api/client';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { LogIn, Orbit } from 'lucide-react';
 import { login, saveSession } from '@/services/api/authService';
 import { adaptApiUser, getRouteForRole } from '@/services/adapters/authAdapter';
 import { useUser } from '@/context/UserContext';
+import { ApiError } from '@/services/api/errors';
+import { Callout, Field, Spinner } from '@/components/admin/ui';
 
 const schema = z.object({
-  email:    z.string().email('E-mail inválido'),
-  password: z.string().min(1, 'Senha obrigatória'),
+  email: z.string().trim().email('Informe um e-mail válido'),
+  password: z.string().min(1, 'Informe a senha'),
 });
 type FormData = z.infer<typeof schema>;
 
+function loginError(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return 'E-mail ou senha incorretos, ou conta sem acesso.';
+    if (err.status === 429) return 'Muitas tentativas. Aguarde um minuto e tente de novo.';
+    if (err.status === 0 || err.status >= 500) return 'Serviço temporariamente indisponível. Tente novamente em instantes.';
+  }
+  return 'Não foi possível entrar. Tente novamente.';
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setProfile } = useUser();
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const { profile, setProfile } = useUser();
+  const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
+  if (profile) return <Navigate to={getRouteForRole(profile.role, profile.mustChangePassword)} replace />;
+
   const onSubmit = async (data: FormData) => {
-    setLoginError(null);
-
-    if (isApiEnabled()) {
-      try {
-        const token = await login(data.email, data.password);
-        saveSession(token);
-        const profile = adaptApiUser(token.user);
-        setProfile(profile);
-        navigate(getRouteForRole(profile.role));
-        return;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Credenciais inválidas.';
-        setLoginError(msg);
-        return;
-      }
+    setError(null);
+    try {
+      const session = await login(data.email, data.password);
+      saveSession(session);
+      const user = adaptApiUser(session.user);
+      setProfile(user);
+      navigate(getRouteForRole(user.role, user.mustChangePassword), { replace: true });
+    } catch (err) {
+      setError(loginError(err));
     }
-
-    // Mock mode — any credentials accepted for demonstration
-    await new Promise(r => setTimeout(r, 400));
-    navigate('/select-profile');
   };
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      minHeight: '100vh', background: 'var(--bg-void)',
-    }}>
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{
-          width: 380, background: 'var(--bg-surface)',
-          border: '1px solid var(--bg-raised)', borderRadius: 12,
-          padding: 40,
-        }}
-      >
-        {/* Header */}
-        <div style={{ marginBottom: 32, textAlign: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: 28, color: 'var(--orbital)',
-                        letterSpacing: '-0.04em' }}>IGNIS</div>
-          <div style={{ fontSize: 13, color: 'var(--text-lo)', marginTop: 4 }}>
-            Plataforma Orbital Ambiental
+    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'radial-gradient(1200px 600px at 20% -10%, oklch(20% 0.05 230 / 60%), transparent), var(--bg-void)', padding: 16 }}>
+      <main className="ig-panel" style={{ width: 'min(400px, 100%)', padding: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 26 }}>
+          <span className="ig-brand-mark" style={{ width: 38, height: 38, borderRadius: 10 }}><Orbit size={20} /></span>
+          <div>
+            <div className="ig-brand-name" style={{ fontSize: 18 }}>IGNIS Orbital</div>
+            <div className="ig-brand-sub">by Andrade Systems</div>
           </div>
         </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={{ fontSize: 12, color: 'var(--text-mid)', fontWeight: 500,
-                            display: 'block', marginBottom: 6 }}>
-              E-mail institucional
-            </label>
+        <h1 style={{ fontSize: 19, margin: '0 0 4px' }}>Acesso restrito</h1>
+        <p style={{ margin: '0 0 20px', fontSize: 13.5, color: 'var(--text-lo)', lineHeight: 1.5 }}>
+          Entre com a conta fornecida pelo administrador da sua organização.
+        </p>
+        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
+          <Field label="E-mail" error={errors.email?.message}>
             <input
               {...register('email')}
+              className="ig-input"
               type="email"
-              placeholder="usuario@exemplo.org"
-              style={{
-                width: '100%', padding: '10px 14px', borderRadius: 6, fontSize: 13,
-                background: 'var(--bg-raised)', border: `1px solid ${errors.email ? 'var(--risk-crit)' : 'var(--bg-void)'}`,
-                color: 'var(--text-hi)', fontFamily: 'inherit', outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              autoComplete="username"
+              placeholder="nome@organizacao.gov.br"
+              aria-invalid={!!errors.email}
             />
-            {errors.email && (
-              <p style={{ fontSize: 11, color: 'var(--risk-crit)', marginTop: 4 }}>
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label style={{ fontSize: 12, color: 'var(--text-mid)', fontWeight: 500,
-                            display: 'block', marginBottom: 6 }}>
-              Senha
-            </label>
+          </Field>
+          <Field label="Senha" error={errors.password?.message}>
             <input
               {...register('password')}
+              className="ig-input"
               type="password"
-              placeholder="••••••••"
-              style={{
-                width: '100%', padding: '10px 14px', borderRadius: 6, fontSize: 13,
-                background: 'var(--bg-raised)', border: `1px solid ${errors.password ? 'var(--risk-crit)' : 'var(--bg-void)'}`,
-                color: 'var(--text-hi)', fontFamily: 'inherit', outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              autoComplete="current-password"
+              aria-invalid={!!errors.password}
             />
-            {errors.password && (
-              <p style={{ fontSize: 11, color: 'var(--risk-crit)', marginTop: 4 }}>
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
-          {loginError && (
-            <p style={{ fontSize: 12, color: 'var(--risk-crit)', padding: '8px 12px',
-                         background: 'color-mix(in oklch, var(--risk-crit) 10%, transparent)',
-                         borderRadius: 6, margin: 0 }}>
-              {loginError}
-            </p>
-          )}
-
-          <button type="submit" disabled={isSubmitting} style={{
-            width: '100%', padding: '12px 0', borderRadius: 6, border: 'none',
-            background: isSubmitting ? 'var(--bg-raised)' : 'var(--orbital)',
-            color: isSubmitting ? 'var(--text-ghost)' : 'white',
-            fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            marginTop: 4,
-          }}>
-            {isSubmitting ? 'Autenticando...' : 'Acessar Sistema'}
+          </Field>
+          {error && <Callout tone="err">{error}</Callout>}
+          <button type="submit" className="ig-btn primary" disabled={isSubmitting} style={{ height: 40, marginTop: 4 }}>
+            {isSubmitting ? <Spinner /> : <LogIn size={16} />} {isSubmitting ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
-
-        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12, color: 'var(--text-ghost)' }}>
-          Acesso público?{' '}
-          <Link to="/public" style={{ color: 'var(--orbital)', textDecoration: 'none' }}>
-            Portal de Denúncias
-          </Link>
-        </div>
-
-        <div style={{ marginTop: 20, padding: '10px 12px', background: 'var(--bg-raised)',
-                      borderRadius: 6, fontSize: 11, color: 'var(--text-ghost)',
-                      textAlign: 'center', lineHeight: 1.5 }}>
-          {isApiEnabled()
-            ? <>Use as credenciais do sistema para acessar.<br /></>
-            : <>Protótipo demonstrativo — qualquer credencial é aceita.<br /></>
-          }
-          FIAP GS 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427
-        </div>
-      </motion.div>
+        <p style={{ margin: '22px 0 0', fontSize: 12.5, color: 'var(--text-ghost)', textAlign: 'center' }}>
+          Quer registrar uma ocorrência?{' '}
+          <Link to="/public" style={{ color: 'var(--orbital)' }}>Acesse o portal público</Link>
+        </p>
+        <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-ghost)', textAlign: 'center', lineHeight: 1.5 }}>
+          Esqueceu a senha? Peça a redefinição a um administrador do IGNIS na sua organização.
+        </p>
+      </main>
     </div>
   );
 }

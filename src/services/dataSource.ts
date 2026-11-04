@@ -1,70 +1,45 @@
-export type DataSourceMode = 'api' | 'fallback';
-
-export type DataSourceStatus = 'api' | 'demo' | 'fallback' | 'mixed' | 'partial';
+/**
+ * Estado da origem de um conjunto de dados exibido na interface.
+ *
+ * A aplicação só exibe dados reais da API. Nenhum estado aqui representa
+ * dados substitutos: quando a consulta falha ou não traz registros, a tela
+ * diz isso em vez de mostrar qualquer outra coisa.
+ */
+export type DataSourceStatus = 'loading' | 'ok' | 'empty' | 'error';
 
 export interface DataSourceMeta {
-  mode: DataSourceMode;
   status: DataSourceStatus;
   label: string;
-  isApi: boolean;
-  isFallback: boolean;
-}
-
-export function isApiMode(): boolean {
-  return import.meta.env.VITE_USE_API === 'true';
 }
 
 export function getDataSourceLabel(status: DataSourceStatus): string {
   switch (status) {
-    // "api" means the last request succeeded — not real-time, and the
-    // backend database may itself hold demonstration (seed) records.
-    case 'api':
+    case 'loading':
+      return 'Carregando';
+    // "ok" significa que a última consulta à API teve sucesso — não é tempo real.
+    case 'ok':
       return 'Dados da API';
-    case 'demo':
-      return 'Dados demonstrativos';
-    case 'fallback':
-      return 'API indisponível — dados demonstrativos';
-    case 'mixed':
-      return 'Dados mistos';
-    case 'partial':
-      return 'Dados parciais';
+    case 'empty':
+      return 'Sem registros';
+    case 'error':
+      return 'Serviço temporariamente indisponível';
   }
 }
 
-export function createDataSourceMeta(isApiSuccess: boolean, hasData: boolean): DataSourceMeta {
-  if (!isApiMode()) {
-    return {
-      mode: 'fallback',
-      status: 'demo',
-      label: getDataSourceLabel('demo'),
-      isApi: false,
-      isFallback: true,
-    };
-  }
-  if (isApiSuccess && hasData) {
-    return {
-      mode: 'api',
-      status: 'api',
-      label: getDataSourceLabel('api'),
-      isApi: true,
-      isFallback: false,
-    };
-  }
-  if (isApiSuccess && !hasData) {
-    return {
-      mode: 'fallback',
-      status: 'partial',
-      label: getDataSourceLabel('partial'),
-      isApi: false,
-      isFallback: true,
-    };
-  }
-  // API error / loading
-  return {
-    mode: 'fallback',
-    status: 'fallback',
-    label: getDataSourceLabel('fallback'),
-    isApi: false,
-    isFallback: true,
-  };
+/**
+ * @param isSuccess  a consulta à API terminou com sucesso
+ * @param hasData    a resposta trouxe ao menos um registro
+ * @param isLoading  a consulta ainda está em andamento
+ */
+export function createDataSourceMeta(
+  isSuccess: boolean,
+  hasData: boolean,
+  isLoading = false,
+): DataSourceMeta {
+  const status: DataSourceStatus = isLoading
+    ? 'loading'
+    : isSuccess
+      ? (hasData ? 'ok' : 'empty')
+      : 'error';
+  return { status, label: getDataSourceLabel(status) };
 }

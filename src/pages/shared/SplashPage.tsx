@@ -69,7 +69,7 @@ export default function SplashPage() {
                       letterSpacing: '-0.04em', lineHeight: 1 }}>IGNIS</div>
         <div style={{ fontSize: 11, color: 'var(--text-ghost)', letterSpacing: '0.2em',
                       textTransform: 'uppercase', marginTop: 4 }}>
-          Orbital · Inteligência Espacial Ambiental
+          Orbital · by Andrade Systems
         </div>
       </motion.div>
 
@@ -89,7 +89,7 @@ export default function SplashPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.25 }}
       >
-        Dados orbitais, IA e comando operacional para proteger áreas ambientais críticas.
+        Focos de calor por satélite, contexto territorial oficial e apoio à resposta operacional.
       </motion.div>
 
       {/* Support tagline */}
@@ -105,7 +105,7 @@ export default function SplashPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
-        Uma aplicação da economia espacial
+        Monitoramento contínuo de focos de calor
       </motion.div>
 
       {/* Data chain — monospace cadeia */}
@@ -122,7 +122,7 @@ export default function SplashPage() {
         animate={{ opacity: 0.6 }}
         transition={{ duration: 0.6, delay: 0.55 }}
       >
-        Satélite → dado orbital → inteligência → decisão → resposta
+        INPE · NASA FIRMS · malha municipal IBGE
       </motion.div>
 
       {/* Progress bar */}
@@ -148,15 +148,13 @@ export default function SplashPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.7 }}
       >
-        <NavLink to="/public" label="Acessar Portal Público" />
-        <NavLink to="/login" label="Entrar como Gestor" />
-        <NavLink to="/login" label="Ver Economia Espacial" note="área restrita — login necessário" />
+        <NavLink to="/public" label="Portal público" />
+        <NavLink to="/login" label="Entrar" note="área restrita" />
       </motion.div>
 
-      {/* Footer note */}
       <div style={{ position: 'absolute', bottom: 24, zIndex: 1, fontSize: 11,
                     color: 'var(--text-ghost)', textAlign: 'center' }}>
-        FIAP Global Solution 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427
+        © Andrade Systems
       </div>
     </div>
   );

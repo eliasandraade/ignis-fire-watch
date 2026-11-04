@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import type { OccurrenceType, RiskLevel } from '@/types/domain';
 import { Marker, useMapEvents } from 'react-leaflet';
-import { isApiEnabled } from '@/services/api/client';
+import { MapPin } from 'lucide-react';
 import { submitReport } from '@/services/api/publicReportsService';
 import { buildApiReportBody } from '@/services/adapters/reportAdapter';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
@@ -53,7 +53,7 @@ export default function RegisterReportPage() {
   const [searchParams] = useSearchParams();
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const { areas: PROTECTED_AREAS } = useProtectedAreas();
+  const { areas: PROTECTED_AREAS, dataSource: areasSource } = useProtectedAreas();
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch } =
     useForm<FormData>({
@@ -69,62 +69,38 @@ export default function RegisterReportPage() {
 
   const onSubmit = async (data: FormData) => {
     setSubmitError(null);
-
-    if (isApiEnabled()) {
-      try {
-        const body = buildApiReportBody(
-          data.occurrenceType,
-          data.description,
-          data.urgency,
-          data.isAnonymous,
-          coords,
-          data.areaId || null,
-          data.reporterName ?? null,
-        );
-        const result = await submitReport(body);
-        // Save protocol to sessionStorage so ReportStatusPage can show it immediately
-        sessionStorage.setItem(`ignis_report_${result.protocol}`, JSON.stringify({
-          id:          result.protocol,
-          occurrenceType: data.occurrenceType,
-          areaId:      data.areaId || null,
-          description: data.description,
-          urgency:     data.urgency,
-          isAnonymous: data.isAnonymous,
-          reporterName: data.isAnonymous ? null : (data.reporterName?.trim() || null),
-          coords:      coords ?? null,
-          status:      'em-triagem',
-          submittedAt: result.created_at,
-          protocol:    result.protocol,
-        }));
-        navigate(`/public/report/status/${result.protocol}`);
-        return;
-      } catch {
-        setSubmitError(
-          'A denúncia NÃO foi enviada: a API não confirmou o recebimento. ' +
-          'Tente novamente. Em emergência, ligue 193 (Corpo de Bombeiros).',
-        );
-        return;
-      }
+    try {
+      const body = buildApiReportBody(
+        data.occurrenceType,
+        data.description,
+        data.urgency,
+        data.isAnonymous,
+        coords,
+        data.areaId || null,
+        data.reporterName ?? null,
+      );
+      const result = await submitReport(body);
+      // Guarda o protocolo confirmado pela API para a página de acompanhamento exibir de imediato.
+      sessionStorage.setItem(`ignis_report_${result.protocol}`, JSON.stringify({
+        id:          result.protocol,
+        occurrenceType: data.occurrenceType,
+        areaId:      data.areaId || null,
+        description: data.description,
+        urgency:     data.urgency,
+        isAnonymous: data.isAnonymous,
+        reporterName: data.isAnonymous ? null : (data.reporterName?.trim() || null),
+        coords:      coords ?? null,
+        status:      'em-triagem',
+        submittedAt: result.created_at,
+        protocol:    result.protocol,
+      }));
+      navigate(`/public/report/status/${result.protocol}`);
+    } catch {
+      setSubmitError(
+        'A denúncia NÃO foi enviada: a API não confirmou o recebimento. ' +
+        'Tente novamente. Em emergência, ligue 193 (Corpo de Bombeiros).',
+      );
     }
-
-    // Demo mode (VITE_USE_API=false): nothing leaves the browser. The status
-    // page shows this record as a simulation, never as received by anyone.
-    await new Promise(r => setTimeout(r, 500));
-    const id = `DEMO-${Date.now().toString(36).toUpperCase()}`;
-    sessionStorage.setItem(`ignis_report_${id}`, JSON.stringify({
-      id,
-      occurrenceType: data.occurrenceType,
-      areaId:         data.areaId || null,
-      description:    data.description,
-      urgency:        data.urgency,
-      isAnonymous:    data.isAnonymous,
-      reporterName:   data.isAnonymous ? null : (data.reporterName?.trim() || null),
-      coords:         coords ?? null,
-      status:         'em-triagem',
-      submittedAt:    new Date().toISOString(),
-      simulated:      true,
-    }));
-    navigate(`/public/report/status/${id}`);
   };
 
   const inputStyle = (hasError?: boolean): React.CSSProperties => ({
@@ -152,7 +128,7 @@ export default function RegisterReportPage() {
                                  color: 'var(--text-hi)', lineHeight: 1.5,
                                  background: 'color-mix(in oklch, var(--risk-crit) 10%, transparent)' }}>
         <strong>Emergência?</strong> Ligue 193 (Corpo de Bombeiros) ou 199 (Defesa Civil).
-        Este canal é um protótipo, não é monitorado em tempo real e não aciona atendimento de emergência.
+        Este canal não é monitorado em tempo real e não aciona atendimento de emergência.
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -176,6 +152,12 @@ export default function RegisterReportPage() {
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
+              {areasSource.status === 'error' && (
+                <p style={{ fontSize: 11, color: 'var(--text-ghost)', marginTop: 4 }}>
+                  Lista de áreas temporariamente indisponível. Você pode enviar sem selecionar uma área
+                  e marcar o local no mapa.
+                </p>
+              )}
             </div>
 
             <div>
@@ -226,10 +208,8 @@ export default function RegisterReportPage() {
               <label htmlFor="decl" style={{ fontSize: 12, color: 'var(--text-lo)',
                                              cursor: 'pointer', lineHeight: 1.4 }}>
                 Declaro que as informações prestadas são verídicas e foram obtidas por
-                observação direta.{' '}
-                {isApiEnabled()
-                  ? 'A denúncia é registrada no protótipo IGNIS, que não tem integração com órgãos públicos.'
-                  : 'Modo demonstrativo — a denúncia não será enviada.'}
+                observação direta. A denúncia é registrada no IGNIS, que não tem integração
+                com órgãos públicos.
               </label>
             </div>
             {errors.declaration && (
@@ -268,8 +248,9 @@ export default function RegisterReportPage() {
               </OrbitalMap>
             </div>
             {coords ? (
-              <p style={{ fontSize: 11, color: 'var(--orbital)', fontFamily: 'monospace' }}>
-                📍 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+              <p style={{ fontSize: 11, color: 'var(--orbital)', fontFamily: 'monospace',
+                          display: 'flex', alignItems: 'center', gap: 4 }}>
+                <MapPin size={12} aria-hidden="true" /> {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
               </p>
             ) : (
               <p style={{ fontSize: 11, color: 'var(--text-ghost)' }}>

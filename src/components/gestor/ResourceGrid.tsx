@@ -1,3 +1,4 @@
+import { MapPin } from 'lucide-react';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import type { Resource } from '@/types/domain';
 
@@ -35,8 +36,8 @@ export function ResourceGrid({ resources }: Props) {
             </div>
             <StatusBadge status={r.status} size="sm" />
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-ghost)' }}>
-            📍 {r.location}
+          <div style={{ fontSize: 11, color: 'var(--text-ghost)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <MapPin size={11} aria-hidden="true" /> {r.location || '—'}
           </div>
           {r.currentIncident && (
             <div style={{ fontSize: 11, color: 'var(--risk-high)', marginTop: 4 }}>

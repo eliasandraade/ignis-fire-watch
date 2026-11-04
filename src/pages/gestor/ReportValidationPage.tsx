@@ -1,111 +1,109 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { isApiEnabled } from '@/services/api/client';
+import { Check, Loader2, X, Zap } from 'lucide-react';
 import { useInternalReportDetail, useReportActions } from '@/hooks/useInternalReports';
 import { OCCURRENCE_LABEL } from '@/lib/labels';
 import { useArea } from '@/hooks/useArea';
-import { useCriticalIncident } from '@/hooks/useIncidents';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { DataState } from '@/components/shared/DataState';
+import { ApiError } from '@/services/api/errors';
 import { Marker } from 'react-leaflet';
 import { useToast } from '@/hooks/use-toast';
+
+const ICON_ROW: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 6 };
 
 export default function ReportValidationPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const apiEnabled = isApiEnabled();
 
   const [decision, setDecision] = useState<'none' | 'validated' | 'discarded' | 'converted'>('none');
 
-  const { report, loading } = useInternalReportDetail(id);
-  const { incident: critical } = useCriticalIncident();
+  const { report, loading, error } = useInternalReportDetail(id);
   const { validate, discard, convert } = useReportActions();
 
   const { area } = useArea(report?.areaId ?? undefined);
 
-  const mapCenter: [number, number] = area
-    ? area.center
-    : report?.coords
-      ? [report.coords.lat, report.coords.lng]
-      : [-4.5, -39.0];
+  const backLink = (
+    <Link to="/gestor/reports" style={{ color: 'var(--orbital)', fontSize: 13 }}>
+      ← Central de Denúncias
+    </Link>
+  );
 
   if (loading) {
     return (
       <div style={{ padding: 32 }}>
-        <p style={{ color: 'var(--text-mid)' }}>Carregando denúncia...</p>
+        <DataState kind="loading" title="Carregando denúncia…" />
       </div>
     );
   }
 
   if (!report) {
+    const notFound = !error || (error instanceof ApiError && error.status === 404);
     return (
-      <div style={{ padding: 32 }}>
-        <p style={{ color: 'var(--text-mid)' }}>Denúncia não encontrada.</p>
-        <Link to="/gestor/reports" style={{ color: 'var(--orbital)' }}>
-          ← Central de Denúncias
-        </Link>
+      <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {notFound ? (
+          <DataState kind="empty" title="Denúncia não encontrada">
+            Nenhuma denúncia com este identificador foi encontrada na API.
+          </DataState>
+        ) : (
+          <DataState kind="error">
+            Não foi possível consultar esta denúncia na API. Tente novamente em instantes.
+          </DataState>
+        )}
+        {backLink}
       </div>
     );
   }
 
+  // Sem coordenadas reais, o mapa não é exibido (nenhum ponto inventado).
+  const mapCenter: [number, number] | null = report.coords
+    ? [report.coords.lat, report.coords.lng]
+    : area?.center ?? null;
+
   const handleValidate = () => {
-    if (apiEnabled) {
-      validate.mutate(
-        { id: report.id },
-        {
-          onSuccess: () => {
-            setDecision('validated');
-            toast({ title: 'Denúncia validada ✓', description: report.id });
-          },
-          onError: () => toast({ title: 'Falha — denúncia NÃO foi validada', description: 'Tente novamente.', variant: 'destructive' }),
+    validate.mutate(
+      { id: report.id },
+      {
+        onSuccess: () => {
+          setDecision('validated');
+          toast({ title: 'Denúncia validada', description: report.id });
         },
-      );
-    } else {
-      setDecision('validated');
-      toast({ title: 'Simulação — nada foi validado', description: `${report.id} · modo demonstrativo` });
-    }
+        onError: () => toast({ title: 'Falha — denúncia NÃO foi validada', description: 'Tente novamente.', variant: 'destructive' }),
+      },
+    );
   };
 
   const handleConvert = () => {
-    if (apiEnabled) {
-      convert.mutate(report.id, {
-        onSuccess: (created) => {
-          setDecision('converted');
-          // Open the incident that was actually created, not the first critical one.
-          const incidentId = (created as { id?: string } | undefined)?.id;
-          toast({ title: 'Incidente criado no IGNIS', description: 'Nenhum órgão externo foi notificado.' });
-          setTimeout(() => navigate(incidentId ? `/gestor/incident/${incidentId}` : '/gestor'), 1500);
-        },
-        onError: (err) => {
-          const msg = err instanceof Error ? err.message : 'Erro ao converter.';
-          toast({ title: 'Falha — incidente NÃO foi criado', description: msg, variant: 'destructive' });
-        },
-      });
-    } else {
-      setDecision('converted');
-      toast({ title: 'Simulação — nenhum incidente foi criado', description: 'Modo demonstrativo.' });
-    }
+    convert.mutate(report.id, {
+      onSuccess: (created) => {
+        setDecision('converted');
+        // Abre o incidente efetivamente criado, não o primeiro crítico.
+        const incidentId = (created as { id?: string } | undefined)?.id;
+        toast({ title: 'Incidente criado no IGNIS', description: 'Nenhum órgão externo foi notificado.' });
+        setTimeout(() => navigate(incidentId ? `/gestor/incident/${incidentId}` : '/gestor'), 1500);
+      },
+      onError: (err) => {
+        const msg = err instanceof Error ? err.message : 'Erro ao converter.';
+        toast({ title: 'Falha — incidente NÃO foi criado', description: msg, variant: 'destructive' });
+      },
+    });
   };
 
   const handleDiscard = () => {
-    if (apiEnabled) {
-      discard.mutate(
-        { id: report.id },
-        {
-          onSuccess: () => {
-            setDecision('discarded');
-            toast({ title: 'Denúncia descartada', description: report.id });
-            setTimeout(() => navigate('/gestor/reports'), 1200);
-          },
-          onError: () => toast({ title: 'Falha — denúncia NÃO foi descartada', description: 'Tente novamente.', variant: 'destructive' }),
+    discard.mutate(
+      { id: report.id },
+      {
+        onSuccess: () => {
+          setDecision('discarded');
+          toast({ title: 'Denúncia descartada', description: report.id });
+          setTimeout(() => navigate('/gestor/reports'), 1200);
         },
-      );
-    } else {
-      setDecision('discarded');
-      toast({ title: 'Simulação — nada foi descartado', description: `${report.id} · modo demonstrativo` });
-    }
+        onError: () => toast({ title: 'Falha — denúncia NÃO foi descartada', description: 'Tente novamente.', variant: 'destructive' }),
+      },
+    );
   };
 
   const isBusy = validate.isPending || discard.isPending || convert.isPending;
@@ -159,7 +157,7 @@ export default function ReportValidationPage() {
                   Área Protegida
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-hi)', fontWeight: 500 }}>
-                  {area?.name ?? '—'}
+                  {area?.name ?? report.customLocation ?? '—'}
                 </div>
               </div>
               <div>
@@ -190,50 +188,34 @@ export default function ReportValidationPage() {
                           fontSize: 12, fontWeight: 600, color: 'var(--text-mid)' }}>
               Localização
             </div>
-            <div style={{ height: 220 }}>
-              <OrbitalMap center={mapCenter} zoom={10} darkTiles>
-                {report.coords && (
-                  <Marker position={[report.coords.lat, report.coords.lng]} />
-                )}
-              </OrbitalMap>
-            </div>
+            {mapCenter ? (
+              <div style={{ height: 220 }}>
+                <OrbitalMap center={mapCenter} zoom={10} darkTiles>
+                  {report.coords && (
+                    <Marker position={[report.coords.lat, report.coords.lng]} />
+                  )}
+                </OrbitalMap>
+              </div>
+            ) : (
+              <DataState kind="empty" compact title="Sem coordenadas"
+                         style={{ border: 'none', borderRadius: 0 }}>
+                A denúncia não informou coordenadas nem está vinculada a uma área cadastrada.
+              </DataState>
+            )}
           </div>
 
           {/* Aurora cross-reference */}
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 16,
-                        border: '1px solid var(--bg-raised)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--orbital)',
-                          textTransform: 'uppercase', letterSpacing: '0.1em',
-                          marginBottom: 10 }}>
-              Aurora IA · Cruzamento de Dados
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--text-lo)', margin: 0, lineHeight: 1.5 }}>
-              {area && critical && area.id === critical.areaId
-                ? `Esta denúncia está na mesma área do incidente crítico ${critical.code ?? critical.id}. Correlação apenas por área — não há confirmação orbital automática nesta versão.`
-                : `Sem cruzamento orbital confirmado para esta denúncia no momento. Recomenda-se verificação in loco. — Resposta simulada — protótipo demonstrativo`
-              }
-            </p>
-          </div>
+          <DataState kind="not-implemented" title="Aurora IA · cruzamento de dados ainda não implementado">
+            Não há correlação automática entre denúncias, focos orbitais e incidentes nesta versão.
+            A verificação in loco continua sendo a referência.
+          </DataState>
         </div>
 
         {/* Right: decision */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 20,
-                        border: '1px solid var(--bg-raised)' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-hi)',
-                          marginBottom: 8 }}>
-              Recomendação Aurora
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--text-lo)', lineHeight: 1.5, margin: '0 0 12px' }}>
-              {area?.risk === 'critical' || area?.risk === 'high'
-                ? `Área de alto risco. Verificação prioritária recomendada. Confiança: 74%.`
-                : `Área de risco ${area?.risk ?? 'desconhecido'}. Triagem padrão recomendada.`
-              }
-            </p>
-            <div style={{ fontSize: 11, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
-              Resposta simulada — protótipo demonstrativo
-            </div>
-          </div>
+          <DataState kind="not-implemented" title="Recomendação automática ainda não implementada">
+            A decisão de triagem é da equipe gestora.
+          </DataState>
 
           {decision === 'none' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -244,8 +226,11 @@ export default function ReportValidationPage() {
                 background: 'color-mix(in oklch, var(--risk-low) 15%, transparent)',
                 color: 'var(--risk-low)', fontSize: 14, fontWeight: 700,
                 fontFamily: 'inherit', opacity: isBusy ? 0.6 : 1,
+                justifyContent: 'center', ...ICON_ROW,
               }}>
-                {validate.isPending ? 'Validando...' : '✓ Validar Denúncia'}
+                {validate.isPending
+                  ? <><Loader2 size={15} className="animate-spin" aria-hidden="true" /> Validando…</>
+                  : <><Check size={15} aria-hidden="true" /> Validar Denúncia</>}
               </button>
               <button onClick={handleConvert} disabled={isBusy} style={{
                 padding: '12px', borderRadius: 6, border: 'none',
@@ -253,24 +238,30 @@ export default function ReportValidationPage() {
                 background: 'color-mix(in oklch, var(--risk-crit) 15%, transparent)',
                 color: 'var(--risk-crit)', fontSize: 14, fontWeight: 700,
                 fontFamily: 'inherit', opacity: isBusy ? 0.6 : 1,
+                justifyContent: 'center', ...ICON_ROW,
               }}>
-                {convert.isPending ? 'Convertendo...' : '⚡ Converter em Incidente'}
+                {convert.isPending
+                  ? <><Loader2 size={15} className="animate-spin" aria-hidden="true" /> Convertendo…</>
+                  : <><Zap size={15} aria-hidden="true" /> Converter em Incidente</>}
               </button>
               <button onClick={handleDiscard} disabled={isBusy} style={{
                 padding: '12px', borderRadius: 6, border: 'none',
                 cursor: isBusy ? 'default' : 'pointer',
                 background: 'var(--bg-raised)', color: 'var(--text-ghost)',
                 fontSize: 14, fontFamily: 'inherit', opacity: isBusy ? 0.6 : 1,
+                justifyContent: 'center', ...ICON_ROW,
               }}>
-                {discard.isPending ? 'Descartando...' : '✗ Descartar'}
+                {discard.isPending
+                  ? <><Loader2 size={15} className="animate-spin" aria-hidden="true" /> Descartando…</>
+                  : <><X size={15} aria-hidden="true" /> Descartar</>}
               </button>
             </div>
           ) : (
-            <div style={{ padding: '16px', background: 'var(--bg-raised)', borderRadius: 8,
-                          fontSize: 14, color: 'var(--text-mid)', textAlign: 'center' }}>
-              {decision === 'validated' && '✓ Denúncia validada'}
-              {decision === 'converted' && '⚡ Convertida — redirecionando...'}
-              {decision === 'discarded' && '✗ Descartada — voltando...'}
+            <div role="status" style={{ padding: '16px', background: 'var(--bg-raised)', borderRadius: 8,
+                          fontSize: 14, color: 'var(--text-mid)', justifyContent: 'center', ...ICON_ROW }}>
+              {decision === 'validated' && <><Check size={15} aria-hidden="true" /> Denúncia validada</>}
+              {decision === 'converted' && <><Zap size={15} aria-hidden="true" /> Convertida — redirecionando…</>}
+              {decision === 'discarded' && <><X size={15} aria-hidden="true" /> Descartada — voltando…</>}
             </div>
           )}
         </div>

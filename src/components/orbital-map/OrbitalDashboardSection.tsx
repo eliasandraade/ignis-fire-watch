@@ -44,9 +44,7 @@ export function OrbitalDashboardSection({ mapLink = '/gestor/map' }: { mapLink?:
         </div>
       </div>
 
-      {!stats.apiEnabled ? (
-        <div style={CARD}>Modo demonstrativo (API desligada): nenhum indicador orbital é exibido.</div>
-      ) : stats.isError ? (
+      {stats.isError ? (
         <div role="alert" data-testid="dashboard-error" style={{ ...CARD, color: '#ef4444' }}>
           Falha ao consultar a API de indicadores orbitais. Nenhum valor é exibido no lugar.
         </div>

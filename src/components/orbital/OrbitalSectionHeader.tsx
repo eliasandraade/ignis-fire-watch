@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { slideInLeftVariants } from '../../lib/motion';
 
 interface OrbitalSectionHeaderProps {
   children: string;
-  icon?: string;
+  /** Ícone lucide-react (ou outro nó React). */
+  icon?: ReactNode;
   accent?: string;
 }
 
@@ -44,6 +46,8 @@ export function OrbitalSectionHeader({
             fontSize: 16,
             lineHeight: 1,
             flexShrink: 0,
+            display: 'inline-flex',
+            color: accent,
           }}
         >
           {icon}

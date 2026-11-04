@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { isApiEnabled } from '@/services/api/client';
 import { chatWithAurora } from '@/services/api/auroraService';
 
 interface Message {
   id: string;
   role: 'user' | 'aurora';
   text: string;
+  error?: boolean;
 }
 
 const QUICK_ACTIONS = [
@@ -16,32 +16,11 @@ const QUICK_ACTIONS = [
   'Recomendar próxima ação operacional',
 ];
 
-const MOCK_RESPONSES: Record<string, string> = {
-  'Resumir incidente ativo':
-    'Incidente IGN-CE-2026-0041 — Incêndio florestal ativo na RPPN Elias Andrade (42ha afetados). Status: Protocolo Ativado. Condições meteorológicas críticas (T:36°C, UR:18%, Vento:22km/h NNE). Brigada BRG-CE-01 no local. Risco de propagação direção norte nas próximas 2h.',
-  'Classificar risco da área':
-    'RPPN Elias Andrade — Risco CRÍTICO. Fatores: vegetação densa seca, histórico de focos na região, vento favorável à propagação, acesso difícil para combate terrestre. Confiança da avaliação: 91% — dados demonstrativos.',
-  'Gerar rascunho de relatório':
-    'SITREP 001 — 26/05/2026 11:00 UTC\nOcorrência: Incêndio florestal em RPPN.\nÁrea afetada: ~42ha (estimado orbital simulado).\nEquipes: BRG-CE-01 (combate), DRN-CE-02 (reconhecimento).\nSituação: T 36°C, UR 18%, vento NNE 22km/h.\nPróximas ações: contenção setor norte, SITREP+1h.',
-  'Explicar dado orbital':
-    'Dados orbitais simulados no IGNIS são baseados na lógica de funcionamento do MODIS (NASA/INPE) e Sentinel-2 (ESA). O índice de confiança indica probabilidade do foco detectado ser real. No protótipo, todos os dados são estimados para fins demonstrativos — FIAP GS 2026.',
-  'Recomendar próxima ação operacional':
-    'Prioridade imediata: (1) Acionar reforço BRG-CE-02. (2) Estabelecer aceiro no setor sul. (3) Solicitar SITREP aéreo a cada 30min. (4) Notificar comunidades no raio de 5km. Confiança: 91% — análise demonstrativa.',
-};
-
-function getMockResponse(input: string): string {
-  const key = Object.keys(MOCK_RESPONSES).find(k =>
-    input.toLowerCase().includes(k.toLowerCase())
-  );
-  return (key ? MOCK_RESPONSES[key] : 'Análise em processamento... Para esta consulta específica, recomendo verificar os dados do incidente ativo e cruzar com as condições meteorológicas atuais. Sistema demonstrativo — respostas são simuladas para fins acadêmicos (FIAP GS 2026).')
-    + '\n\n— Resposta simulada — protótipo demonstrativo';
-}
-
 export function AuroraChat() {
   const [messages, setMessages] = useState<Message[]>([{
     id: 'init',
     role: 'aurora',
-    text: 'Olá. Sou a Aurora — inteligência analítica do IGNIS. Posso resumir incidentes, classificar riscos e apoiar decisões operacionais.\n\n⚠ Sistema demonstrativo — todas as respostas são simuladas para fins acadêmicos (FIAP GS 2026).',
+    text: 'Olá. Sou a Aurora, assistente analítica do IGNIS. As respostas vêm da API e são geradas por regras a partir dos dados registrados; confira sempre antes de decidir.',
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,35 +37,26 @@ export function AuroraChat() {
     setInput('');
     setLoading(true);
 
-    if (isApiEnabled()) {
-      try {
-        const res = await chatWithAurora({ message: userText });
-        const actions = res.suggested_actions?.length > 0
-          ? '\n\nAções sugeridas:\n' + res.suggested_actions.map(a => `• ${a}`).join('\n')
-          : '';
-        setMessages(prev => [...prev, {
-          id: crypto.randomUUID(),
-          role: 'aurora',
-          text: res.response + actions + `\n\n— Confiança: ${Math.round(res.confidence * 100)}% · Análise rule-based demonstrativa`,
-        }]);
-      } catch {
-        setMessages(prev => [...prev, {
-          id: crypto.randomUUID(),
-          role: 'aurora',
-          text: getMockResponse(userText),
-        }]);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: crypto.randomUUID(),
-          role: 'aurora',
-          text: getMockResponse(userText),
-        }]);
-        setLoading(false);
-      }, 900);
+    try {
+      const res = await chatWithAurora({ message: userText });
+      const actions = res.suggested_actions?.length > 0
+        ? '\n\nAções sugeridas:\n' + res.suggested_actions.map(a => `• ${a}`).join('\n')
+        : '';
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        role: 'aurora',
+        text: res.response + actions + `\n\n— Confiança informada pela API: ${Math.round(res.confidence * 100)}% · análise baseada em regras`,
+      }]);
+    } catch {
+      // Sem resposta da API: nenhuma resposta é inventada.
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        role: 'aurora',
+        text: 'Serviço temporariamente indisponível: a Aurora não respondeu. Tente novamente em instantes.',
+        error: true,
+      }]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,7 +79,7 @@ export function AuroraChat() {
               padding: '10px 14px',
               borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '4px 12px 12px 12px',
               background: msg.role === 'user' ? 'var(--orbital)' : 'var(--bg-raised)',
-              color: msg.role === 'user' ? 'white' : 'var(--text-mid)',
+              color: msg.role === 'user' ? 'white' : msg.error ? 'var(--risk-high)' : 'var(--text-mid)',
               fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
             }}>
               {msg.text}

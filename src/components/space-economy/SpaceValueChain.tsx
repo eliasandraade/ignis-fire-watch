@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
+import { Satellite } from 'lucide-react';
 import { OrbitalSectionHeader } from '@/components/orbital';
 import { fadeUpVariants, staggerContainerVariants } from '@/lib/motion';
 
@@ -83,7 +84,7 @@ export function SpaceValueChain() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <OrbitalSectionHeader icon="🛰">Cadeia de Valor Espacial</OrbitalSectionHeader>
+        <OrbitalSectionHeader icon={<Satellite size={15} aria-hidden="true" />}>Cadeia de Valor Espacial</OrbitalSectionHeader>
       </div>
 
       <motion.div

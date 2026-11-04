@@ -2,7 +2,6 @@ import { ACTION_STATE_LABEL, type ActionState } from '@/lib/actionState';
 
 const COLOR: Record<ActionState, string> = {
   funcional: 'var(--risk-low)',
-  demonstrativo: 'oklch(60% 0.14 250)',
   indisponivel: 'var(--text-ghost)',
   'nao-implementado': 'var(--text-ghost)',
   erro: 'var(--risk-crit)',

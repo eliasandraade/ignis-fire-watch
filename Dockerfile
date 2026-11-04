@@ -7,7 +7,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
 # Railway passes service variables as build args; Vite inlines them in the bundle.
-ARG VITE_USE_API=false
 ARG VITE_API_URL=
 RUN node deploy/build-env.mjs > /tmp/api-origin \
     && npm run build \

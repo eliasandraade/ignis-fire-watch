@@ -21,11 +21,7 @@ const GLOSSARY: { term: string; text: string }[] = [
   },
   {
     term: 'Incêndio confirmado',
-    text: 'Só existe após verificação em campo ou por órgão competente (Bombeiros, Defesa Civil). Este protótipo não tem integração com esses órgãos.',
-  },
-  {
-    term: 'Simulação / demonstração',
-    text: 'Conteúdo fictício para treino ou apresentação. Quando existir, é sempre rotulado como tal.',
+    text: 'Só existe após verificação em campo ou por órgão competente. O IGNIS não tem integração com órgãos de resposta a emergências.',
   },
 ];
 
@@ -52,8 +48,7 @@ export default function PublicDashboardPage() {
           </p>
           <div role="note" style={{ padding: '10px 14px', background: 'oklch(12% 0.025 240)', border: '1px solid var(--bg-raised)',
                                     borderRadius: 6, fontSize: 12, color: 'var(--text-ghost)', marginBottom: 20, maxWidth: 720 }}>
-            Protótipo em validação, não operacional. Focos de calor não são incêndios confirmados.
-            Em emergência, ligue 193 (Corpo de Bombeiros).
+            Focos de calor não são incêndios confirmados. Em emergência, ligue 193 (Corpo de Bombeiros).
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <Link to="/public/map" style={{ display: 'inline-block', padding: '12px 24px', background: 'var(--orbital)',

@@ -6,6 +6,12 @@ Data: 03/11/2026.
 - **Revisão corrigida:** branch `audit/ignis-sprint-0`.
 - **Documentação geral:** [ignis-orbital-api/docs/IGNIS](https://github.com/eliasandraade/ignis-orbital-api/tree/audit/ignis-sprint-0/docs/IGNIS). Os IDs `F-xx` remetem ao AUDIT-REPORT.
 
+> **Atualização (04/11/2026, branch `feat/ignis-admin-cockpit`):** o modo demonstrativo, `src/data/`,
+> `/select-profile`, o login sem senha e o painel administrativo com dados locais foram **removidos**.
+> A interface é somente API; o inventário abaixo é histórico. Estado atual:
+> [PRODUCT-PROFESSIONALIZATION.md](https://github.com/eliasandraade/ignis-orbital-api/blob/feat/ignis-admin-cockpit/docs/IGNIS/PRODUCT-PROFESSIONALIZATION.md)
+> e [ADMIN-COCKPIT.md](https://github.com/eliasandraade/ignis-orbital-api/blob/feat/ignis-admin-cockpit/docs/IGNIS/ADMIN-COCKPIT.md).
+
 ## 1. Modos de execução
 
 | Variável (build-time) | Efeito |

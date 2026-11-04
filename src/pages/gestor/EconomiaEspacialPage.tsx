@@ -10,7 +10,6 @@ import {
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { useIncidents } from '@/hooks/useIncidents';
 import { OrbitalSummaryCard } from '@/components/orbital-map/OrbitalSummaryCard';
-import { isApiEnabled } from '@/services/api/client';
 import { fadeUpVariants, staggerContainerVariants } from '@/lib/motion';
 
 // ── Static data ───────────────────────────────────────────────────────────
@@ -138,8 +137,8 @@ const ECONOMY_LAYERS = [
 const ROADMAP = [
   {
     phase: 1,
-    title: 'Dados Demonstrativos e Geointeligência',
-    desc: 'Plataforma operacional com dados de base acadêmica e geointeligência simulada.',
+    title: 'Geointeligência com dados da API',
+    desc: 'Plataforma operacional com áreas, incidentes e focos de calor persistidos pela API.',
     status: 'ATIVO',
     active: true,
   },
@@ -259,7 +258,7 @@ export default function EconomiaEspacialPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              dados simulados · demonstração acadêmica FIAP GS 2026
+              conteúdo ilustrativo
             </div>
           </div>
 
@@ -526,7 +525,7 @@ export default function EconomiaEspacialPage() {
             value={incidents.length}
             label="Incidentes registrados"
             accent="#ef4444"
-            sublabel={isApiEnabled() ? 'via API (podem ser de demonstração)' : 'demonstrativo'}
+            sublabel="via API"
             delay={0.20}
           />
           <SpaceMetricCard
@@ -559,10 +558,8 @@ export default function EconomiaEspacialPage() {
             fontStyle: 'italic',
           }}
         >
-          Esta página usa métricas demonstrativas acadêmicas e arquitetura preparada para
-          integração futura com fontes orbitais públicas e comerciais. * métricas simuladas
-          para demonstração acadêmica · IGNIS Orbital · FIAP GS 2026 · áreas e incidentes
-          usam dados reais da API quando disponíveis.
+          Áreas e incidentes vêm da API. Os demais indicadores descrevem o escopo de integração
+          planejado, não medições.
         </div>
       </div>
 
@@ -812,10 +809,8 @@ export default function EconomiaEspacialPage() {
           lineHeight: 1.6,
         }}
       >
-        IGNIS Orbital · Plataforma de Inteligência Espacial Ambiental · FIAP GS 2026 ·
-        Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427 ·
-        Arquitetura preparada para integração com fontes orbitais públicas e comerciais.
-        Dados demonstrativos — não afirmamos integração em tempo real com NASA, INPE ou ESA.
+        IGNIS Orbital by Andrade Systems · Plataforma de Inteligência Espacial Ambiental ·
+        não há integração em tempo real com NASA, INPE ou ESA nesta página.
       </div>
     </div>
   );

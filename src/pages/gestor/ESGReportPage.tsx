@@ -2,7 +2,7 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { ESGCharts } from '@/components/gestor/ESGCharts';
 import { useESGReports } from '@/hooks/useESGReports';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
-import { isApiEnabled } from '@/services/api/client';
+import { DataState } from '@/components/shared/DataState';
 
 const ODS_LIST = [
   { id: 2,  label: 'Fome Zero',              color: '#D3A029' },
@@ -14,20 +14,21 @@ const ODS_LIST = [
 ];
 
 export default function ESGReportPage() {
-  const { latest: ESG_DATA, dataSource, fromApi, reports } = useESGReports();
+  const { latest: ESG_DATA, dataSource } = useESGReports();
 
-  // API mode without a persisted report: say so instead of showing the
-  // built-in demonstration figures as if they were this institution's.
-  if (isApiEnabled() && (!fromApi || reports.length === 0)) {
+  if (!ESG_DATA) {
     return (
-      <div data-testid="esg-unavailable" style={{ padding: 24, maxWidth: 800, margin: '0 auto', color: 'var(--text-lo)' }}>
+      <div data-testid="esg-unavailable" style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-hi)' }}>Relatório ESG</h1>
-        <p>
-          {fromApi
-            ? 'Nenhum relatório ESG foi registrado no banco desta instalação.'
-            : 'Falha ao consultar a API de relatórios ESG.'}{' '}
-          Nenhum valor demonstrativo é exibido em modo operacional.
-        </p>
+        {dataSource.status === 'loading' ? (
+          <DataState kind="loading" title="Carregando relatórios…" />
+        ) : dataSource.status === 'error' ? (
+          <DataState kind="error">Não foi possível consultar os relatórios ESG na API.</DataState>
+        ) : (
+          <DataState kind="empty" title="Nenhum relatório ESG registrado">
+            Relatórios ESG registrados nesta instalação aparecem aqui.
+          </DataState>
+        )}
       </div>
     );
   }
@@ -76,7 +77,7 @@ export default function ESGReportPage() {
 
       {/* Charts */}
       <div style={{ marginBottom: 32 }}>
-        <ESGCharts />
+        <ESGCharts report={ESG_DATA} />
       </div>
 
       {/* ODS */}
@@ -104,7 +105,6 @@ export default function ESGReportPage() {
         </div>
         <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
           ODS 2 · 8 · 9 · 11 · 13 · 15 — relacionados ao escopo do IGNIS Orbital.
-          Protótipo demonstrativo FIAP GS 2026.
         </div>
       </div>
 

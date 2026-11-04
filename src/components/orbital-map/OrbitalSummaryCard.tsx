@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Satellite } from 'lucide-react';
 import { useDetectionStats } from '@/hooks/useOrbital';
 import { SOURCE_STYLE, STATE_COLOR, STATE_LABEL, formatAge, periodWindow } from '@/lib/orbital';
 import { useMemo } from 'react';
@@ -14,12 +15,12 @@ export function OrbitalSummaryCard({ linkTo = '/gestor/map' }: { linkTo?: string
       border: '1px solid var(--bg-raised)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>🛰 Focos de calor (24 h)</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Satellite size={13} aria-hidden="true" /> Focos de calor (24 h)
+        </span>
         <Link to={linkTo} style={{ fontSize: 11, color: 'var(--orbital)' }}>mapa →</Link>
       </div>
-      {!stats.apiEnabled ? (
-        <div style={{ fontSize: 12, color: 'var(--text-ghost)' }}>API desligada: sem dados orbitais reais.</div>
-      ) : stats.isError ? (
+      {stats.isError ? (
         <div style={{ fontSize: 12, color: '#ef4444' }}>Falha ao consultar a API de focos.</div>
       ) : !stats.data ? (
         <div style={{ fontSize: 12, color: 'var(--text-lo)' }}>Carregando…</div>

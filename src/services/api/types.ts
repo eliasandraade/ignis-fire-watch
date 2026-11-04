@@ -78,6 +78,7 @@ export interface ApiUserRead {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  must_change_password?: boolean;
 }
 
 export interface ApiTokenResponse {
@@ -90,8 +91,8 @@ export interface ApiTokenResponse {
 export interface ApiHealthResponse {
   status: string;
   service: string;
-  version: string;
-  environment: string;
+  version?: string; // no longer exposed publicly
+  environment?: string;
 }
 
 // ── External integrations ─────────────────────────────────────────────────

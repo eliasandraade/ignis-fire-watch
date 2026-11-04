@@ -1,12 +1,18 @@
 import React, { Suspense } from 'react';
-import { createBrowserRouter, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { PublicLayout } from '@/components/layouts/PublicLayout';
 import { GestorLayout } from '@/components/layouts/GestorLayout';
-import { RequireGestorAccess, RequireAdminAccess, RequireAuthenticatedAccess } from './guards';
+import { AdminLayout } from '@/components/layouts/AdminLayout';
+import {
+  RequireAdminAccess,
+  RequireAuthenticatedAccess,
+  RequireGestorAccess,
+  RequireSession,
+} from './guards';
 
 const SplashPage          = React.lazy(() => import('@/pages/shared/SplashPage'));
 const LoginPage           = React.lazy(() => import('@/pages/shared/LoginPage'));
-const SelectProfilePage   = React.lazy(() => import('@/pages/shared/SelectProfilePage'));
+const ChangePasswordPage  = React.lazy(() => import('@/pages/shared/ChangePasswordPage'));
 const NotFoundPage        = React.lazy(() => import('@/pages/shared/NotFoundPage'));
 const PublicDashboardPage = React.lazy(() => import('@/pages/public/PublicDashboardPage'));
 const PublicMapPage       = React.lazy(() => import('@/pages/public/PublicMapPage'));
@@ -20,88 +26,104 @@ const OrbitalMapPage       = React.lazy(() => import('@/pages/gestor/OrbitalMapP
 const ActiveIncidentPage   = React.lazy(() => import('@/pages/gestor/ActiveIncidentPage'));
 const MobilizationPage     = React.lazy(() => import('@/pages/gestor/MobilizationPage'));
 const FieldOperationPage   = React.lazy(() => import('@/pages/gestor/FieldOperationPage'));
-const AuroraPage           = React.lazy(() => import('@/pages/gestor/AuroraPage'));
-const ESGReportPage        = React.lazy(() => import('@/pages/gestor/ESGReportPage'));
 const GestorAreaDetailPage = React.lazy(() => import('@/pages/gestor/GestorAreaDetailPage'));
-const RiskRankingPage        = React.lazy(() => import('@/pages/gestor/RiskRankingPage'));
-const EconomiaEspacialPage   = React.lazy(() => import('@/pages/gestor/EconomiaEspacialPage'));
-const AdminPanelPage       = React.lazy(() => import('@/pages/admin/AdminPanelPage'));
+const AdminOverviewPage    = React.lazy(() => import('@/pages/admin/AdminOverviewPage'));
+const AdminUsersPage       = React.lazy(() => import('@/pages/admin/AdminUsersPage'));
+const AdminPermissionsPage = React.lazy(() => import('@/pages/admin/AdminPermissionsPage'));
+const AdminSourcesPage     = React.lazy(() => import('@/pages/admin/AdminSourcesPage'));
+const AdminJobsPage        = React.lazy(() => import('@/pages/admin/AdminJobsPage'));
+const AdminApiPage         = React.lazy(() => import('@/pages/admin/AdminApiPage'));
+const AdminAuditPage       = React.lazy(() => import('@/pages/admin/AdminAuditPage'));
+const AdminSettingsPage    = React.lazy(() => import('@/pages/admin/AdminSettingsPage'));
+
+// Not routed (not part of the operational product): Aurora (assistant),
+// ESG report, space economy and risk ranking. Their code stays in the
+// repository but is not bundled; see docs/IGNIS/PRODUCT-PROFESSIONALIZATION.md.
 
 const PageLoader = () => (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     height: '100vh', background: 'var(--bg-void)',
-  }}>
+  }} aria-busy="true">
     <div style={{
       width: 32, height: 32, borderRadius: '50%',
       border: '2px solid var(--orbital)',
       borderTopColor: 'transparent',
       animation: 'spin 0.7s linear infinite',
     }} />
-    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <span className="ig-sr">Carregando</span>
   </div>
 );
 
-const withSuspense = (element: React.ReactNode) => (
+const page = (element: React.ReactNode) => (
   <Suspense fallback={<PageLoader />}>{element}</Suspense>
 );
 
 export const router = createBrowserRouter([
-  { path: '/',               element: withSuspense(<SplashPage />) },
-  { path: '/login',          element: withSuspense(<LoginPage />) },
-  { path: '/select-profile', element: withSuspense(<SelectProfilePage />) },
+  { path: '/',               element: page(<SplashPage />) },
+  { path: '/login',          element: page(<LoginPage />) },
+  // The demonstration profile picker no longer exists.
+  { path: '/select-profile', element: <Navigate to="/login" replace /> },
 
-  // Public area — acessível sem perfil
   {
     element: <PublicLayout />,
     children: [
-      { path: '/public',                   element: withSuspense(<PublicDashboardPage />) },
-      { path: '/public/map',               element: withSuspense(<PublicMapPage />) },
-      { path: '/public/report',            element: withSuspense(<RegisterReportPage />) },
-      { path: '/public/report/status/:id', element: withSuspense(<ReportStatusPage />) },
+      { path: '/public',                   element: page(<PublicDashboardPage />) },
+      { path: '/public/map',               element: page(<PublicMapPage />) },
+      { path: '/public/report',            element: page(<RegisterReportPage />) },
+      { path: '/public/report/status/:id', element: page(<ReportStatusPage />) },
     ],
   },
 
-  // War Room + Field: autenticado, qualquer perfil exceto público
+  {
+    element: <RequireSession />,
+    children: [{ path: '/conta/senha', element: page(<ChangePasswordPage />) }],
+  },
+
   {
     element: <RequireAuthenticatedAccess />,
     children: [
-      { path: '/gestor/war-room', element: withSuspense(<WarRoomPage />) },
-      { path: '/gestor/field',    element: withSuspense(<FieldOperationPage />) },
+      { path: '/gestor/war-room', element: page(<WarRoomPage />) },
+      { path: '/gestor/field',    element: page(<FieldOperationPage />) },
     ],
   },
 
-  // Painel gestor: requer canAccessGestorPanel (gestor, analista/orgao, admin)
-  // Campo é redirecionado para /gestor/field pelo RequireGestorAccess
   {
     element: <RequireGestorAccess />,
     children: [
       {
         element: <GestorLayout />,
         children: [
-          { path: '/gestor',              element: withSuspense(<GestorDashboardPage />) },
-          { path: '/gestor/reports',      element: withSuspense(<ReportCenterPage />) },
-          { path: '/gestor/reports/:id',  element: withSuspense(<ReportValidationPage />) },
-          { path: '/gestor/incident/:id', element: withSuspense(<ActiveIncidentPage />) },
-          { path: '/gestor/map',          element: withSuspense(<OrbitalMapPage />) },
-          { path: '/gestor/mobilization', element: withSuspense(<MobilizationPage />) },
-          { path: '/gestor/area/:id',     element: withSuspense(<GestorAreaDetailPage />) },
-          { path: '/gestor/ranking',      element: withSuspense(<RiskRankingPage />) },
-          { path: '/gestor/aurora',       element: withSuspense(<AuroraPage />) },
-          { path: '/gestor/esg',              element: withSuspense(<ESGReportPage />) },
-          { path: '/gestor/economia-espacial', element: withSuspense(<EconomiaEspacialPage />) },
+          { path: '/gestor',              element: page(<GestorDashboardPage />) },
+          { path: '/gestor/reports',      element: page(<ReportCenterPage />) },
+          { path: '/gestor/reports/:id',  element: page(<ReportValidationPage />) },
+          { path: '/gestor/incident/:id', element: page(<ActiveIncidentPage />) },
+          { path: '/gestor/map',          element: page(<OrbitalMapPage />) },
+          { path: '/gestor/mobilization', element: page(<MobilizationPage />) },
+          { path: '/gestor/area/:id',     element: page(<GestorAreaDetailPage />) },
         ],
       },
     ],
   },
 
-  // Admin: requer canAccessAdminPanel (somente admin)
   {
     element: <RequireAdminAccess />,
     children: [
-      { path: '/admin', element: withSuspense(<AdminPanelPage />) },
+      {
+        element: <AdminLayout />,
+        children: [
+          { path: '/admin',             element: page(<AdminOverviewPage />) },
+          { path: '/admin/users',       element: page(<AdminUsersPage />) },
+          { path: '/admin/permissions', element: page(<AdminPermissionsPage />) },
+          { path: '/admin/sources',     element: page(<AdminSourcesPage />) },
+          { path: '/admin/jobs',        element: page(<AdminJobsPage />) },
+          { path: '/admin/api',         element: page(<AdminApiPage />) },
+          { path: '/admin/audit',       element: page(<AdminAuditPage />) },
+          { path: '/admin/settings',    element: page(<AdminSettingsPage />) },
+        ],
+      },
     ],
   },
 
-  { path: '*', element: withSuspense(<NotFoundPage />) },
+  { path: '*', element: page(<NotFoundPage />) },
 ]);

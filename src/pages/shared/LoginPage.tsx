@@ -7,6 +7,7 @@ import { LogIn, Orbit } from 'lucide-react';
 import { login, saveSession } from '@/services/api/authService';
 import { adaptApiUser, getRouteForRole } from '@/services/adapters/authAdapter';
 import { useUser } from '@/context/UserContext';
+import { privacyNoticeVisible } from '@/content/privacyNotice';
 import { ApiError } from '@/services/api/errors';
 import { Callout, Field, Spinner } from '@/components/admin/ui';
 
@@ -94,6 +95,11 @@ export default function LoginPage() {
         <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-ghost)', textAlign: 'center', lineHeight: 1.5 }}>
           Esqueceu a senha? Peça a redefinição a um administrador do IGNIS na sua organização.
         </p>
+        {privacyNoticeVisible && (
+          <p style={{ margin: '10px 0 0', fontSize: 11.5, textAlign: 'center' }}>
+            <Link to="/privacidade" style={{ color: 'var(--text-mid)' }}>Aviso de privacidade</Link>
+          </p>
+        )}
       </main>
     </div>
   );

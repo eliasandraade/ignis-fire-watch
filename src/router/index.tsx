@@ -14,6 +14,7 @@ const SplashPage          = React.lazy(() => import('@/pages/shared/SplashPage')
 const LoginPage           = React.lazy(() => import('@/pages/shared/LoginPage'));
 const ChangePasswordPage  = React.lazy(() => import('@/pages/shared/ChangePasswordPage'));
 const NotFoundPage        = React.lazy(() => import('@/pages/shared/NotFoundPage'));
+const PrivacyPage         = React.lazy(() => import('@/pages/shared/PrivacyPage'));
 const PublicDashboardPage = React.lazy(() => import('@/pages/public/PublicDashboardPage'));
 const PublicMapPage       = React.lazy(() => import('@/pages/public/PublicMapPage'));
 const RegisterReportPage  = React.lazy(() => import('@/pages/public/RegisterReportPage'));
@@ -72,6 +73,7 @@ export const router = createBrowserRouter([
       { path: '/public/map',               element: page(<PublicMapPage />) },
       { path: '/public/report',            element: page(<RegisterReportPage />) },
       { path: '/public/report/status/:id', element: page(<ReportStatusPage />) },
+      { path: '/privacidade',              element: page(<PrivacyPage />) },
     ],
   },
 

@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { privacyNoticeVisible } from '@/content/privacyNotice';
 
 export function PublicLayout() {
   const { pathname } = useLocation();
@@ -47,6 +48,11 @@ export function PublicLayout() {
         </div>
       </nav>
       <Outlet />
+      {privacyNoticeVisible && (
+        <footer style={{ padding: '16px 24px', textAlign: 'center', borderTop: '1px solid var(--bg-raised)' }}>
+          <Link to="/privacidade" style={{ fontSize: 12, color: 'var(--text-mid)' }}>Aviso de privacidade</Link>
+        </footer>
+      )}
     </div>
   );
 }

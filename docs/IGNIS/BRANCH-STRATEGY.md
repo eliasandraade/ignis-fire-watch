@@ -43,6 +43,8 @@ git push origin promote/AAAAMMDD-HHMM
 
 O job espera a aprovação do proprietário no environment `production`. Antes de publicar, ele recusa o commit que não estiver em `master`, que não tiver CI de push aprovada ou que não seja fast-forward de `production`.
 
+Testado em 05/11/2026 com uma tag em commit fora de `master`: o job ficou em `waiting` no environment, com zero etapas executadas. A execução foi cancelada e a tag, apagada. O push real em `production` só será exercitado na primeira promoção.
+
 ### Decisões em aberto
 
 1. **Vercel.** Os dois projetos ainda recebem eventos do repositório, e `ignis-fire-watch.vercel.app` e `ignis-fire-watch-main.vercel.app` respondem 200, com a versão da entrega acadêmica (`docs/archive/entrega-academica/`). Essa versão chama `ignis-api-production.up.railway.app`, que hoje responde 404. O merge do #8 leva a `master` o `vercel.json` que desliga novos deploys por Git. Desconectar ou excluir os projetos depende de o proprietário confirmar que a entrega acadêmica não precisa mais ficar no ar.

@@ -12,7 +12,10 @@ export function credentials(role: Role): { email: string; password: string } {
         'no repositório da API (as senhas locais são geradas por instalação).',
     );
   }
-  return { email: `${role}.validacao@example.org`, password };
+  // Local stack: <role>.validacao@example.org. Railway staging uses its own
+  // homologation accounts (IGNIS_E2E_EMAIL_<ROLE>).
+  const email = process.env[`IGNIS_E2E_EMAIL_${role.toUpperCase()}`] ?? `${role}.validacao@example.org`;
+  return { email, password };
 }
 
 // 1x1 transparent PNG: map tiles are the only external dependency we replace.

@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     # production: Railway's production environment deploys from it (Wait for CI).
-    branches: [master, production]
+    branches: [master, staging, production]
 
 permissions:
   contents: read
@@ -30,13 +30,15 @@ jobs:
       - name: Vitest + cobertura
         # A failing test fails this check.
         run: npm run test:coverage
-      - name: Build de produção (modo API)
+      - name: Build de produção
         env:
-          VITE_USE_API: "true"
           VITE_API_URL: https://api.invalid
         run: npm run build
-      - name: Build de produção (modo demonstrativo)
-        run: npm run build
+      - name: Bundle operacional sem dados fictícios nem referências acadêmicas
+        run: |
+          if grep -rliE "FIAP|Global Solution|RM56[0-9]{4}|MOCK_USERS|FALLBACK_" dist/assets; then
+            echo "::error::bundle contém referências acadêmicas ou dados fictícios"; exit 1
+          fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
@@ -49,14 +51,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Build em modo API (mesmos build args que o Railway passa)
+      - name: Build da imagem (mesmo build arg que o Railway passa)
         run: >
           docker build -t ignis-web:ci
-          --build-arg VITE_USE_API=true
           --build-arg VITE_API_URL=https://ignis-api-ci.up.railway.app .
       - name: Build recusa URL da API inválida (domínio público não resolvido)
         run: |
-          if docker build --build-arg VITE_USE_API=true --build-arg VITE_API_URL=https:// . ; then
+          if docker build --build-arg VITE_API_URL=https:// . ; then
             echo "::error::build aceitou VITE_API_URL vazio"; exit 1
           fi
       - name: Contêiner responde no PORT injetado, com SPA fallback e headers
@@ -79,6 +80,36 @@ jobs:
           test "$(docker exec web id -u)" != "0"
           if docker exec web sh -c "touch /usr/share/nginx/html/x"; then
             echo "::error::site gravável pelo usuário de runtime"; exit 1
+          fi
+      - name: Modo same-origin (Railway) — proxy privado só para /api/v1, /health e /ready
+        run: |
+          docker build -t ignis-web:so --build-arg VITE_API_URL=same-origin .
+          docker network create ignis-ci
+          # Stand-in for the private API: echoes method and URI as JSON.
+          printf 'server { listen 8000; default_type application/json; return 200 "{\\"uri\\":\\"$request_uri\\",\\"ip\\":\\"$http_x_real_ip\\"}"; }' > fake-api.conf
+          docker run -d --name fake-api --network ignis-ci --network-alias api             -v "$PWD/fake-api.conf:/etc/nginx/conf.d/default.conf:ro" nginx:1.28-alpine
+          docker run -d --name so --network ignis-ci -p 9191:9191 -e PORT=9191             -e IGNIS_API_UPSTREAM=http://api:8000 ignis-web:so
+          for _ in $(seq 1 20); do curl -sf localhost:9191/healthz && break; sleep 1; done
+          docker logs so 2>&1 | grep -q "proxy da API ativo"
+          curl -s -H 'X-Real-IP: 203.0.113.9' localhost:9191/api/v1/auth/me | grep -q '"uri":"/api/v1/auth/me","ip":"203.0.113.9"'
+          curl -s localhost:9191/ready | grep -q '"uri":"/ready"'
+          # API docs and anything else of the API stay private (SPA shell, not the API).
+          curl -s localhost:9191/docs | grep -q '<div id="root">'
+          curl -s localhost:9191/openapi.json | grep -q '<div id="root">'
+          curl -sI localhost:9191/ | grep -qi "connect-src 'self' ;"
+          asset=$(curl -s localhost:9191/ | grep -o '/assets/index-[^"]*\.js' | head -1)
+          curl -sI -H 'Accept-Encoding: gzip' "localhost:9191$asset" | grep -qi '^content-encoding: gzip'
+          if curl -s "localhost:9191$asset" | grep -q 'localhost:8000'; then
+            echo "::error::bundle same-origin aponta para localhost"; exit 1
+          fi
+          # API unreachable: JSON 503 from nginx, never the SPA shell or an HTML error page.
+          docker run -d --name so-down --network ignis-ci -p 9393:9393 -e PORT=9393             -e IGNIS_API_UPSTREAM=http://api:9999 ignis-web:so
+          for _ in $(seq 1 20); do curl -sf localhost:9393/healthz && break; sleep 1; done
+          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:9393/api/v1/auth/me)" = "503"
+          curl -s localhost:9393/api/v1/auth/me | grep -q '"detail"'
+          # A malformed upstream refuses to start instead of proxying somewhere unexpected.
+          if docker run --rm -e IGNIS_API_UPSTREAM='http://evil;include /etc/passwd' ignis-web:so nginx -t; then
+            echo "::error::upstream inválido aceito"; exit 1
           fi
 
   dependencies:
@@ -120,7 +151,7 @@ jobs:
     env:
       # The other repository's branch to integrate with (a repository variable
       # overrides it once the human-validation branches are merged).
-      OTHER_REF: ${{ vars.IGNIS_API_REF || 'feat/ignis-human-validation' }}
+      OTHER_REF: ${{ vars.IGNIS_API_REF || 'feat/ignis-admin-cockpit' }}
       IGNIS_WEB_DIR: ${{ github.workspace }}/web
       # Deterministic data: the documented INPE sample, never the live server.
       IGNIS_INGEST: fixture

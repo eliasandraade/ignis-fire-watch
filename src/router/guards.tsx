@@ -1,80 +1,74 @@
-import { Navigate, Outlet, Link } from 'react-router-dom';
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { ShieldOff } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
-import { isApiEnabled } from '@/services/api/client';
-
-/** Where to send users without a valid profile: login with the real API, profile picker in demo. */
-export function entryRoute(): string {
-  return isApiEnabled() ? '/login' : '/select-profile';
-}
+import { homeForRole, ROLE_LABEL } from '@/lib/roles';
 
 /**
- * Redireciona para /select-profile se nenhum perfil estiver ativo.
- * Campo é redirecionado para /gestor/field (sua rota nativa).
- * Público é redirecionado para /select-profile.
+ * Route guards mirror the API's permissions for navigation only: every
+ * endpoint enforces its own role on the server, so hiding a route is never
+ * the protection.
  */
+
+function PasswordGate() {
+  const { profile } = useUser();
+  const { pathname } = useLocation();
+  if (profile?.mustChangePassword && pathname !== '/conta/senha') {
+    return <Navigate to="/conta/senha" replace />;
+  }
+  return <Outlet />;
+}
+
+/** Gestor panel: gestor, órgão and admin. Field teams land on their own screen. */
 export function RequireGestorAccess() {
   const { profile, canAccessGestorPanel, isFieldAgent } = useUser();
-
-  if (!profile)             return <Navigate to={entryRoute()} replace />;
-  if (isFieldAgent)         return <Navigate to="/gestor/field"   replace />;
-  if (!canAccessGestorPanel) return <Navigate to={entryRoute()} replace />;
-
+  if (!profile) return <Navigate to="/login" replace />;
+  if (profile.mustChangePassword) return <Navigate to="/conta/senha" replace />;
+  if (isFieldAgent) return <Navigate to="/gestor/field" replace />;
+  if (!canAccessGestorPanel) return <AccessDenied />;
   return <Outlet />;
 }
 
-/**
- * Para War Room e Field: aceita qualquer perfil autenticado exceto público.
- */
+/** Crisis room and field operation: any authenticated operational role. */
 export function RequireAuthenticatedAccess() {
   const { profile, isPublic } = useUser();
+  if (!profile) return <Navigate to="/login" replace />;
+  if (isPublic) return <AccessDenied />;
+  return <PasswordGate />;
+}
 
-  if (!profile || isPublic) return <Navigate to={entryRoute()} replace />;
+/** Signed in, whatever the role (account pages). */
+export function RequireSession() {
+  const { profile } = useUser();
+  if (!profile) return <Navigate to="/login" replace />;
   return <Outlet />;
 }
 
-/**
- * Admin panel: exibe tela de acesso restrito se não for admin.
- * Não redireciona — mostra mensagem para facilitar navegação no pitch.
- */
+/** Admin Cockpit: administrators only. */
 export function RequireAdminAccess() {
   const { profile, canAccessAdminPanel } = useUser();
-
-  if (!canAccessAdminPanel) {
-    return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', height: '100vh', background: 'var(--bg-void)',
-        gap: 20, padding: 24,
-      }}>
-        <div style={{ fontSize: 32 }}>🔒</div>
-        <div style={{ fontWeight: 700, fontSize: 20, color: 'var(--text-hi)' }}>
-          Acesso Restrito
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--text-lo)', textAlign: 'center', maxWidth: 360 }}>
-          {profile
-            ? `O perfil "${profile.role}" não tem permissão para acessar o painel administrativo.`
-            : 'Nenhum perfil ativo. Selecione um perfil para continuar.'}
-        </div>
-        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-          <Link to={entryRoute()} style={{
-            padding: '10px 20px', background: 'var(--orbital)', color: 'white',
-            borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: 600,
-          }}>
-            {isApiEnabled() ? 'Entrar' : 'Selecionar Perfil'}
-          </Link>
-          <Link to="/gestor" style={{
-            padding: '10px 20px', border: '1px solid var(--bg-raised)',
-            color: 'var(--text-mid)', borderRadius: 6, textDecoration: 'none', fontSize: 13,
-          }}>
-            Painel Gestor
-          </Link>
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--text-ghost)', marginTop: 8 }}>
-          Protótipo demonstrativo FIAP GS 2026
-        </div>
-      </div>
-    );
-  }
-
+  if (!profile) return <Navigate to="/login" replace />;
+  if (profile.mustChangePassword) return <Navigate to="/conta/senha" replace />;
+  if (!canAccessAdminPanel) return <AccessDenied />;
   return <Outlet />;
+}
+
+export function AccessDenied() {
+  const { profile } = useUser();
+  return (
+    <div className="ig-state" style={{ minHeight: '100vh', justifyContent: 'center', background: 'var(--bg-void)' }} role="alert">
+      <div className="ig-state-icon"><ShieldOff size={20} /></div>
+      <h3>Acesso não permitido</h3>
+      <p>
+        {profile
+          ? `Seu papel (${ROLE_LABEL[profile.role] ?? profile.role}) não dá acesso a esta área. Se precisar dela, peça a um administrador.`
+          : 'Entre com uma conta autorizada para continuar.'}
+      </p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <Link className="ig-btn primary" to={profile ? homeForRole(profile.role) : '/login'}>
+          {profile ? 'Ir para minha área' : 'Entrar'}
+        </Link>
+        <Link className="ig-btn" to="/public">Portal público</Link>
+      </div>
+    </div>
+  );
 }

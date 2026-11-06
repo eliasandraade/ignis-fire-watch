@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ReportTable } from '@/components/gestor/ReportTable';
 import { useInternalReports } from '@/hooks/useInternalReports';
+import { DataState } from '@/components/shared/DataState';
 import type { ReportStatus } from '@/types/domain';
 
 const TABS: { key: ReportStatus | 'all'; label: string }[] = [
@@ -14,7 +15,7 @@ const TABS: { key: ReportStatus | 'all'; label: string }[] = [
 export default function ReportCenterPage() {
   const [activeTab, setActiveTab] = useState<ReportStatus | 'all'>('all');
   const [search, setSearch]       = useState('');
-  const { reports, loading, fromApi } = useInternalReports();
+  const { reports, dataSource } = useInternalReports();
 
   const filtered = reports
     .filter(r => activeTab === 'all' || r.status === activeTab)
@@ -41,10 +42,11 @@ export default function ReportCenterPage() {
           Central de Denúncias
         </h1>
         <p style={{ fontSize: 13, color: 'var(--text-lo)', margin: '4px 0 0' }}>
-          {reports.length} denúncias registradas
-          {fromApi
-            ? ' · dados em tempo real'
-            : ' · dados demonstrativos'}
+          {dataSource.status === 'ok' || dataSource.status === 'empty'
+            ? `${reports.length} ${reports.length === 1 ? 'denúncia registrada' : 'denúncias registradas'} · consulta à API`
+            : dataSource.status === 'loading'
+              ? 'Consultando a API…'
+              : 'Serviço temporariamente indisponível'}
         </p>
       </div>
 
@@ -68,10 +70,16 @@ export default function ReportCenterPage() {
         />
       </div>
 
-      {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-ghost)', fontSize: 14 }}>
-          Carregando denúncias...
-        </div>
+      {dataSource.status === 'loading' ? (
+        <DataState kind="loading" title="Carregando denúncias…" />
+      ) : dataSource.status === 'error' ? (
+        <DataState kind="error">
+          Não foi possível consultar as denúncias na API. Nenhuma denúncia é exibida no lugar.
+        </DataState>
+      ) : reports.length === 0 ? (
+        <DataState kind="empty" title="Nenhuma denúncia recebida">
+          Denúncias enviadas pelo formulário público aparecem aqui para triagem.
+        </DataState>
       ) : (
         <ReportTable reports={filtered} />
       )}

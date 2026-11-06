@@ -7,7 +7,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
 # Railway passes service variables as build args; Vite inlines them in the bundle.
-ARG VITE_USE_API=false
 ARG VITE_API_URL=
 RUN node deploy/build-env.mjs > /tmp/api-origin \
     && npm run build \
@@ -18,6 +17,9 @@ FROM nginxinc/nginx-unprivileged:1.28-alpine@sha256:7377697a821c131a924a7105fafb
 # Railway overrides PORT; 8080 is the local default (the image runs as uid 101).
 ENV PORT=8080
 COPY --from=build /tmp/default.conf.template /etc/nginx/templates/default.conf.template
+# Same-origin API proxy: rendered at start from IGNIS_API_UPSTREAM (Railway private network).
+COPY deploy/nginx/ignis-proxy-params.conf /etc/nginx/ignis-proxy-params.conf
+COPY --chmod=755 deploy/nginx/15-ignis-api-proxy.sh /docker-entrypoint.d/15-ignis-api-proxy.sh
 # Owned by root: the runtime user can read the site but not modify it.
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 8080

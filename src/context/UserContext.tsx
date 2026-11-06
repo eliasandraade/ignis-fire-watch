@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { UserProfile, UserRole } from '@/types/domain';
-import { isApiEnabled, SESSION_EXPIRED_EVENT } from '@/services/api/client';
+import { SESSION_EXPIRED_EVENT } from '@/services/api/client';
 import { fetchMe, clearSession, getSavedUser } from '@/services/api/authService';
 import { adaptApiUser } from '@/services/adapters/authAdapter';
 
@@ -47,14 +47,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('ignis_token');
-    if (!token) return;
-
-    if (isApiEnabled()) {
-      fetchMe()
-        .then(user => setProfileState(adaptApiUser(user)))
-        .catch(() => { clearSession(); setProfileState(null); });
-    }
+    if (!localStorage.getItem('ignis_token')) return;
+    // The saved profile is only a hint; the API decides (revoked sessions,
+    // role changes and deactivation all show up here).
+    fetchMe()
+      .then(user => {
+        localStorage.setItem('ignis_user', JSON.stringify(user));
+        setProfileState(adaptApiUser(user));
+      })
+      .catch(() => { clearSession(); setProfileState(null); });
   }, []);
 
   const role = profile?.role ?? null;

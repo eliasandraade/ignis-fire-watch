@@ -28,9 +28,12 @@ export const INCIDENT_TYPE_LABEL: Record<string, string> = {
 };
 
 export const DATA_QUALITY_LABEL: Record<string, string> = {
-  'official':  'Oficial',
-  'estimated': 'Estimado',
-  'mock':      'Simulado',
+  'high':      'Alta',
+  'medium':    'Média',
+  'low':       'Baixa',
+  'estimated': 'Estimada',
+  'mock':      'Registro de teste',
+  'unknown':   'Não informada',
 };
 
 export const INCIDENT_STATUS_LABEL: Record<string, string> = {

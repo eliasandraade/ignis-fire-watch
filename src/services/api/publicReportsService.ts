@@ -2,6 +2,16 @@ import { apiFetch } from './client';
 import { isApiError } from './errors';
 import type { ApiReportCreate, ApiReportRead, ApiReportStatusPublic } from './types';
 
+export interface ReportIntake {
+  accepting: boolean;
+  message: string | null;
+}
+
+/** Whether this installation receives public reports (closed in staging/production by default). */
+export async function getReportIntake(): Promise<ReportIntake> {
+  return apiFetch<ReportIntake>('/api/v1/reports/intake');
+}
+
 export async function submitReport(body: ApiReportCreate): Promise<ApiReportRead> {
   return apiFetch<ApiReportRead>('/api/v1/reports', {
     method: 'POST',

@@ -1,33 +1,27 @@
 import type { UserProfile, UserRole } from '@/types/domain';
 import type { ApiUserRead } from '@/services/api/types';
+import { homeForRole } from '@/lib/roles';
 
-// API role (campo, gestor, orgao, admin, publico) → frontend UserRole
-// The values are already the same strings, but we validate to keep type safety
+// API role (campo, gestor, orgao, admin, publico) → frontend UserRole.
+// The values are the same strings; validation keeps an unknown value from
+// granting anything (it degrades to "publico").
 const VALID_ROLES: UserRole[] = ['admin', 'gestor', 'campo', 'analista', 'orgao', 'publico'];
 
 function toUserRole(raw: string): UserRole {
   return VALID_ROLES.includes(raw as UserRole) ? (raw as UserRole) : 'publico';
 }
 
-// Map API role to the correct app route after login
-const ROLE_ROUTE: Record<UserRole, string> = {
-  admin:    '/admin',
-  gestor:   '/gestor',
-  orgao:    '/gestor',
-  analista: '/gestor/aurora',
-  campo:    '/gestor/field',
-  publico:  '/public',
-};
-
 export function adaptApiUser(api: ApiUserRead): UserProfile {
   return {
-    id:    api.id,
-    name:  api.name,
+    id: api.id,
+    name: api.name,
     email: api.email,
-    role:  toUserRole(api.role),
+    role: toUserRole(api.role),
+    mustChangePassword: api.must_change_password === true,
   };
 }
 
-export function getRouteForRole(role: UserRole): string {
-  return ROLE_ROUTE[role] ?? '/public';
+/** Landing route after login; a pending password change always comes first. */
+export function getRouteForRole(role: UserRole, mustChangePassword = false): string {
+  return mustChangePassword ? '/conta/senha' : homeForRole(role);
 }

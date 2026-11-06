@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { AlertTriangle, CloudSun, MapPin } from 'lucide-react';
 import { IncidentCard } from '@/components/gestor/IncidentCard';
-import { SpaceMetricCard, MissionGlow } from '@/components/orbital';
-import { staggerContainerVariants, orbitalGlowVariants } from '@/lib/motion';
+import { SpaceMetricCard } from '@/components/orbital';
+import { staggerContainerVariants } from '@/lib/motion';
 import { useActiveIncidents, useCriticalIncident } from '@/hooks/useIncidents';
 import { useInternalReports } from '@/hooks/useInternalReports';
 import { useTeams } from '@/hooks/useTeams';
@@ -11,23 +12,25 @@ import { OrbitalSummaryCard } from '@/components/orbital-map/OrbitalSummaryCard'
 import { OrbitalDashboardSection } from '@/components/orbital-map/OrbitalDashboardSection';
 import { useProtectedAreas } from '@/hooks/useProtectedAreas';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
+import { DataState } from '@/components/shared/DataState';
 
 export default function GestorDashboardPage() {
-  const reducedMotion = useReducedMotion();
-  const { incidents: active, dataSource } = useActiveIncidents();
+  const { incidents: active, dataSource, fromApi: incidentsOk } = useActiveIncidents();
   const { incident: critical } = useCriticalIncident();
-  const { reports } = useInternalReports();
-  const { teams } = useTeams();
-  const { areas } = useProtectedAreas();
+  const { reports, fromApi: reportsOk } = useInternalReports();
+  const { teams, fromApi: teamsOk } = useTeams();
+  const { areas, fromApi: areasOk } = useProtectedAreas();
 
   const pending  = reports.filter(r => r.status === 'em-triagem');
   const mobilized = teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
+  // Sem resposta da API o indicador mostra "—", nunca um zero que pareça medido.
+  const count = (ok: boolean, n: number) => (ok ? n : '—');
 
-  // Fixed reference point in Ceará (incidents have no lat/lng in the domain type yet).
-  // The card states this explicitly; it is not the critical incident's location.
-  const critLat = -4.005;
-  const critLng = -39.46;
-  const { weatherRisk, fromApi: weatherFromApi } = useWeatherRisk(critLat, critLng);
+  // Ponto fixo de referência no Ceará (incidentes ainda não têm lat/lng no tipo de domínio).
+  // O cartão diz isso explicitamente; não é a localização do incidente crítico.
+  const refLat = -4.005;
+  const refLng = -39.46;
+  const { weatherRisk } = useWeatherRisk(refLat, refLng);
 
   return (
     <div style={{ padding: 24 }}>
@@ -41,11 +44,12 @@ export default function GestorDashboardPage() {
           alignItems: 'center',
         }}>
           <div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--risk-crit)' }}>
-              ⚠ INCIDENTE CRÍTICO ATIVO — {critical.code ?? critical.id}
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--risk-crit)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <AlertTriangle size={14} aria-hidden="true" />
+              INCIDENTE CRÍTICO ATIVO — {critical.code ?? critical.id}
             </span>
             <span style={{ fontSize: 12, color: 'var(--text-lo)', marginLeft: 12 }}>
-              {critical.description.substring(0, 80)}...
+              {critical.description.length > 80 ? `${critical.description.substring(0, 80)}…` : critical.description}
             </span>
           </div>
           <Link to="/gestor/war-room" style={{
@@ -69,90 +73,28 @@ export default function GestorDashboardPage() {
         style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)',
                   gap: 12, marginBottom: 28 }}
       >
-        <SpaceMetricCard value={areas.length}    label="Áreas Cadastradas"   sublabel="áreas protegidas"    delay={0} />
-        <SpaceMetricCard value={active.length}   label="Incidentes Ativos"   accent="var(--risk-high)" sublabel="registrados no IGNIS" delay={0.05} />
-        <SpaceMetricCard value={pending.length}  label="Denúncias Pendentes" accent="var(--risk-med)"  sublabel="geointeligência"     delay={0.10} />
-        <SpaceMetricCard value={mobilized.length} label="Equipes Mobilizadas" accent="var(--orbital)"  sublabel="resposta tática"     delay={0.15} />
-        <SpaceMetricCard value={active.filter(i => i.risk === 'critical').length}
-                          label="Alertas Críticos" accent="var(--risk-crit)"  sublabel="risco operacional"   delay={0.20} />
-        <SpaceMetricCard value="n/d"           label="Tempo Médio Resposta" sublabel="não medido nesta versão" delay={0.25} />
+        <SpaceMetricCard value={count(areasOk, areas.length)} label="Áreas Cadastradas"
+                         sublabel={areasOk ? 'áreas protegidas' : 'indisponível'} delay={0} />
+        <SpaceMetricCard value={count(incidentsOk, active.length)} label="Incidentes Ativos" accent="var(--risk-high)"
+                         sublabel={incidentsOk ? 'registrados no IGNIS' : 'indisponível'} delay={0.05} />
+        <SpaceMetricCard value={count(reportsOk, pending.length)} label="Denúncias Pendentes" accent="var(--risk-med)"
+                         sublabel={reportsOk ? 'aguardando triagem' : 'indisponível'} delay={0.10} />
+        <SpaceMetricCard value={count(teamsOk, mobilized.length)} label="Equipes Mobilizadas" accent="var(--orbital)"
+                         sublabel={teamsOk ? 'em campo ou em trânsito' : 'indisponível'} delay={0.15} />
+        <SpaceMetricCard value={count(incidentsOk, active.filter(i => i.risk === 'critical').length)}
+                         label="Alertas Críticos" accent="var(--risk-crit)"
+                         sublabel={incidentsOk ? 'incidentes críticos ativos' : 'indisponível'} delay={0.20} />
+        <SpaceMetricCard value="—" label="Tempo Médio Resposta" sublabel="ainda não implementado" delay={0.25} />
       </motion.div>
-
-      {/* Space Economy promo card */}
-      <Link to="/gestor/economia-espacial" style={{ textDecoration: 'none', display: 'block', marginBottom: 20 }}>
-        <motion.div
-          variants={reducedMotion ? {} : orbitalGlowVariants}
-          animate={reducedMotion ? undefined : 'glow'}
-          style={{
-            background: 'oklch(60% 0.18 220 / 0.06)',
-            border: '1px solid oklch(60% 0.18 220 / 0.25)',
-            borderLeft: '3px solid var(--orbital)',
-            borderRadius: 8,
-            padding: '14px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'pointer',
-            transition: 'background 0.15s',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <MissionGlow
-            size={120}
-            opacity={0.08}
-            style={{ position: 'absolute', top: -40, right: -20, pointerEvents: 'none' }}
-          />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 18, lineHeight: 1 }}>🛰</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--orbital)', marginBottom: 2 }}>
-                Economia Espacial
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-lo)' }}>
-                Da órbita à proteção ambiental — cadeia de valor, fontes orbitais e roadmap de integração.
-              </div>
-            </div>
-          </div>
-          <span style={{ fontSize: 12, color: 'var(--orbital)', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 16 }}>
-            Ver página →
-          </span>
-        </motion.div>
-      </Link>
 
       <OrbitalDashboardSection />
 
-      {/* Aurora */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)',
-                    gap: 20, marginBottom: 28 }}>
-        {/* Aurora insight */}
-        <div style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 20,
-                      border: '1px solid var(--bg-raised)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--orbital)',
-                        textTransform: 'uppercase', letterSpacing: '0.1em',
-                        marginBottom: 12 }}>
-            Aurora IA · Insight
-          </div>
-          {critical ? (
-            <>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--risk-crit)',
-                            marginBottom: 8 }}>
-                {critical.aurora.priority}
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--text-lo)', lineHeight: 1.5, margin: 0 }}>
-                {critical.aurora.recommendation.substring(0, 200)}...
-              </p>
-              <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-ghost)',
-                            fontStyle: 'italic' }}>
-                Confiança: {critical.aurora.confidence}% — Análise rule-based demonstrativa
-              </div>
-            </>
-          ) : (
-            <p style={{ fontSize: 12, color: 'var(--text-ghost)' }}>
-              Nenhum incidente crítico ativo.
-            </p>
-          )}
-        </div>
+      {/* Aurora: texto fixo por severidade não é análise — não exibir como tal */}
+      <div style={{ marginBottom: 28 }}>
+        <DataState kind="not-implemented" title="Aurora IA · análise de incidentes ainda não implementada">
+          Recomendações e índices de confiança só serão exibidos quando houver um modelo analítico
+          real conectado à API.
+        </DataState>
       </div>
 
       {/* External integrations status row */}
@@ -166,42 +108,42 @@ export default function GestorDashboardPage() {
           <div style={{
             background: 'var(--bg-surface)', borderRadius: 8, padding: '14px 16px',
             border: '1px solid var(--bg-raised)',
-            borderLeft: `3px solid ${weatherFromApi ? '#22c55e' : 'var(--bg-raised)'}`,
+            borderLeft: `3px solid ${weatherRisk ? '#22c55e' : 'var(--bg-raised)'}`,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>
-                🌤 Risco Meteorológico
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <CloudSun size={13} aria-hidden="true" /> Condições meteorológicas
               </span>
               <span style={{
                 fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
-                color: weatherFromApi ? '#22c55e' : 'var(--text-ghost)',
-                background: weatherFromApi ? '#22c55e18' : 'var(--bg-raised)',
-                border: `1px solid ${weatherFromApi ? '#22c55e33' : 'var(--bg-raised)'}`,
+                color: weatherRisk ? '#22c55e' : 'var(--text-ghost)',
+                background: weatherRisk ? '#22c55e18' : 'var(--bg-raised)',
+                border: `1px solid ${weatherRisk ? '#22c55e33' : 'var(--bg-raised)'}`,
               }}>
-                {weatherFromApi
+                {weatherRisk
                   ? weatherRisk.source_status === 'cached' ? 'cache' : 'Open-Meteo'
                   : 'indisponível'}
               </span>
             </div>
+            {/* Measurements only: the API's risk index has no validated methodology yet. */}
             <div style={{
-              fontSize: 22, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
-              color: { low: 'var(--risk-low)', moderate: 'var(--risk-med)',
-                       high: 'var(--risk-high)', critical: 'var(--risk-crit)' }[weatherRisk.risk_level] ?? 'var(--text-hi)',
+              fontSize: 22, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-hi)',
             }}>
-              {weatherFromApi && weatherRisk.risk_score != null ? weatherRisk.risk_score : '—'}
-              <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 4, color: 'var(--text-ghost)' }}>
-                / 100
-              </span>
+              {weatherRisk?.temperature_c != null ? `${weatherRisk.temperature_c.toFixed(1)}°C` : '—'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-lo)' }}>
-              {weatherRisk.temperature_c != null ? `${weatherRisk.temperature_c.toFixed(1)}°C` : '—'}{' · '}
-              {weatherRisk.relative_humidity != null ? `${weatherRisk.relative_humidity.toFixed(0)}% UR` : '—'}
+              {weatherRisk?.relative_humidity != null ? `${weatherRisk.relative_humidity.toFixed(0)}% UR` : '—'}{' · '}
+              {weatherRisk?.wind_speed_kmh != null ? `vento ${weatherRisk.wind_speed_kmh.toFixed(0)} km/h` : 'vento —'}{' · '}
+              {weatherRisk?.precipitation_mm != null ? `${weatherRisk.precipitation_mm.toFixed(1)} mm` : 'chuva —'}
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 2 }}>
-              ponto fixo de referência (-4.005, -39.46)
-              {weatherFromApi && weatherRisk.fetched_at
+              Índice de risco não exibido: metodologia ainda não validada.
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 2 }}>
+              ponto fixo de referência ({refLat}, {refLng})
+              {weatherRisk?.fetched_at
                 ? ` · obtido em ${new Date(weatherRisk.fetched_at).toLocaleString('pt-BR')}`
-                : ''}
+                : ' · serviço temporariamente indisponível'}
             </div>
           </div>
 
@@ -215,8 +157,8 @@ export default function GestorDashboardPage() {
             borderLeft: '3px solid var(--bg-raised)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)' }}>
-                📍 Geocodificação
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-hi)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <MapPin size={13} aria-hidden="true" /> Geocodificação
               </span>
               <span style={{
                 fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 3,
@@ -225,10 +167,7 @@ export default function GestorDashboardPage() {
                 OSM/Nominatim
               </span>
             </div>
-            <div style={{
-              fontSize: 15, fontWeight: 700,
-              color: 'var(--text-mid)',
-            }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-mid)' }}>
               não usada nesta tela
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-lo)' }}>
@@ -243,11 +182,24 @@ export default function GestorDashboardPage() {
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-mid)',
                       textTransform: 'uppercase', letterSpacing: '0.08em',
                       marginBottom: 12 }}>
-          Incidentes Ativos ({active.length})
+          Incidentes Ativos{incidentsOk ? ` (${active.length})` : ''}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          {active.map(inc => <IncidentCard key={inc.id} incident={inc} />)}
-        </div>
+        {dataSource.status === 'loading' ? (
+          <DataState kind="loading" title="Carregando incidentes…" />
+        ) : dataSource.status === 'error' ? (
+          <DataState kind="error">
+            Não foi possível consultar os incidentes na API. Nenhum incidente é exibido no lugar.
+          </DataState>
+        ) : active.length === 0 ? (
+          <DataState kind="empty" title="Nenhum incidente ativo">
+            Incidentes registrados no IGNIS (por conversão de denúncias ou cadastro da equipe)
+            aparecem aqui enquanto não forem encerrados.
+          </DataState>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {active.map(inc => <IncidentCard key={inc.id} incident={inc} />)}
+          </div>
+        )}
       </div>
     </div>
   );

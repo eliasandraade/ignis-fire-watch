@@ -19,29 +19,6 @@ const API_STATUS_MAP: Record<string, IncidentStatus> = {
   protocol_activated: 'protocolo-ativado',
 };
 
-const AURORA_BY_SEVERITY: Record<string, { priority: string; recommendation: string; confidence: number }> = {
-  critical: {
-    priority: 'CRÍTICA — Ação imediata necessária',
-    recommendation: 'Condições críticas detectadas. Acione imediatamente brigadas de resposta, estabeleça perímetro de segurança e solicite suporte aéreo de reconhecimento. Monitoramento a cada 30 minutos. — Análise rule-based demonstrativa.',
-    confidence: 91,
-  },
-  high: {
-    priority: 'ALTA — Verificação prioritária',
-    recommendation: 'Situação de alto risco identificada. Envie equipe de campo para confirmação in loco e cruzamento com registros de licenciamento. Notifique órgãos competentes. — Análise rule-based demonstrativa.',
-    confidence: 75,
-  },
-  medium: {
-    priority: 'MÉDIA — Triagem recomendada',
-    recommendation: 'Ocorrência requer confirmação. Verificação in loco recomendada com equipe de monitoramento disponível. — Análise rule-based demonstrativa.',
-    confidence: 65,
-  },
-  low: {
-    priority: 'BAIXA — Monitoramento',
-    recommendation: 'Situação estável. Incluir no próximo ciclo de monitoramento de campo. — Análise rule-based demonstrativa.',
-    confidence: 55,
-  },
-};
-
 export function adaptApiEvent(e: ApiIncidentEventRead): IncidentEvent {
   const typeMap: Record<string, IncidentEvent['type']> = {
     detection: 'detection',
@@ -62,7 +39,6 @@ export function adaptApiEvent(e: ApiIncidentEventRead): IncidentEvent {
 
 export function adaptApiIncident(inc: ApiIncidentRead, events: ApiIncidentEventRead[] = []): Incident {
   const severity = inc.severity as RiskLevel;
-  const aurora = AURORA_BY_SEVERITY[severity] ?? AURORA_BY_SEVERITY.medium;
 
   return {
     id: inc.id,
@@ -85,10 +61,5 @@ export function adaptApiIncident(inc: ApiIncidentRead, events: ApiIncidentEventR
     humidity: inc.humidity ?? null,
     windSpeed: inc.wind_speed ?? null,
     windDirection: inc.wind_direction ?? null,
-    aurora: {
-      priority: aurora.priority,
-      recommendation: aurora.recommendation,
-      confidence: aurora.confidence,
-    },
   };
 }

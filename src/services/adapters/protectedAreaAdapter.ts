@@ -33,49 +33,49 @@ function parseWktRing(wkt: string): [number, number][] | null {
   }
 }
 
-function wktToGeoJson(wkt: string | null, centerLat: number | null, centerLng: number | null): GeoJSON {
-  if (wkt) {
-    const ring = parseWktRing(wkt);
-    if (ring && ring.length >= 3) {
-      const isMulti = /^MULTIPOLYGON/i.test(wkt.trim());
-      return isMulti
-        ? { type: 'MultiPolygon', coordinates: [[ring]] }
-        : { type: 'Polygon', coordinates: [ring] };
-    }
-  }
-  // Fallback: ~0.08° bounding box around center point
-  const lat = centerLat ?? -4.5;
-  const lng = centerLng ?? -39.0;
-  const d = 0.08;
-  return {
-    type: 'Polygon',
-    coordinates: [[
-      [lng - d, lat - d], [lng + d, lat - d],
-      [lng + d, lat + d], [lng - d, lat + d],
-      [lng - d, lat - d],
-    ]],
-  };
+/** Geometria real a partir do WKT da API. Sem WKT válido não há perímetro (nada é estimado). */
+function wktToGeoJson(wkt: string | null): { geometry: GeoJSON; ring: [number, number][] } | null {
+  if (!wkt) return null;
+  const ring = parseWktRing(wkt);
+  if (!ring || ring.length < 3) return null;
+  const isMulti = /^MULTIPOLYGON/i.test(wkt.trim());
+  const geometry: GeoJSON = isMulti
+    ? { type: 'MultiPolygon', coordinates: [[ring]] }
+    : { type: 'Polygon', coordinates: [ring] };
+  return { geometry, ring };
 }
 
+function ringCentroid(ring: [number, number][]): [number, number] {
+  const lng = ring.reduce((s, p) => s + p[0], 0) / ring.length;
+  const lat = ring.reduce((s, p) => s + p[1], 0) / ring.length;
+  return [lat, lng];
+}
+
+const DATA_QUALITIES: readonly DataQuality[] = ['high', 'medium', 'low', 'estimated', 'mock'];
+
 function mapDataQuality(raw: string | null): DataQuality {
-  if (raw === 'estimated') return 'estimated';
-  if (raw === 'official') return 'official';
-  return 'mock';
+  return DATA_QUALITIES.includes(raw as DataQuality) ? (raw as DataQuality) : 'unknown';
 }
 
 export function adaptProtectedArea(api: ApiProtectedAreaRead): ProtectedArea {
+  const shape = wktToGeoJson(api.geometry_wkt);
+  const center: [number, number] | null =
+    api.center_lat != null && api.center_lng != null
+      ? [api.center_lat, api.center_lng]
+      : shape ? ringCentroid(shape.ring) : null;
+
   return {
     id:          api.id,
     name:        api.name,
     type:        CATEGORY_LABEL[api.category] ?? api.category,
     state:       api.state,
-    hectares:    api.area_ha ?? 0,
-    risk:        'low',
-    center:      [api.center_lat ?? -4.5, api.center_lng ?? -39.0],
-    geometry:    wktToGeoJson(api.geometry_wkt, api.center_lat, api.center_lng),
+    hectares:    api.area_ha,
+    // O backend não calcula risco por área: nenhum nível é atribuído aqui.
+    risk:        null,
+    center,
+    geometry:    shape?.geometry ?? null,
     description: api.description ?? '',
-    source:      api.source ?? 'IGNIS/API',
-    confidence:  api.data_quality === 'estimated' ? 75 : 85,
+    source:      api.source,
     lastUpdated: api.updated_at,
     dataQuality: mapDataQuality(api.data_quality),
   };

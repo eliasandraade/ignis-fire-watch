@@ -1,74 +1,76 @@
 import { useState, useEffect, useReducer } from 'react';
 import { Link } from 'react-router-dom';
-import { Circle, Marker, Polygon } from 'react-leaflet';
+import { Polygon } from 'react-leaflet';
 import { motion, useReducedMotion } from 'framer-motion';
+import { AlertTriangle, CloudRain } from 'lucide-react';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { RiskBadge } from '@/components/shared/RiskBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { IncidentTimeline } from '@/components/gestor/IncidentTimeline';
 import { WeatherBlock } from '@/components/gestor/WeatherBlock';
 import { OrbitalGrid, RadarSweep } from '@/components/orbital';
-import { criticalPulseVariants, orbitalGlowVariants } from '@/lib/motion';
+import { criticalPulseVariants } from '@/lib/motion';
 import { useWarRoom } from '@/hooks/useWarRoom';
 import { useTeams } from '@/hooks/useTeams';
 import { useResources } from '@/hooks/useResources';
 import { useWeatherRisk } from '@/hooks/useWeatherRisk';
 import { OrbitalSummaryCard } from '@/components/orbital-map/OrbitalSummaryCard';
-import { ActionStateTag } from '@/components/shared/ActionStateTag';
-import { unbackedActionState } from '@/lib/actionState';
 import { protocolReducer, protocolButtonView } from '@/lib/protocolActivation';
 import { DataSourceBadge } from '@/components/shared/DataSourceBadge';
-import { PROTOCOL_INCENDIO } from '@/data/operations';
+import { DataState } from '@/components/shared/DataState';
 import { getPolygonPositions } from '@/lib/geo';
 import { useToast } from '@/hooks/use-toast';
-import { isApiEnabled } from '@/services/api/client';
 import { activateProtocol } from '@/services/api/incidentsService';
-import type { ProtocolStep } from '@/types/domain';
 
-const RISK_LEVEL_COLOR: Record<string, string> = {
-  low: 'var(--risk-low)',
-  moderate: 'var(--risk-med)',
-  high: 'var(--risk-high)',
-  critical: 'var(--risk-crit)',
+const TEAM_DOT: Record<string, string> = {
+  disponivel:    'var(--risk-low)',
+  mobilizado:    'var(--risk-high)',
+  'em-transito': 'var(--orbital)',
+  indisponivel:  'var(--text-ghost)',
 };
 
-const RISK_LEVEL_LABEL: Record<string, string> = {
-  low: 'Baixo',
-  moderate: 'Moderado',
-  high: 'Alto',
-  critical: 'Crítico',
+const SECTION_LABEL: React.CSSProperties = {
+  fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase',
+  letterSpacing: '0.08em', marginBottom: 6,
 };
+
+function FullscreenState({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  minHeight: '100vh', background: 'var(--bg-void)', padding: 24 }}>
+      <div style={{ maxWidth: 480, width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {children}
+        <Link to="/gestor" style={{ color: 'var(--orbital)', textDecoration: 'none', fontSize: 14 }}>
+          ← Dashboard
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export default function WarRoomPage() {
   const { incident, area, loading, dataSource } = useWarRoom();
-  const { teams } = useTeams();
-  const { resources } = useResources();
-  const apiEnabled = isApiEnabled();
+  const { teams, dataSource: teamsSource } = useTeams();
+  const { resources, dataSource: resourcesSource } = useResources();
   const reducedMotion = useReducedMotion();
 
   const mobilizedTeams = teams.filter(t => t.status === 'mobilizado' || t.status === 'em-transito');
   const deployedResources = resources.filter(r => r.status === 'mobilizado' || r.currentIncident);
 
-  const areaLat = area?.center[0];
-  const areaLng = area?.center[1];
-  const { weatherRisk, fromApi: weatherFromApi } = useWeatherRisk(areaLat, areaLng);
+  const { weatherRisk } = useWeatherRisk(area?.center?.[0], area?.center?.[1]);
 
-  const [clock, setClock]           = useState(new Date());
+  const [clock, setClock] = useState(new Date());
   // Protocol activation: confirmed only after the backend answers. Availability
-  // is derived from the current data source (see protocolButtonView), so a
-  // war-room query that recovers re-enables the action without a remount.
+  // is derived from the current data (see protocolButtonView), so a war-room
+  // query that recovers re-enables the action without a remount.
   const [protocolPhase, dispatchProtocol] = useReducer(protocolReducer, 'idle');
   const protocolView = protocolButtonView(protocolPhase, {
-    apiEnabled,
-    incidentFromApi: dataSource.isApi,
+    incidentFromApi: dataSource.status === 'ok',
     hasIncident: !!incident?.id,
   });
   useEffect(() => {
     dispatchProtocol({ type: 'incident-changed' });
   }, [incident?.id]);
-  const [steps, setSteps]           = useState<ProtocolStep[]>(PROTOCOL_INCENDIO.steps);
-  // The checklist is local UI state only: never persisted, never notifies anyone.
-  const checklistState = unbackedActionState(apiEnabled);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -76,20 +78,7 @@ export default function WarRoomPage() {
     return () => clearInterval(t);
   }, []);
 
-  const toggleStep = (id: string) => {
-    if (checklistState !== 'demonstrativo') return;
-    setSteps(prev => prev.map(s => s.id === id ? { ...s, completed: !s.completed } : s));
-  };
-
-  const handleReinforce = async () => {
-    if (!apiEnabled) {
-      dispatchProtocol({ type: 'simulate' });
-      toast({
-        title: 'Simulação — nenhum protocolo foi ativado',
-        description: 'Modo demonstrativo: nada foi registrado nem enviado a qualquer órgão.',
-      });
-      return;
-    }
+  const handleActivate = async () => {
     if (protocolView.disabled || !incident?.id) {
       toast({ title: 'Não executado', description: 'Incidente não carregado da API.' });
       return;
@@ -97,7 +86,7 @@ export default function WarRoomPage() {
     const ok = window.confirm(
       `Registrar ativação de protocolo no IGNIS para ${incident.code ?? incident.id}?\n\n` +
       'Isto altera o status do incidente e gera trilha de auditoria. ' +
-      'NÃO notifica Bombeiros, Defesa Civil ou qualquer órgão externo.',
+      'Nenhum órgão externo é notificado.',
     );
     if (!ok) return;
     dispatchProtocol({ type: 'submit' });
@@ -109,7 +98,7 @@ export default function WarRoomPage() {
         description: `${incident.code ?? incident.id} — nenhum órgão externo foi notificado.`,
       });
     } catch {
-      // Never report success on failure.
+      // Nunca informar sucesso em caso de falha.
       dispatchProtocol({ type: 'failure' });
       toast({
         title: 'Falha — protocolo NÃO foi registrado',
@@ -121,36 +110,32 @@ export default function WarRoomPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    height: '100vh', background: 'var(--bg-void)',
-                    flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontSize: 18, color: 'var(--text-mid)' }}>Carregando Central Tática...</div>
-      </div>
+      <FullscreenState>
+        <DataState kind="loading" title="Carregando Central Tática…" />
+      </FullscreenState>
     );
   }
 
-  if (!incident || !area) {
+  if (dataSource.status === 'error') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    height: '100vh', background: 'var(--bg-void)',
-                    flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontSize: 18, color: 'var(--text-mid)' }}>Nenhum incidente crítico ativo</div>
-        <Link to="/gestor" style={{ color: 'var(--orbital)', textDecoration: 'none', fontSize: 14 }}>
-          ← Dashboard
-        </Link>
-      </div>
+      <FullscreenState>
+        <DataState kind="error">
+          Não foi possível consultar a situação operacional na API. Nenhum incidente é exibido no lugar.
+        </DataState>
+      </FullscreenState>
     );
   }
 
-  const polygonPositions = getPolygonPositions(area.geometry);
-  const fireRadius = Math.sqrt((incident.affectedHectares || 1) * 10000 / Math.PI);
-
-  const TEAM_DOT: Record<string, string> = {
-    disponivel:    'var(--risk-low)',
-    mobilizado:    'var(--risk-high)',
-    'em-transito': 'var(--orbital)',
-    indisponivel:  'var(--text-ghost)',
-  };
+  if (!incident) {
+    return (
+      <FullscreenState>
+        <DataState kind="empty" title="Nenhum incidente crítico ativo">
+          A Central Tática abre automaticamente o incidente de severidade crítica em andamento,
+          com área, equipes, recursos e linha do tempo.
+        </DataState>
+      </FullscreenState>
+    );
+  }
 
   return (
     <div className="ignis-fullscreen">
@@ -171,7 +156,6 @@ export default function WarRoomPage() {
         </span>
         <div style={{ width: 1, height: 20, background: 'var(--bg-raised)', margin: '0 4px' }} />
 
-        {/* Change 2: critical pulse on incident code */}
         {incident.risk === 'critical' && !reducedMotion ? (
           <motion.span
             animate="pulse"
@@ -198,11 +182,10 @@ export default function WarRoomPage() {
         <DataSourceBadge status={dataSource.status} style={{ marginLeft: 4 }} />
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, alignItems: 'center' }}>
-          {/* Change 5: blinking alert for critical telemetry metrics */}
           {[
             { label: 'T', value: incident.temperature == null ? '—' : `${incident.temperature}°C`, crit: incident.temperature != null && incident.temperature > 35 },
             { label: 'UR', value: incident.humidity == null ? '—' : `${incident.humidity}%`, crit: incident.humidity != null && incident.humidity < 20 },
-            { label: '💨', value: incident.windSpeed == null ? '—' : `${incident.windSpeed}km/h ${incident.windDirection ?? ''}`, crit: false },
+            { label: 'Vento', value: incident.windSpeed == null ? '—' : `${incident.windSpeed}km/h ${incident.windDirection ?? ''}`, crit: false },
           ].map(m => (
             <div key={m.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 11, color: 'var(--text-ghost)' }}>{m.label}</div>
@@ -243,7 +226,6 @@ export default function WarRoomPage() {
                     overflow: 'hidden' }}>
 
         {/* ── Left panel ── */}
-        {/* Change 3: position:relative + OrbitalGrid overlay */}
         <div style={{ background: 'var(--bg-deep)', borderRight: '1px solid var(--bg-raised)',
                       overflowY: 'auto', padding: 14, position: 'relative',
                       display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -253,12 +235,14 @@ export default function WarRoomPage() {
             <RiskBadge risk={incident.risk} />
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-hi)',
                           margin: '6px 0 2px' }}>
-              {area.name}
+              {area?.name ?? 'Área não vinculada'}
             </div>
-            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
-                          color: 'var(--text-ghost)' }}>
-              {area.center[0].toFixed(4)}, {area.center[1].toFixed(4)}
-            </div>
+            {area?.center && (
+              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+                            color: 'var(--text-ghost)' }}>
+                {area.center[0].toFixed(4)}, {area.center[1].toFixed(4)}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -266,7 +250,7 @@ export default function WarRoomPage() {
               { label: 'Área Afetada', value: `${incident.affectedHectares}ha` },
               { label: 'Confiança',    value: `${incident.confidence}%` },
               { label: 'Detecção',     value: new Date(incident.detectedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) },
-              { label: 'Fonte',        value: incident.source.split('/')[0] },
+              { label: 'Fonte',        value: incident.source ? incident.source.split('/')[0] : '—' },
             ].map(m => (
               <div key={m.label} style={{ background: 'var(--bg-surface)', borderRadius: 5,
                                           padding: '8px 10px' }}>
@@ -283,18 +267,10 @@ export default function WarRoomPage() {
           </div>
 
           <WeatherBlock
-            temperature={
-              weatherFromApi && weatherRisk.temperature_c != null
-                ? weatherRisk.temperature_c
-                : incident.temperature
-            }
-            humidity={
-              weatherFromApi && weatherRisk.relative_humidity != null
-                ? weatherRisk.relative_humidity
-                : incident.humidity
-            }
+            temperature={weatherRisk?.temperature_c ?? incident.temperature}
+            humidity={weatherRisk?.relative_humidity ?? incident.humidity}
             windSpeed={
-              weatherFromApi && weatherRisk.wind_speed_kmh != null
+              weatherRisk?.wind_speed_kmh != null
                 ? Math.round(weatherRisk.wind_speed_kmh)
                 : incident.windSpeed
             }
@@ -306,38 +282,42 @@ export default function WarRoomPage() {
             background: 'var(--bg-raised)',
             borderRadius: 6,
             padding: '10px 12px',
-            borderLeft: `3px solid ${weatherFromApi ? RISK_LEVEL_COLOR[weatherRisk.risk_level] ?? 'var(--bg-raised)' : 'var(--bg-raised)'}`,
+            borderLeft: '3px solid var(--bg-surface)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <span style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                Risco Meteorológico
+                Condições meteorológicas
               </span>
               <span style={{
                 fontSize: 9, fontWeight: 600,
-                color: weatherFromApi ? '#22c55e' : weatherRisk.source_status === 'cached' ? '#f59e0b' : 'var(--text-ghost)',
+                color: weatherRisk ? '#22c55e' : 'var(--text-ghost)',
                 padding: '1px 6px', borderRadius: 3,
-                background: weatherFromApi ? '#22c55e18' : '#f59e0b18',
-                border: `1px solid ${weatherFromApi ? '#22c55e33' : '#f59e0b33'}`,
+                background: weatherRisk ? '#22c55e18' : 'var(--bg-surface)',
+                border: `1px solid ${weatherRisk ? '#22c55e33' : 'var(--bg-surface)'}`,
               }}>
-                {weatherFromApi
+                {weatherRisk
                   ? weatherRisk.source_status === 'cached' ? 'cache' : 'Open-Meteo'
-                  : 'fonte indisponível'}
+                  : area?.center ? 'fonte indisponível' : 'sem localização'}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Measurements only: the API's risk index has no validated methodology yet. */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{
                 fontSize: 18, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace',
-                color: weatherFromApi ? RISK_LEVEL_COLOR[weatherRisk.risk_level] : 'var(--text-ghost)',
+                color: weatherRisk ? 'var(--text-hi)' : 'var(--text-ghost)',
               }}>
-                {weatherFromApi && weatherRisk.risk_score != null ? weatherRisk.risk_score : '—'}
+                {weatherRisk?.temperature_c != null ? `${weatherRisk.temperature_c.toFixed(1)}°C` : '—'}
               </span>
-              <span style={{ fontSize: 11, color: weatherFromApi ? RISK_LEVEL_COLOR[weatherRisk.risk_level] : 'var(--text-ghost)', fontWeight: 600 }}>
-                {weatherFromApi ? RISK_LEVEL_LABEL[weatherRisk.risk_level] : 'sem dados'}
+              <span style={{ fontSize: 11, color: 'var(--text-lo)' }}>
+                {weatherRisk?.relative_humidity != null ? `${weatherRisk.relative_humidity.toFixed(0)}% UR` : 'sem dados'}
+                {weatherRisk?.wind_speed_kmh != null ? ` · vento ${weatherRisk.wind_speed_kmh.toFixed(0)} km/h` : ''}
               </span>
             </div>
-            {weatherRisk.precipitation_mm != null && weatherRisk.precipitation_mm > 0 && (
-              <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 3 }}>
-                🌧 {weatherRisk.precipitation_mm.toFixed(1)} mm recentes
+            {weatherRisk?.precipitation_mm != null && weatherRisk.precipitation_mm > 0 && (
+              <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 3,
+                            display: 'flex', alignItems: 'center', gap: 4 }}>
+                <CloudRain size={11} aria-hidden="true" />
+                {weatherRisk.precipitation_mm.toFixed(1)} mm recentes
               </div>
             )}
           </div>
@@ -345,21 +325,21 @@ export default function WarRoomPage() {
           {/* Persisted heat spots (PostGIS) */}
           <OrbitalSummaryCard />
 
-          {/* Change 1: RadarSweep between weather and teams */}
           <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0', opacity: 0.7 }}>
             <RadarSweep size={72} color="#3b82f6" speed={8} />
           </div>
 
           {/* Equipes mobilizadas */}
           <div>
-            <div style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase',
-                          letterSpacing: '0.08em', marginBottom: 6 }}>
-              Equipes ({mobilizedTeams.length})
+            <div style={SECTION_LABEL}>
+              Equipes mobilizadas{teamsSource.status === 'ok' || teamsSource.status === 'empty' ? ` (${mobilizedTeams.length})` : ''}
             </div>
-            {mobilizedTeams.length === 0 ? (
-              <div style={{ fontSize: 11, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
-                Nenhuma equipe mobilizada.
-              </div>
+            {teamsSource.status === 'loading' ? (
+              <DataState kind="loading" compact title="Carregando equipes…" />
+            ) : teamsSource.status === 'error' ? (
+              <DataState kind="error" compact>Não foi possível consultar as equipes.</DataState>
+            ) : mobilizedTeams.length === 0 ? (
+              <DataState kind="empty" compact title="Nenhuma equipe mobilizada" />
             ) : mobilizedTeams.map(t => (
               <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 7,
                                        padding: '5px 0',
@@ -380,14 +360,15 @@ export default function WarRoomPage() {
 
           {/* Recursos implantados */}
           <div>
-            <div style={{ fontSize: 10, color: 'var(--text-ghost)', textTransform: 'uppercase',
-                          letterSpacing: '0.08em', marginBottom: 6 }}>
-              Recursos ({deployedResources.length})
+            <div style={SECTION_LABEL}>
+              Recursos alocados{resourcesSource.status === 'ok' || resourcesSource.status === 'empty' ? ` (${deployedResources.length})` : ''}
             </div>
-            {deployedResources.length === 0 ? (
-              <div style={{ fontSize: 11, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
-                Nenhum recurso alocado.
-              </div>
+            {resourcesSource.status === 'loading' ? (
+              <DataState kind="loading" compact title="Carregando recursos…" />
+            ) : resourcesSource.status === 'error' ? (
+              <DataState kind="error" compact>Não foi possível consultar os recursos.</DataState>
+            ) : deployedResources.length === 0 ? (
+              <DataState kind="empty" compact title="Nenhum recurso alocado" />
             ) : deployedResources.map(r => (
               <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 7,
                                        padding: '5px 0',
@@ -399,183 +380,119 @@ export default function WarRoomPage() {
                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.name}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-ghost)' }}>{r.location}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-ghost)' }}>{r.location || '—'}</div>
                 </div>
               </div>
             ))}
           </div>
 
-          {area.dataQuality !== 'official' && (
+          {area && ['estimated', 'mock', 'low', 'unknown'].includes(area.dataQuality) && (
             <div style={{ padding: '8px 10px',
                           background: 'oklch(70% 0.18 45 / 10%)',
                           border: '1px solid oklch(70% 0.18 45 / 25%)',
                           borderRadius: 5, fontSize: 11,
-                          color: 'oklch(80% 0.12 60)' }}>
-              ⚠ Limites estimados — dados demonstrativos (FIAP GS 2026)
+                          color: 'oklch(80% 0.12 60)',
+                          display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+              <AlertTriangle size={12} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
+              {area.dataQuality === 'mock'
+                ? 'Área marcada pela API como registro de teste.'
+                : 'Qualidade dos dados da área: baixa, estimada ou não informada pela fonte.'}
             </div>
           )}
 
-          {(() => {
-            const locked = protocolView.disabled;
-            const label = protocolView.label;
-            return (
-              <>
-                <button
-                  onClick={handleReinforce}
-                  disabled={locked}
-                  style={{
-                    width: '100%', padding: '10px 0', borderRadius: 6, border: 'none',
-                    background: locked ? 'var(--bg-raised)' : 'var(--risk-high)',
-                    color: locked ? 'var(--text-ghost)' : 'white',
-                    fontSize: 12, fontWeight: 700, cursor: locked ? 'default' : 'pointer',
-                    fontFamily: 'inherit',
-                  }}
-                >
-                  {label}
-                </button>
-                <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 4, lineHeight: 1.4 }}>
-                  {apiEnabled
-                    ? 'Registra status e auditoria no IGNIS. Não aciona Bombeiros, Defesa Civil ou outros órgãos.'
-                    : 'Modo demonstrativo: simulação local, nada é registrado.'}
-                </div>
-              </>
-            );
-          })()}
+          <div>
+            <button
+              onClick={handleActivate}
+              disabled={protocolView.disabled}
+              style={{
+                width: '100%', padding: '10px 0', borderRadius: 6, border: 'none',
+                background: protocolView.disabled ? 'var(--bg-raised)' : 'var(--risk-high)',
+                color: protocolView.disabled ? 'var(--text-ghost)' : 'white',
+                fontSize: 12, fontWeight: 700, cursor: protocolView.disabled ? 'default' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {protocolView.label}
+            </button>
+            <div style={{ fontSize: 10, color: 'var(--text-ghost)', marginTop: 4, lineHeight: 1.4 }}>
+              Registra status e auditoria no IGNIS. Nenhum órgão externo é notificado.
+            </div>
+          </div>
         </div>
 
         {/* ── Center: Map ── */}
         <div style={{ position: 'relative' }}>
-          <OrbitalMap center={area.center} zoom={12} darkTiles zoomControl={false}>
-            <Polygon
-              positions={polygonPositions}
-              pathOptions={{ color: '#e74c3c', weight: 2, dashArray: '6 4',
-                             fillColor: '#e74c3c', fillOpacity: 0.08 }}
-            />
-            <Circle
-              center={area.center}
-              radius={fireRadius}
-              pathOptions={{ color: '#f39c12', weight: 2,
-                             fillColor: '#f39c12', fillOpacity: 0.15 }}
-            />
-            <Marker position={area.center} />
-          </OrbitalMap>
+          {area?.center ? (
+            <>
+              <OrbitalMap center={area.center} zoom={12} darkTiles zoomControl={false}>
+                {area.geometry && (
+                  <Polygon
+                    positions={getPolygonPositions(area.geometry)}
+                    pathOptions={{ color: '#e74c3c', weight: 2, dashArray: '6 4',
+                                   fillColor: '#e74c3c', fillOpacity: 0.08 }}
+                  />
+                )}
+              </OrbitalMap>
 
-          <div style={{
-            position: 'absolute', bottom: 16, left: 16, zIndex: 1000,
-            background: 'oklch(11% 0.022 240 / 88%)',
-            border: '1px solid var(--bg-raised)', borderRadius: 6,
-            padding: '8px 12px', fontSize: 11, color: 'var(--text-mid)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex', flexDirection: 'column', gap: 4,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 16, height: 2, background: '#e74c3c', borderRadius: 1 }} />
-              Perímetro da área
+              <div style={{
+                position: 'absolute', bottom: 16, left: 16, zIndex: 1000,
+                background: 'oklch(11% 0.022 240 / 88%)',
+                border: '1px solid var(--bg-raised)', borderRadius: 6,
+                padding: '8px 12px', fontSize: 11, color: 'var(--text-mid)',
+                backdropFilter: 'blur(4px)',
+                display: 'flex', flexDirection: 'column', gap: 4,
+              }}>
+                {area.geometry ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 16, height: 2, background: '#e74c3c', borderRadius: 1 }} />
+                    Perímetro da área protegida
+                  </div>
+                ) : (
+                  <div>Perímetro da área não cadastrado.</div>
+                )}
+                <div style={{ color: 'var(--text-ghost)', fontSize: 10 }}>
+                  A posição do foco não é informada pela API; nenhum ponto é estimado.
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: 24 }}>
+              <DataState kind="empty" title="Mapa indisponível">
+                O incidente não está vinculado a uma área protegida com localização cadastrada.
+              </DataState>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 12, height: 12, borderRadius: '50%',
-                            background: 'rgba(243,156,18,0.4)',
-                            border: '1px solid #f39c12' }} />
-              Foco estimado ({incident.affectedHectares}ha)
-            </div>
-            <div style={{ marginTop: 4, color: 'var(--text-ghost)',
-                          fontSize: 10, fontStyle: 'italic' }}>
-              Dados demonstrativos
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ── Right panel ── */}
         <div style={{ background: 'var(--bg-deep)', borderLeft: '1px solid var(--bg-raised)',
                       overflowY: 'auto', padding: 14,
                       display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Change 4: Aurora block wrapped in motion.div with orbital glow */}
-          <motion.div
-            animate={reducedMotion ? undefined : 'glow'}
-            variants={reducedMotion ? undefined : orbitalGlowVariants}
-            style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 14,
-                     border: '1px solid var(--bg-raised)' }}
-          >
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--orbital)',
-                          textTransform: 'uppercase', letterSpacing: '0.1em',
-                          marginBottom: 6 }}>
-              Aurora IA
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--risk-crit)' }}>
-                {incident.aurora.priority}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-ghost)', fontFamily: 'monospace' }}>
-                {incident.aurora.confidence}%
-              </div>
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--text-lo)', lineHeight: 1.5, margin: 0 }}>
-              {incident.aurora.recommendation}
-            </p>
-            <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text-ghost)',
-                          fontStyle: 'italic' }}>
-              Análise rule-based — protótipo demonstrativo
-            </div>
-          </motion.div>
+          <DataState kind="not-implemented" compact title="Aurora IA · análise ainda não implementada">
+            Recomendações automáticas só serão exibidas com um modelo analítico real conectado à API.
+          </DataState>
 
           {/* Timeline */}
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-ghost)', textTransform: 'uppercase',
-                          letterSpacing: '0.08em', marginBottom: 10 }}>
-              Timeline ({incident.events.length})
+            <div style={{ ...SECTION_LABEL, fontSize: 11, marginBottom: 10 }}>
+              Linha do tempo ({incident.events.length})
             </div>
             {incident.events.length > 0 ? (
               <IncidentTimeline events={incident.events} reverse />
             ) : (
-              <div style={{ fontSize: 12, color: 'var(--text-ghost)', fontStyle: 'italic' }}>
-                Nenhum evento registrado.
-              </div>
+              <DataState kind="empty" compact title="Nenhum evento registrado" />
             )}
           </div>
 
-          {/* Protocol checklist */}
+          {/* Protocolo operacional: não existe conteúdo configurado — nada é inventado */}
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-ghost)', textTransform: 'uppercase',
-                          letterSpacing: '0.08em', marginBottom: 10,
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
-              <span>Protocolo de Resposta (checklist local)</span>
-              <ActionStateTag state={checklistState} />
+            <div style={{ ...SECTION_LABEL, fontSize: 11, marginBottom: 10 }}>
+              Protocolo de resposta
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {steps.map(step => (
-                <div key={step.id}
-                     onClick={() => toggleStep(step.id)}
-                     aria-disabled={checklistState !== 'demonstrativo'}
-                     style={{
-                       display: 'flex', alignItems: 'flex-start', gap: 8,
-                       padding: '8px 10px', borderRadius: 5,
-                       cursor: checklistState === 'demonstrativo' ? 'pointer' : 'not-allowed',
-                       background: step.completed ? 'color-mix(in oklch, var(--risk-low) 10%, transparent)' : 'var(--bg-surface)',
-                       border: `1px solid ${step.completed ? 'color-mix(in oklch, var(--risk-low) 25%, transparent)' : 'var(--bg-raised)'}`,
-                     }}>
-                  <div style={{
-                    width: 14, height: 14, borderRadius: 3, flexShrink: 0, marginTop: 1,
-                    background: step.completed ? 'var(--risk-low)' : 'var(--bg-raised)',
-                    border: `1px solid ${step.completed ? 'var(--risk-low)' : 'var(--text-ghost)'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, color: 'white',
-                  }}>
-                    {step.completed ? '✓' : ''}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: step.completed ? 600 : 400,
-                                  color: step.completed ? 'var(--risk-low)' : 'var(--text-mid)' }}>
-                      {step.title}
-                    </div>
-                    {step.completedBy && (
-                      <div style={{ fontSize: 10, color: 'var(--text-ghost)' }}>
-                        {step.completedBy}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DataState kind="not-configured" compact title="Protocolo operacional não configurado">
+              Nenhum protocolo de resposta foi cadastrado para esta operação. O checklist de etapas
+              será exibido quando um protocolo for configurado e servido pela API.
+            </DataState>
           </div>
         </div>
       </div>

@@ -2,29 +2,32 @@ import { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResourceGrid } from '@/components/gestor/ResourceGrid';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { DataState } from '@/components/shared/DataState';
 import { useTeams } from '@/hooks/useTeams';
 import { useResources } from '@/hooks/useResources';
-import { isApiMode } from '@/services/dataSource';
 import { updateTeam } from '@/services/api/teamsService';
 import { TEAM_STATUS_TO_API } from '@/services/adapters/teamAdapter';
 import { useToast } from '@/hooks/use-toast';
-import type { FieldTeam } from '@/types/domain';
 
-type TeamFilter = 'all' | 'Combate' | 'Reconhecimento' | 'Apoio Logístico';
+const STATUS_DOT: Record<string, string> = {
+  disponivel:   'var(--risk-low)',
+  mobilizado:   'var(--risk-high)',
+  'em-transito':'var(--orbital)',
+  indisponivel: 'var(--text-ghost)',
+};
 
 export default function MobilizationPage() {
-  const [filter, setFilter] = useState<TeamFilter>('all');
-  const [localOverrides, setLocalOverrides] = useState<Record<string, FieldTeam['status']>>({});
+  const [filter, setFilter] = useState<string>('all');
 
-  const { teams: hookTeams, dataSource: teamsSource } = useTeams();
-  const { resources } = useResources();
+  const { teams, dataSource: teamsSource } = useTeams();
+  const { resources, dataSource: resourcesSource } = useResources();
   const qc = useQueryClient();
   const { toast } = useToast();
 
-  // Demo mode: merge local status overrides on top of hook data
-  const teams = useMemo(
-    () => hookTeams.map(t => localOverrides[t.id] ? { ...t, status: localOverrides[t.id]! } : t),
-    [hookTeams, localOverrides]
+  // Filtros derivados dos tipos realmente cadastrados (nenhuma categoria inventada).
+  const teamTypes = useMemo(
+    () => Array.from(new Set(teams.map(t => t.type).filter(Boolean))).sort(),
+    [teams],
   );
 
   const mobilizeMutation = useMutation({
@@ -41,26 +44,9 @@ export default function MobilizationPage() {
     },
   });
 
-  const handleMobilize = (id: string) => {
-    if (isApiMode()) {
-      // Mock teams shown on API failure do not exist in the backend.
-      if (!teamsSource.isApi) {
-        toast({ title: 'Indisponível', description: 'Equipes não carregadas da API.', variant: 'destructive' });
-        return;
-      }
-      mobilizeMutation.mutate(id);
-    } else {
-      setLocalOverrides(prev => ({ ...prev, [id]: 'mobilizado' }));
-      toast({
-        title: 'Simulação — nenhuma equipe foi acionada',
-        description: `Modo demonstrativo: o status de ${id} mudou apenas nesta tela.`,
-      });
-    }
-  };
-
   const filtered = filter === 'all' ? teams : teams.filter(t => t.type === filter);
 
-  const tabStyle = (key: TeamFilter): React.CSSProperties => ({
+  const tabStyle = (key: string): React.CSSProperties => ({
     padding: '6px 14px', borderRadius: 6, fontSize: 13, cursor: 'pointer',
     border: 'none', fontFamily: 'inherit',
     background: filter === key ? 'var(--orbital)' : 'var(--bg-raised)',
@@ -68,12 +54,7 @@ export default function MobilizationPage() {
     fontWeight: filter === key ? 700               : 400,
   });
 
-  const STATUS_DOT: Record<string, string> = {
-    disponivel:   'var(--risk-low)',
-    mobilizado:   'var(--risk-high)',
-    'em-transito':'var(--orbital)',
-    indisponivel: 'var(--text-ghost)',
-  };
+  const teamsLoaded = teamsSource.status === 'ok' || teamsSource.status === 'empty';
 
   return (
     <div style={{ padding: 24 }}>
@@ -82,22 +63,35 @@ export default function MobilizationPage() {
           Mobilização e Recursos
         </h1>
         <p style={{ fontSize: 13, color: 'var(--text-lo)', margin: '4px 0 0' }}>
-          {teams.length} equipes cadastradas · {teamsSource.label} · alterar status não aciona equipes reais
+          {teamsLoaded ? `${teams.length} equipes cadastradas · ` : ''}
+          {teamsSource.label} · alterar status não aciona equipes reais
         </p>
       </div>
 
       {/* Team filter */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {(['all', 'Combate', 'Reconhecimento', 'Apoio Logístico'] as TeamFilter[]).map(f => (
-          <button key={f} style={tabStyle(f)} onClick={() => setFilter(f)}>
-            {f === 'all' ? 'Todas' : f}
-          </button>
-        ))}
-      </div>
+      {teamTypes.length > 1 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          {['all', ...teamTypes].map(f => (
+            <button key={f} style={tabStyle(f)} onClick={() => setFilter(f)}>
+              {f === 'all' ? 'Todas' : f}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Team cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 32 }}>
-        {filtered.map(t => (
+        {teamsSource.status === 'loading' ? (
+          <DataState kind="loading" title="Carregando equipes…" />
+        ) : teamsSource.status === 'error' ? (
+          <DataState kind="error">
+            Não foi possível consultar as equipes na API. Nenhuma equipe é exibida no lugar.
+          </DataState>
+        ) : teams.length === 0 ? (
+          <DataState kind="empty" title="Nenhuma equipe cadastrada">
+            Equipes de campo cadastradas no IGNIS aparecem aqui, com o status de mobilização.
+          </DataState>
+        ) : filtered.map(t => (
           <div key={t.id} style={{
             background: 'var(--bg-surface)',
             border: '1px solid var(--bg-raised)',
@@ -120,16 +114,16 @@ export default function MobilizationPage() {
                             display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{t.id}</span>
                 <span>{t.type}</span>
-                <span>{t.members} membros</span>
                 {t.location && <span>{t.location}</span>}
               </div>
             </div>
             <StatusBadge status={t.status} size="sm" />
             <button
-              onClick={() => t.status === 'disponivel' && handleMobilize(t.id)}
+              onClick={() => t.status === 'disponivel' && mobilizeMutation.mutate(t.id)}
               disabled={t.status !== 'disponivel' || mobilizeMutation.isPending}
               style={{
-                padding: '6px 12px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                padding: '6px 12px', borderRadius: 4, border: 'none',
+                cursor: t.status === 'disponivel' ? 'pointer' : 'default',
                 background: t.status === 'disponivel' ? 'var(--orbital)' : 'var(--bg-raised)',
                 color: t.status === 'disponivel' ? 'white' : 'var(--text-ghost)',
                 fontSize: 11, fontFamily: 'inherit', fontWeight: 600, flexShrink: 0,
@@ -146,9 +140,21 @@ export default function MobilizationPage() {
         <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-mid)',
                      textTransform: 'uppercase', letterSpacing: '0.08em',
                      marginBottom: 12 }}>
-          Recursos ({resources.length})
+          Recursos{resourcesSource.status === 'ok' || resourcesSource.status === 'empty' ? ` (${resources.length})` : ''}
         </h2>
-        <ResourceGrid resources={resources} />
+        {resourcesSource.status === 'loading' ? (
+          <DataState kind="loading" title="Carregando recursos…" />
+        ) : resourcesSource.status === 'error' ? (
+          <DataState kind="error">
+            Não foi possível consultar os recursos na API. Nenhum recurso é exibido no lugar.
+          </DataState>
+        ) : resources.length === 0 ? (
+          <DataState kind="empty" title="Nenhum recurso cadastrado">
+            Viaturas, aeronaves, drones e demais recursos cadastrados no IGNIS aparecem aqui.
+          </DataState>
+        ) : (
+          <ResourceGrid resources={resources} />
+        )}
       </div>
     </div>
   );

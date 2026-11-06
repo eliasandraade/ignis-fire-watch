@@ -195,15 +195,6 @@ export function OrbitalExplorer({ mode }: Props) {
   const tiles = tileConfig();
   const renderer = useMemo(() => L.canvas({ padding: 0.5 }), []);
 
-  if (!detections.apiEnabled) {
-    return (
-      <div data-testid="orbital-api-disabled" style={{ padding: 24, color: 'var(--text-lo)' }}>
-        Modo demonstrativo (API desligada): o mapa orbital só exibe focos persistidos pela API.
-        Nenhum foco fictício é desenhado.
-      </div>
-    );
-  }
-
   return (
     <div style={{ display: 'flex', height: '100%', minHeight: 520, overflow: 'hidden', flexWrap: 'wrap' }}>
       <aside aria-label="Filtros e situação das fontes" className="ignis-orbital-aside" style={{

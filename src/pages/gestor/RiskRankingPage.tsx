@@ -43,7 +43,9 @@ function RiskPill({ risk }: { risk: RiskLevel }) {
 
 export default function RiskRankingPage() {
   const { areas: allAreas } = useProtectedAreas();
-  const areas = [...allAreas].sort((a, b) => (RISK_ORDER[a.risk] ?? 3) - (RISK_ORDER[b.risk] ?? 3));
+  const areas = [...allAreas].sort(
+    (a, b) => (a.risk ? RISK_ORDER[a.risk] : 4) - (b.risk ? RISK_ORDER[b.risk] : 4),
+  );
 
   return (
     <div style={{
@@ -108,7 +110,7 @@ export default function RiskRankingPage() {
                 width: 4,
                 height: 36,
                 borderRadius: 2,
-                background: getRiskColor(area.risk),
+                background: area.risk ? getRiskColor(area.risk) : 'var(--bg-raised)',
                 flexShrink: 0,
               }} />
 
@@ -125,12 +127,12 @@ export default function RiskRankingPage() {
                   {area.name}
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--text-lo)' }}>
-                  {area.type} · {area.hectares.toLocaleString('pt-BR')} ha
+                  {area.type} · {area.hectares != null ? `${area.hectares.toLocaleString('pt-BR')} ha` : '—'}
                 </span>
               </div>
 
               {/* Risk badge */}
-              <RiskPill risk={area.risk} />
+              {area.risk ? <RiskPill risk={area.risk} /> : <span style={{ fontSize: 11, color: 'var(--text-ghost)' }}>não calculado</span>}
 
               {/* Confidence */}
               <span style={{
@@ -141,7 +143,7 @@ export default function RiskRankingPage() {
                 textAlign: 'right',
                 flexShrink: 0,
               }}>
-                {area.confidence}%
+                —
               </span>
 
               {/* Chevron */}

@@ -18,8 +18,8 @@ export default function AuroraPage() {
         <div style={{ padding: '8px 10px', background: 'var(--bg-raised)',
                       borderRadius: 6, fontSize: 11, color: 'var(--text-ghost)',
                       fontStyle: 'italic', lineHeight: 1.5 }}>
-          Sistema de IA demonstrativo — respostas simuladas para fins acadêmicos.
-          Não representa integração real com modelos de linguagem. FIAP GS 2026.
+          Respostas geradas pela API a partir de regras sobre os dados registrados.
+          Não há integração com modelos de linguagem.
         </div>
 
         {/* Critical incident context */}
@@ -58,7 +58,7 @@ export default function AuroraPage() {
                               maxWidth: 140 }}>
                   {area.name}
                 </div>
-                <RiskBadge risk={area.risk} size="sm" />
+                {area.risk && <RiskBadge risk={area.risk} size="sm" />}
               </div>
             ))}
           </div>
@@ -73,7 +73,7 @@ export default function AuroraPage() {
             Aurora IA
           </h1>
           <p style={{ fontSize: 12, color: 'var(--text-ghost)', margin: '2px 0 0' }}>
-            Inteligência analítica orbital — respostas simuladas para demonstração
+            Assistente analítico — respostas baseadas em regras, servidas pela API
           </p>
         </div>
         <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>

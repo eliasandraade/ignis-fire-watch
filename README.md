@@ -1,164 +1,80 @@
-# IGNIS Orbital — Plataforma Inteligente de Combate a Incêndios Florestais
+# IGNIS Orbital — interface web
 
-**FIAP — Global Solution 2026 · Turma 1TDSPH**
-Elias Sales de Freitas · RM561257
-João Vitor Bernardo · RM566427
+**IGNIS Orbital by Andrade Systems.** Interface da plataforma de monitoramento de focos de calor por
+satélite e apoio à gestão de ocorrências ambientais. Backend:
+[ignis-orbital-api](https://github.com/eliasandraade/ignis-orbital-api).
 
----
-
-## Sobre o Projeto
-
-IGNIS Orbital é um protótipo frontend de plataforma de inteligência territorial para detecção, monitoramento e resposta a incêndios florestais em Áreas de Proteção Ambiental do Ceará.
-
-O sistema integra dados orbitais simulados (INPE/MODIS), geolocalização de áreas protegidas, gestão de incidentes, mobilização de brigadas e relatórios ESG — tudo em uma interface espacial projetada para uso em vídeo de pitch e apresentação acadêmica.
-
-> **A RPPN Elias Andrade é usada como caso demonstrativo. Dados territoriais, coordenadas e métricas exibidas no protótipo são estimados/simulados até validação por base oficial.**
+A interface **sempre** usa a API. Não há modo demonstrativo nem dados locais de exemplo: quando a
+API não responde, as telas dizem que o serviço está temporariamente indisponível, nunca mostram
+números substitutos. Os estados possíveis de qualquer dado são: dado real, sem registros, fonte não
+configurada, serviço temporariamente indisponível ou funcionalidade não implementada.
 
 ---
 
-## Avisos de Protótipo
+## Áreas e navegação
 
-- **Dados simulados:** todas as áreas protegidas, incidentes, coordenadas e métricas são dados estimados/simulados para fins acadêmicos. Não representam dados oficiais de nenhum órgão governamental (SEMACE, IBAMA, ICMBio, Defesa Civil).
-- **Autenticação:** o sistema aceita qualquer credencial — não há validação real de usuário ou senha.
-- **Aurora IA:** todas as respostas são simuladas com aviso obrigatório *"Sistema de IA demonstrativo — respostas simuladas para fins acadêmicos."* Não há integração real com nenhum modelo de linguagem.
-- **Banco de dados:** não há persistência real. Dados são mantidos em memória (React state) e/ou sessionStorage durante a sessão do navegador.
-- **Integrações externas:** nenhuma integração com APIs governamentais (INPE, CEMADEN, SEMACE) ou serviços externos está ativa em produção.
+| Área | Rotas | Quem acessa |
+|---|---|---|
+| Portal público | `/public`, `/public/map`, `/public/report`, `/public/report/status/:id` | qualquer pessoa |
+| Operação | `/gestor` (painel), `/gestor/map`, `/gestor/reports`, `/gestor/mobilization`, `/gestor/incident/:id`, `/gestor/area/:id` | gestor, órgão, administrador |
+| Resposta | `/gestor/war-room` (sala de crise), `/gestor/field` (operação de campo) | equipe de campo e acima |
+| Admin Cockpit | `/admin`, `/admin/users`, `/admin/permissions`, `/admin/sources`, `/admin/jobs`, `/admin/api`, `/admin/audit`, `/admin/settings` | administrador |
+| Conta | `/login`, `/conta/senha` | — / qualquer conta |
 
----
+Os guards de rota só organizam a navegação: **cada endpoint da API verifica o papel no servidor**.
+Contas com senha provisória são levadas a `/conta/senha` antes de qualquer outra tela (a API também
+bloqueia tudo exceto `/auth/me` e `/auth/change-password`).
 
-## Stack Técnica
+Fora da navegação operacional (código preservado, não empacotado): assistente "Aurora", relatório
+ESG, economia espacial e ranking de risco — não têm fonte de dados ou metodologia validada. Ver
+[docs/IGNIS/PRODUCT-PROFESSIONALIZATION.md](docs/IGNIS/PRODUCT-PROFESSIONALIZATION.md).
 
-| Camada | Tecnologia |
-|---|---|
-| Framework | React 18.3 + TypeScript 5.5 |
-| Build | Vite 5.4 (SWC) |
-| Estilo | TailwindCSS 3.4 + CSS Variables (OKLCH) |
-| Componentes | shadcn/ui (Radix UI) |
-| Roteamento | React Router DOM 6 (lazy loading + guards de perfil) |
-| Mapas | react-leaflet 4 + Leaflet |
-| Gráficos | Recharts 2.12 |
-| Animações | Framer Motion |
-| Deploy | Railway (Docker: nginx não-root, SPA fallback, `/healthz`, CSP) |
+Horários são exibidos no fuso de Fortaleza (UTC−3); a API trabalha em UTC.
 
 ---
 
-## Telas Implementadas (21 screens)
+## Stack
 
-### Fluxo Público
-| Rota | Tela |
-|---|---|
-| `/` | Splash — animação de entrada IGNIS |
-| `/login` | Login — aceita qualquer credencial |
-| `/select-profile` | Seleção de perfil de acesso |
-| `/public` | Dashboard público — alertas e status |
-| `/public/map` | Mapa público de incêndios ativos |
-| `/public/report` | Formulário de denúncia cidadã |
-| `/public/report/status/:id` | Acompanhamento de denúncia |
+React 18 + TypeScript, Vite, React Router 6 (lazy routes), TanStack Query, react-hook-form + zod,
+Leaflet, lucide-react. Testes: Vitest (unidade) e Playwright (E2E contra a pilha real).
 
-### Módulo Gestor / Operacional
-| Rota | Tela |
-|---|---|
-| `/gestor` | Dashboard do gestor |
-| `/gestor/map` | Mapa Orbital (Leaflet, dark tiles) |
-| `/gestor/incident/:id` | Incidente ativo — timeline e evidências |
-| `/gestor/reports` | Central de denúncias |
-| `/gestor/reports/:id` | Validação individual de denúncia |
-| `/gestor/war-room` | War Room — tela fullscreen de crise |
-| `/gestor/mobilization` | Mobilização de equipes e recursos |
-| `/gestor/field` | Operação de campo (mobile-first 390px) |
-| `/gestor/area/:id` | Detalhe de área protegida |
-| `/gestor/ranking` | Ranking de risco das áreas |
-| `/gestor/aurora` | Aurora — chat de apoio à decisão |
-| `/gestor/esg` | Relatório ESG (ODS 2/8/9/11/13/15) |
-
-### Módulo Admin
-| Rota | Tela |
-|---|---|
-| `/admin` | Painel administrativo — usuários e auditoria |
-
----
-
-## Controle de Acesso (Protótipo)
-
-O sistema implementa guards de rota leves para simular controle de acesso:
-
-| Perfil | Acesso |
-|---|---|
-| Admin | Total — todas as rotas |
-| Gestor | Painel gestor completo |
-| Analista / Órgão | Painel gestor completo |
-| Campo | Operação em Campo e War Room |
-| Público | Portal público de denúncias |
-
-Sem perfil selecionado, o sistema redireciona para `/select-profile`.
-
----
-
-## Como Rodar Localmente
+## Desenvolvimento
 
 ```bash
-npm install
-npm run dev
-# Acesse http://localhost:8080
+npm ci --ignore-scripts
+cp .env.example .env    # VITE_API_URL=http://localhost:8000
+npm run dev             # http://localhost:8080
 ```
+
+Verificações:
 
 ```bash
-npm run build   # build de produção
-npm run preview # preview do build
+npm run typecheck
+npm run lint
+npm test
+npm run build
 ```
 
----
-
-## Estrutura do Projeto
-
-```
-src/
-├── components/
-│   ├── gestor/      # Componentes do módulo gestor
-│   ├── layouts/     # GestorLayout, PublicLayout
-│   ├── shared/      # OrbitalMap, AuroraChat, StatusBadge, etc.
-│   └── ui/          # shadcn/ui (Radix UI)
-├── context/         # UserContext — perfil e helpers de permissão
-├── data/            # Mock data centralizada (areas, incidents, reports…)
-├── lib/             # Utilitários (geo.ts, utils.ts)
-├── pages/
-│   ├── admin/       # AdminPanelPage
-│   ├── gestor/      # 13 telas do módulo gestor
-│   ├── public/      # 4 telas públicas
-│   └── shared/      # Splash, Login, SelectProfile, NotFound
-├── router/          # createBrowserRouter (21 rotas) + guards de perfil
-└── types/           # domain.ts — todos os tipos TypeScript
-docs/
-└── backend-roadmap.md  # Arquitetura planejada para o backend
-```
-
----
+E2E (pilha local FastAPI + PostGIS + build nginx, sem dados fictícios): rode
+`deploy/local/validate.sh up` e `deploy/local/validate.sh e2e` no repositório da API.
 
 ## Deploy
 
-Hospedagem exclusiva no **Railway** (serviço `web`), nos ambientes staging e production:
+Hospedagem exclusiva no **Railway** (serviço `web`, ambientes staging e production):
 
 - `Dockerfile`: build Vite (Node 22) → nginx-unprivileged; escuta no `PORT` injetado pelo Railway.
-- Build args `VITE_USE_API`/`VITE_API_URL` (domínio público da API do mesmo ambiente). URL inválida, sem HTTPS ou não resolvida **falha o build** (`deploy/build-env.mjs`).
-- `deploy/nginx/default.conf.template`: `/healthz`, fallback SPA para `index.html` (sempre revalidado), assets com hash em cache de 1 ano, CSP e headers de segurança.
-- Staging publica `master`; produção publica `production`, movido só pelo workflow **Promover para produção** (fast-forward, CI aprovada, aprovação manual).
-
-Rodar a imagem localmente:
+- Build arg obrigatório `VITE_API_URL` (domínio público da API do mesmo ambiente). URL ausente,
+  inválida, sem HTTPS ou não resolvida **falha o build** (`deploy/build-env.mjs`).
+- `deploy/nginx/default.conf.template`: `/healthz`, fallback SPA, assets com hash em cache longo,
+  CSP e headers de segurança.
 
 ```bash
-docker build -t ignis-web --build-arg VITE_USE_API=true --build-arg VITE_API_URL=http://localhost:8000 .
+docker build -t ignis-web --build-arg VITE_API_URL=http://localhost:8000 .
 docker run --rm -p 8080:8080 ignis-web
 ```
 
-Plano completo: [RAILWAY-DEPLOYMENT.md](https://github.com/eliasandraade/ignis-orbital-api/blob/infra/railway-only/docs/IGNIS/RAILWAY-DEPLOYMENT.md) · Branches: [docs/IGNIS/BRANCH-STRATEGY.md](docs/IGNIS/BRANCH-STRATEGY.md).
+Branches: [docs/IGNIS/BRANCH-STRATEGY.md](docs/IGNIS/BRANCH-STRATEGY.md).
 
 ---
 
-## Roadmap Backend
-
-Ver [`docs/backend-roadmap.md`](docs/backend-roadmap.md) para a arquitetura planejada do backend (FastAPI + PostgreSQL + PostGIS).
-
----
-
-*IGNIS Orbital — Conectando dados, salvando vidas.*
-*FIAP Global Solution 2026 · Elias Sales de Freitas RM561257 · João Vitor Bernardo RM566427*
+© Andrade Systems. Os termos de licenciamento são definidos pelo proprietário.

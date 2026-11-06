@@ -3,60 +3,53 @@ import {
   ACTION_STATE_LABEL,
   isActionEnabled,
   mutationActionState,
-  unbackedActionState,
 } from '@/lib/actionState';
 import { integrityNotice } from '@/lib/dataIntegrity';
 import { createDataSourceMeta, getDataSourceLabel } from '@/services/dataSource';
 
 describe('actionState', () => {
-  it('unbacked actions are simulations in demo mode and disabled with the real API', () => {
-    expect(unbackedActionState(false)).toBe('demonstrativo');
-    expect(unbackedActionState(true)).toBe('nao-implementado');
+  it('actions without a backend are disabled and labelled as not implemented', () => {
     expect(isActionEnabled('nao-implementado')).toBe(false);
+    expect(ACTION_STATE_LABEL['nao-implementado']).toMatch(/Não implementado/);
   });
 
   it('real actions only become "funcional" after the request settles successfully', () => {
     expect(mutationActionState({ isPending: true, isError: false })).toBe('aguardando-confirmacao');
     expect(mutationActionState({ isPending: false, isError: true })).toBe('erro');
+    expect(mutationActionState({ isPending: false, isError: false })).toBe('funcional');
     expect(isActionEnabled('aguardando-confirmacao')).toBe(false);
   });
 
-  it('simulation label says nothing is sent', () => {
-    expect(ACTION_STATE_LABEL.demonstrativo.toLowerCase()).toContain('nada é enviado');
+  it('has no simulated/demonstrative state', () => {
+    expect(Object.keys(ACTION_STATE_LABEL)).not.toContain('demonstrativo');
   });
 });
 
 describe('integrityNotice', () => {
-  it('demo mode states that all data is fictitious', () => {
-    const n = integrityNotice(false, 0);
-    expect(n.level).toBe('demo');
-    expect(n.message).toMatch(/fictícios/);
+  it('shows nothing when every query succeeded', () => {
+    expect(integrityNotice(0)).toBeNull();
   });
 
-  it('API mode with failed queries reports degraded data', () => {
-    const n = integrityNotice(true, 2);
-    expect(n.level).toBe('degraded');
-    expect(n.message).toMatch(/2 consultas/);
-    expect(n.message).toMatch(/Não use para decisão operacional/);
-  });
-
-  it('API mode never claims to be operational', () => {
-    const n = integrityNotice(true, 0);
-    expect(n.level).toBe('prototype');
-    expect(n.message).toMatch(/NÃO OPERACIONAL/);
+  it('failed queries are reported as unavailable, never as substituted data', () => {
+    const n = integrityNotice(2);
+    expect(n?.level).toBe('degraded');
+    expect(n?.message).toMatch(/2 consultas/);
+    expect(n?.message).toMatch(/não estão sendo exibidas/);
+    expect(n?.message.toLowerCase()).not.toMatch(/demonstra|fictíc|protótipo/);
   });
 });
 
-describe('dataSource labels', () => {
-  it('never advertise real-time data', () => {
-    for (const s of ['api', 'demo', 'fallback', 'mixed', 'partial'] as const) {
-      expect(getDataSourceLabel(s).toLowerCase()).not.toMatch(/tempo real|ao vivo|live/);
+describe('dataSource', () => {
+  it('labels never advertise real-time or demonstrative data', () => {
+    for (const s of ['loading', 'ok', 'empty', 'error'] as const) {
+      expect(getDataSourceLabel(s).toLowerCase()).not.toMatch(/tempo real|ao vivo|live|demonstra|fictíc/);
     }
   });
 
-  it('demo mode is always labelled demonstrative (VITE_USE_API unset in tests)', () => {
-    const meta = createDataSourceMeta(true, true);
-    expect(meta.status).toBe('demo');
-    expect(meta.isApi).toBe(false);
+  it('derives the status only from the real request state', () => {
+    expect(createDataSourceMeta(true, true).status).toBe('ok');
+    expect(createDataSourceMeta(true, false).status).toBe('empty');
+    expect(createDataSourceMeta(false, false).status).toBe('error');
+    expect(createDataSourceMeta(false, false, true).status).toBe('loading');
   });
 });

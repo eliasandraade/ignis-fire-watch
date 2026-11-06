@@ -1,7 +1,6 @@
 # ignis-fire-watch — Estratégia de branches (Railway-only)
 
 Data: 03/11/2026. Hospedagem **exclusiva no Railway**, por decisão do proprietário. A versão anterior deste documento (Sprint 0.1, com a Vercel) está no histórico do Git.
-Nenhuma branch, configuração do GitHub ou projeto externo foi alterado por esta preparação.
 
 ## 1. Fatos (levantados na Sprint 0.1, somente leitura)
 
@@ -11,40 +10,49 @@ Nenhuma branch, configuração do GitHub ou projeto externo foi alterado por est
 | `main` | 13 commits de 30/05 a 02/06/2025, gerados pelo Lovable (`gpt-engineer-app[bot]`), último `02df1fb` |
 | `master` | o código atual, destino de todos os PRs da Sprint 0 em diante |
 | Ancestral comum | **Nenhum** (`git merge-base origin/main origin/master` vazio): são históricos independentes |
-| Proteção de branch | Nenhuma |
 | Vercel (legado) | Dois projetos ainda ligados ao repositório: `ignis-fire-watch` (publicava `master`) e `ignis-fire-watch-main` |
 
 ## 2. Modelo alvo
 
 | Branch | Papel | Quem altera | Deploy |
 |---|---|---|---|
-| `master` | integração (default) | PRs com CI verde | Railway **staging** (serviço `web`, *Wait for CI*) |
-| `production` | o que está em produção | **somente** o workflow *Promover para produção* (fast-forward de um commit de `master` com CI aprovada, após aprovação do environment `production`) | Railway **production** (*Wait for CI*) |
-| `main` | snapshot Lovable de 2025 | ninguém | nenhum |
+| `master` | integração | PRs com CI verde | Railway **staging** (serviço `web`, *Wait for CI*) |
+| `production` | o que está em produção | **somente** o workflow *Promover para produção*, disparado por tag `promote/*` (fast-forward de um commit de `master` com CI aprovada, após aprovação do environment `production`) | Railway **production** (*Wait for CI*) |
+| `main` | snapshot Lovable de 2025, branch padrão do GitHub | ninguém (ruleset) | nenhum |
 | tag `archive/lovable-main-2025` | preservação imutável de `main` | — | nenhum |
 
 O backend segue o mesmo modelo, com `main` no lugar de `master` (`ignis-orbital-api/.railway/railway.ts`, `BRANCHES`).
 
-## 3. Passos do proprietário (sem force-push, sem perda de histórico)
+## 3. Estado em 05/11/2026
 
-1. **Desligar a Vercel.**
-   - Este branch reduz o `vercel.json` a `{"git": {"deploymentEnabled": false}}`. A partir do merge, nenhum push publica na Vercel.
-   - Em seguida, desconectar o repositório dos dois projetos Vercel, ou excluí-los. Depois disso, o `vercel.json` pode ser apagado num PR.
-2. **Preservar `main`** com uma tag imutável. A tag não dispara nenhum deploy:
-   ```bash
-   git tag archive/lovable-main-2025 origin/main
-   git push origin archive/lovable-main-2025
-   ```
-3. **Trocar a branch padrão do GitHub para `master`** (*Settings → Branches*). Não move código.
-4. **Rulesets:**
-   - `master`: exigir PR e os checks `CI / Typecheck, lint, testes e build`, `CI / Imagem Railway (nginx, SPA, healthcheck)` e `CI / npm audit`;
-   - `production`: bloquear force-push e exclusão, restringir atualizações (bypass só para *GitHub Actions* e o proprietário) e exigir os mesmos checks.
-5. **Environment `production`** (*Settings → Environments*), com *Required reviewers* = proprietário. O workflow de promoção espera essa aprovação.
-6. **Primeira promoção:** disparar *Promover para produção*. Ele cria `production` no HEAD de `master` homologado em staging.
-7. Opcional e futuro, para adotar o nome `main`:
+Conferido no GitHub e no Git:
+
+- `master` é ancestral de toda a pilha (`master` → #4 → #6 → #7 → #8 → `staging`); `main` não é ancestral de nada dela.
+- `main` permanece como branch padrão. **A troca não é necessária para promover**: o `promote.yml` dispara por uma tag `promote/*` no commit a promover, pois um `push` lê o workflow do próprio commit. O `workflow_dispatch` continua no arquivo, mas o GitHub só o oferece para workflows presentes no branch padrão.
+- Tag `archive/lovable-main-2025` criada em `02df1fb`. `main` não foi alterado.
+- Environment `production` e rulesets aplicados nos dois repositórios (RAILWAY-DEPLOYMENT §6).
+
+### Promover
+
+Depois do merge do PR #8 em `master` e com a CI de push verde em `M_WEB`:
+
+```bash
+git tag promote/AAAAMMDD-HHMM "$M_WEB"
+git push origin promote/AAAAMMDD-HHMM
+```
+
+O job espera a aprovação do proprietário no environment `production`. Antes de publicar, ele recusa o commit que não estiver em `master`, que não tiver CI de push aprovada ou que não seja fast-forward de `production`.
+
+Testado em 05/11/2026 com uma tag em commit fora de `master`: o job ficou em `waiting` no environment, com zero etapas executadas. A execução foi cancelada e a tag, apagada. O push real em `production` só será exercitado na primeira promoção.
+
+### Decisões em aberto
+
+1. **Vercel.** Os dois projetos ainda recebem eventos do repositório, e `ignis-fire-watch.vercel.app` e `ignis-fire-watch-main.vercel.app` respondem 200, com a versão da entrega acadêmica (`docs/archive/entrega-academica/`). Essa versão chama `ignis-api-production.up.railway.app`, que hoje responde 404. O merge do #8 leva a `master` o `vercel.json` que desliga novos deploys por Git. Desconectar ou excluir os projetos depende de o proprietário confirmar que a entrega acadêmica não precisa mais ficar no ar.
+2. **Branch padrão.** Trocar para `master` é opcional. O motivo seria alinhar os padrões do GitHub (base de novos PRs, página inicial do repositório), não o workflow. Se decidir trocar, adote `master` em *Settings → Branches*; nenhum código se move.
+3. Opcional e futuro, para adotar o nome `main`:
    1. renomear `main` → `legacy/lovable-main` pela interface do GitHub;
    2. renomear `master` → `main` (o GitHub redireciona os PRs e mantém o histórico);
-   3. **no mesmo momento**, atualizar `BRANCHES.staging.web` em `railway.ts`, o gatilho `push` da CI e o `SOURCE_BRANCH` do `promote.yml`.
+   3. **no mesmo momento**, atualizar `BRANCHES.staging.web` em `railway.ts`, o gatilho `push` da CI, o `SOURCE_BRANCH` do `promote.yml` e o ruleset.
 
 **Não fazer:**
 - force-push em qualquer branch;

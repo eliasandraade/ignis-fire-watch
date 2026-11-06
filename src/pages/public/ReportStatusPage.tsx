@@ -1,9 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getFallbackReportById } from '@/data/fallback';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { DataState } from '@/components/shared/DataState';
 import type { ReportStatus } from '@/types/domain';
-import { isApiEnabled } from '@/services/api/client';
 import { lookupReportOrNull } from '@/services/api/publicReportsService';
 import { adaptApiReportStatus } from '@/services/adapters/reportAdapter';
 
@@ -18,14 +17,20 @@ interface SubmittedReport {
   coords: { lat: number; lng: number } | null;
   status: ReportStatus;
   submittedAt: string;
-  /** Demo-mode submission that never left the browser. */
-  simulated?: boolean;
+  /** Protocolo devolvido pela API no envio. */
+  protocol?: string;
 }
 
+/**
+ * Cópia local de uma denúncia cujo envio a API confirmou (gravada pelo formulário).
+ * Registros sem protocolo da API são ignorados.
+ */
 function getSessionReport(id: string): SubmittedReport | null {
   try {
     const raw = sessionStorage.getItem(`ignis_report_${id}`);
-    return raw ? (JSON.parse(raw) as SubmittedReport) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SubmittedReport;
+    return parsed.protocol === id ? parsed : null;
   } catch {
     return null;
   }
@@ -52,7 +57,7 @@ function isApiProtocol(id: string): boolean {
 export default function ReportStatusPage() {
   const { id } = useParams<{ id: string }>();
 
-  const shouldLookup = !!id && isApiEnabled() && isApiProtocol(id);
+  const shouldLookup = !!id && isApiProtocol(id);
   const apiQuery = useQuery({
     queryKey: ['report-status', id],
     queryFn:  () => lookupReportOrNull(id!),
@@ -61,31 +66,24 @@ export default function ReportStatusPage() {
     retry: 1,
   });
 
-  // Priority: API response → sessionStorage → mock DB → fallback
+  // Prioridade: resposta da API → cópia local de um envio confirmado pela API.
   const sessionReport = id ? getSessionReport(id) : null;
-  // Mock reports only exist in demo mode; never answer an API lookup with them.
-  const dbReport      = id && !sessionReport && !isApiEnabled() ? getFallbackReportById(id) : null;
-  const isSimulated   = !!sessionReport?.simulated;
   const lookupFailed  = shouldLookup && apiQuery.isError;
-  const found         = !!apiQuery.data || !!sessionReport || !!dbReport;
+  const found         = !!apiQuery.data || !!sessionReport;
 
   const apiStatus: ReportStatus | undefined = apiQuery.data
     ? adaptApiReportStatus(apiQuery.data).status
     : undefined;
 
-  const status: ReportStatus = apiStatus ?? sessionReport?.status ?? dbReport?.status ?? 'em-triagem';
+  const status: ReportStatus = apiStatus ?? sessionReport?.status ?? 'em-triagem';
   const currentOrder = STATUS_ORDER[status] ?? 1;
-  const coords = sessionReport?.coords ?? (dbReport && 'coords' in dbReport ? dbReport.coords : null) ?? null;
-  const submittedAt =
-    apiQuery.data?.created_at ??
-    sessionReport?.submittedAt ??
-    dbReport?.submittedAt ??
-    null;
+  const coords = sessionReport?.coords ?? null;
+  const submittedAt = apiQuery.data?.created_at ?? sessionReport?.submittedAt ?? null;
 
   if (shouldLookup && apiQuery.isLoading) {
     return (
-      <div style={{ padding: 48, maxWidth: 680, margin: '0 auto', color: 'var(--text-lo)' }}>
-        Consultando protocolo…
+      <div style={{ padding: 48, maxWidth: 680, margin: '0 auto' }}>
+        <DataState kind="loading" title="Consultando protocolo…" />
       </div>
     );
   }
@@ -93,37 +91,26 @@ export default function ReportStatusPage() {
   // Unknown protocol: never display a default "Recebida" status.
   if (!found || (lookupFailed && !apiQuery.data)) {
     return (
-      <div style={{ padding: 48, maxWidth: 680, margin: '0 auto' }}>
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-raised)',
-                      borderRadius: 10, padding: '24px 28px' }}>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 18,
-                        fontWeight: 700, color: 'var(--text-hi)', marginBottom: 8 }}>
-            {id}
-          </div>
-          <p style={{ fontSize: 14, color: 'var(--text-mid)', margin: 0 }}>
-            {lookupFailed
-              ? 'Não foi possível consultar este protocolo agora (serviço indisponível). Tente novamente mais tarde.'
-              : 'Protocolo não encontrado. Verifique o código informado.'}
-          </p>
-          <Link to="/public" style={{ display: 'inline-block', marginTop: 16, color: 'var(--orbital)' }}>
-            ← Voltar ao portal
-          </Link>
-        </div>
+      <div style={{ padding: 48, maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {lookupFailed ? (
+          <DataState kind="error" title={`Protocolo ${id ?? ''}`}>
+            Não foi possível consultar este protocolo agora (serviço temporariamente indisponível).
+            Tente novamente mais tarde.
+          </DataState>
+        ) : (
+          <DataState kind="empty" title={`Protocolo ${id ?? ''} não encontrado`}>
+            Verifique o código informado. Protocolos de denúncia têm o formato RP-AAAAMMDD-XXXX.
+          </DataState>
+        )}
+        <Link to="/public" style={{ color: 'var(--orbital)', fontSize: 13 }}>
+          ← Voltar ao portal
+        </Link>
       </div>
     );
   }
 
   return (
     <div style={{ padding: '48px 48px', maxWidth: 680, margin: '0 auto' }}>
-      {isSimulated && (
-        <div role="alert" style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8,
-                                   background: 'color-mix(in oklch, oklch(60% 0.14 250) 15%, transparent)',
-                                   border: '1px solid oklch(60% 0.14 250)', color: 'var(--text-hi)',
-                                   fontSize: 13, lineHeight: 1.5 }}>
-          <strong>SIMULAÇÃO — esta denúncia NÃO foi enviada.</strong> O sistema está em modo
-          demonstrativo e nada saiu deste navegador. Em emergência, ligue 193 (Corpo de Bombeiros).
-        </div>
-      )}
       {/* Protocol card */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-raised)',
                     borderRadius: 10, padding: '24px 28px', marginBottom: 32 }}>
@@ -178,7 +165,7 @@ export default function ReportStatusPage() {
         <div style={{ padding: '16px', background: 'var(--bg-surface)',
                       border: '1px solid var(--bg-raised)', borderRadius: 8,
                       fontSize: 13, color: 'var(--text-lo)' }}>
-          {dbReport?.notes ?? 'Esta denúncia foi descartada após análise pelos gestores.'}
+          Esta denúncia foi descartada após análise pelos gestores.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

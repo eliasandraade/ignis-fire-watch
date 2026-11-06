@@ -2,9 +2,10 @@
 // the Content-Security-Policy connect-src. Fails the image build instead of
 // shipping a bundle that silently points to the wrong place.
 //
-// Railway passes service variables as Docker build args: VITE_USE_API and
-// VITE_API_URL (https://${{api.RAILWAY_PUBLIC_DOMAIN}}).
-const useApi = process.env.VITE_USE_API === "true";
+// Railway passes service variables as Docker build args: VITE_API_URL is
+// "same-origin" there (API behind nginx), or an absolute origin elsewhere. There is no demonstration build:
+// the interface always talks to the API, so the URL is mandatory. A
+// VITE_USE_API value still passed by older configurations is ignored.
 const raw = (process.env.VITE_API_URL ?? "").trim();
 
 function fail(message) {
@@ -12,9 +13,12 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!useApi) {
-  if (raw) fail("VITE_API_URL definido sem VITE_USE_API=true (modo demonstrativo não chama a API).");
-  // Demonstration build: the app only talks to its own origin.
+if (!raw) fail("VITE_API_URL é obrigatório: o IGNIS não tem modo demonstrativo.");
+
+// Same-origin (Railway): the bundle calls /api/v1 on its own origin and nginx
+// proxies it to the API over the private network (IGNIS_API_UPSTREAM). The CSP
+// connect-src stays 'self' only.
+if (raw === "same-origin") {
   process.stdout.write("");
   process.exit(0);
 }

@@ -1,8 +1,11 @@
 import { useParams, Link } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { useArea } from '@/hooks/useArea';
 import { useIncidents } from '@/hooks/useIncidents';
 import { OrbitalMap } from '@/components/shared/OrbitalMap';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { DataState } from '@/components/shared/DataState';
+import { ApiError } from '@/services/api/errors';
 import { Polygon } from 'react-leaflet';
 import { getPolygonPositions } from '@/lib/geo';
 import { INCIDENT_TYPE_LABEL, DATA_QUALITY_LABEL } from '@/lib/labels';
@@ -46,30 +49,36 @@ function RiskPill({ risk }: { risk: RiskLevel }) {
 
 export default function GestorAreaDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { area, loading: areaLoading } = useArea(id);
-  const { incidents: allIncidents } = useIncidents();
+  const { area, loading: areaLoading, error: areaError } = useArea(id);
+  const { incidents: allIncidents, dataSource: incidentsSource } = useIncidents();
   const incidents = allIncidents.filter(i => i.areaId === id);
 
   if (areaLoading) {
     return (
       <div style={{ padding: 32 }}>
-        <p style={{ color: 'var(--text-mid)' }}>Carregando área...</p>
+        <DataState kind="loading" title="Carregando área…" />
       </div>
     );
   }
 
   if (!area) {
     return (
-      <div style={{ padding: 32 }}>
-        <p style={{ color: 'var(--text-mid)' }}>Área não encontrada.</p>
+      <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {!areaError || (areaError instanceof ApiError && areaError.status === 404) ? (
+          <DataState kind="empty" title="Área não encontrada">
+            Nenhuma área protegida com este identificador foi encontrada na API.
+          </DataState>
+        ) : (
+          <DataState kind="error">
+            Não foi possível consultar esta área na API. Tente novamente em instantes.
+          </DataState>
+        )}
         <Link to="/gestor/map" style={{ color: 'var(--orbital)', textDecoration: 'none' }}>
           ← Mapa Orbital
         </Link>
       </div>
     );
   }
-  const riskColor = getRiskColor(area.risk);
-  const polygonPositions = getPolygonPositions(area.geometry);
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -105,9 +114,13 @@ export default function GestorAreaDetailPage() {
           {area.type} · {area.state}
         </div>
 
-        {/* Risk badge */}
+        {/* Risk badge: o backend ainda não calcula risco por área */}
         <div style={{ marginBottom: 20 }}>
-          <RiskPill risk={area.risk} />
+          {area.risk ? (
+            <RiskPill risk={area.risk} />
+          ) : (
+            <span style={{ fontSize: 11, color: 'var(--text-ghost)' }}>Risco da área: ainda não calculado</span>
+          )}
         </div>
 
         {/* Stats grid */}
@@ -126,15 +139,7 @@ export default function GestorAreaDetailPage() {
               Hectares
             </div>
             <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-hi)', fontFamily: 'JetBrains Mono, monospace' }}>
-              {area.hectares.toLocaleString('pt-BR')}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--text-ghost)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
-              Confiança dos dados
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-hi)', fontFamily: 'JetBrains Mono, monospace' }}>
-              {area.confidence}%
+              {area.hectares != null ? area.hectares.toLocaleString('pt-BR') : '—'}
             </div>
           </div>
           <div>
@@ -142,7 +147,7 @@ export default function GestorAreaDetailPage() {
               Fonte
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-mid)' }}>
-              {area.source}
+              {area.source ?? 'não informada'}
             </div>
           </div>
           <div>
@@ -169,7 +174,7 @@ export default function GestorAreaDetailPage() {
         </p>
 
         {/* Estimated data disclaimer */}
-        {area.dataQuality === 'estimated' && (
+        {(area.dataQuality === 'estimated' || area.dataQuality === 'mock') && (
           <div style={{
             borderLeft: '3px solid var(--risk-high)',
             paddingLeft: 12,
@@ -179,8 +184,12 @@ export default function GestorAreaDetailPage() {
             background: `color-mix(in oklch, var(--risk-high) 8%, transparent)`,
             padding: '10px 12px',
             borderRadius: '0 6px 6px 0',
+            display: 'flex', gap: 6, alignItems: 'flex-start',
           }}>
-            ⚠ Dados estimados/simulados — não representam base oficial.
+            <AlertTriangle size={14} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
+            {area.dataQuality === 'mock'
+              ? 'Registro marcado pela API como de teste — não representa uma área real.'
+              : 'Dados marcados pela fonte como estimados — não representam base oficial.'}
           </div>
         )}
       </div>
@@ -194,14 +203,29 @@ export default function GestorAreaDetailPage() {
         background: 'var(--bg-void)',
       }}>
         {/* Map */}
-        <div style={{ height: 220, flexShrink: 0, position: 'relative' }}>
-          <OrbitalMap center={area.center} zoom={12} style={{ height: '100%' }}>
-            <Polygon
-              positions={polygonPositions}
-              pathOptions={{ color: riskColor, fillOpacity: 0.18, weight: 2 }}
-            />
-          </OrbitalMap>
-        </div>
+        {area.center ? (
+          <div style={{ height: 220, flexShrink: 0, position: 'relative' }}>
+            <OrbitalMap center={area.center} zoom={12} style={{ height: '100%' }}>
+              {area.geometry && (
+                <Polygon
+                  positions={getPolygonPositions(area.geometry)}
+                  pathOptions={{ color: area.risk ? getRiskColor(area.risk) : 'var(--orbital)', fillOpacity: 0.18, weight: 2 }}
+                />
+              )}
+            </OrbitalMap>
+          </div>
+        ) : (
+          <div style={{ padding: '16px 24px 0' }}>
+            <DataState kind="empty" compact title="Sem localização">
+              A API não informa centro nem perímetro para esta área.
+            </DataState>
+          </div>
+        )}
+        {area.center && !area.geometry && (
+          <div style={{ padding: '6px 24px 0', fontSize: 11, color: 'var(--text-ghost)' }}>
+            Perímetro não cadastrado — o mapa mostra apenas o ponto central informado pela API.
+          </div>
+        )}
 
         {/* Incidents panel */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
@@ -215,10 +239,16 @@ export default function GestorAreaDetailPage() {
             Ocorrências vinculadas
           </h2>
 
-          {incidents.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-ghost)' }}>
-              Nenhuma ocorrência registrada
-            </p>
+          {incidentsSource.status === 'loading' ? (
+            <DataState kind="loading" compact title="Carregando ocorrências…" />
+          ) : incidentsSource.status === 'error' ? (
+            <DataState kind="error" compact>
+              Não foi possível consultar as ocorrências na API.
+            </DataState>
+          ) : incidents.length === 0 ? (
+            <DataState kind="empty" compact title="Nenhuma ocorrência vinculada">
+              Incidentes registrados nesta área protegida aparecem aqui.
+            </DataState>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {incidents.map(incident => (
@@ -243,7 +273,7 @@ export default function GestorAreaDetailPage() {
                       color: 'var(--text-lo)',
                       flexShrink: 0,
                     }}>
-                      {incident.id}
+                      {incident.code ?? incident.id}
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--text-mid)', flex: 1, minWidth: 80 }}>
                       {INCIDENT_TYPE_LABEL[incident.type] ?? incident.type.replace(/-/g, ' ')}

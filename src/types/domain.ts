@@ -1,5 +1,6 @@
 export type RiskLevel = 'critical' | 'high' | 'medium' | 'low';
-export type DataQuality = 'official' | 'estimated' | 'mock';
+/** Qualidade declarada pela API (enum DataQuality do backend) ou 'unknown'. */
+export type DataQuality = 'high' | 'medium' | 'low' | 'estimated' | 'mock' | 'unknown';
 export type IncidentStatus =
   | 'deteccao-orbital' | 'confirmacao-pendente' | 'protocolo-ativado'
   | 'equipes-mobilizadas' | 'combate-ativo' | 'controle-parcial'
@@ -28,18 +29,24 @@ export interface GeoJSON {
   coordinates: number[][][] | number[][][][];
 }
 
+/**
+ * Área protegida como devolvida pela API. Campos que a API não informa ficam
+ * null — a interface mostra "—" ou um estado vazio, nunca um valor estimado.
+ */
 export interface ProtectedArea {
   id: string;
   name: string;
   type: string;
   state: string;
-  hectares: number;
-  risk: RiskLevel;
-  center: [number, number];
-  geometry: GeoJSON;
+  hectares: number | null;
+  /** O backend ainda não calcula risco por área. */
+  risk: RiskLevel | null;
+  /** Centro informado pela API ou, na falta dele, o centroide da geometria real. */
+  center: [number, number] | null;
+  /** Perímetro real (WKT da API); null quando a API não tem geometria. */
+  geometry: GeoJSON | null;
   description: string;
-  source: string;
-  confidence: number;
+  source: string | null;
   lastUpdated: string;
   dataQuality: DataQuality;
 }
@@ -81,11 +88,6 @@ export interface Incident {
   humidity: number;
   windSpeed: number;
   windDirection: string;
-  aurora: {
-    priority: string;
-    recommendation: string;
-    confidence: number;
-  };
 }
 
 export interface PublicReport {
@@ -143,6 +145,8 @@ export interface UserProfile {
   name: string;
   email: string;
   role: UserRole;
+  /** The API only allows /auth/me and /auth/change-password until it is cleared. */
+  mustChangePassword?: boolean;
 }
 
 export interface ESGReport {

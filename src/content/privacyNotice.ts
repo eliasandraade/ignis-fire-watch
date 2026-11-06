@@ -22,7 +22,9 @@ export type PrivacyLegalFields = Record<PrivacyLegalField, string | null>;
 
 export const PRIVACY_LEGAL_FIELDS: PrivacyLegalFields = {
   controller: null,
-  contact: null,
+  // Institutional contact and privacy channel. It does not appoint a data
+  // protection officer: dataProtectionOfficer stays a separate formal decision.
+  contact: 'contato@andradesystems.com.br',
   dataProtectionOfficer: null,
   legalBases: null,
   retention: null,
@@ -35,7 +37,7 @@ export const PRIVACY_NOTICE_APPROVED = false;
 
 export const PRIVACY_LEGAL_FIELD_LABELS: Record<PrivacyLegalField, string> = {
   controller: 'Controlador: identificação e papéis confirmados',
-  contact: 'Canal para o titular',
+  contact: 'Canal de contato e privacidade',
   dataProtectionOfficer: 'Encarregado (DPO)',
   legalBases: 'Hipóteses legais por finalidade',
   retention: 'Prazos de retenção definidos',

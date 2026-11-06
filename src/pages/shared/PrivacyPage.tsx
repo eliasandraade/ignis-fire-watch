@@ -35,10 +35,15 @@ function LegalField({ field }: { field: PrivacyLegalField }) {
   );
 }
 
+function ContactLink({ address }: { address: string }) {
+  return <a href={`mailto:${address}`} style={{ color: 'var(--orbital)' }}>{address}</a>;
+}
+
 export default function PrivacyPage() {
   if (!privacyNoticeVisible) return <NotFoundPage />;
 
   const pending = pendingPrivacyFields(PRIVACY_LEGAL_FIELDS);
+  const contact = PRIVACY_LEGAL_FIELDS.contact;
 
   return (
     <main style={{ maxWidth: 780, margin: '0 auto', padding: '40px 24px 64px' }}>
@@ -54,7 +59,11 @@ export default function PrivacyPage() {
       <Section title="Quem opera a plataforma">
         <p style={paragraph}>O IGNIS Orbital é operado pela Andrade Systems.</p>
         <LegalField field="controller" />
-        <LegalField field="contact" />
+        {contact ? (
+          <p style={paragraph}>Canal de contato e privacidade: <ContactLink address={contact} /></p>
+        ) : (
+          <LegalField field="contact" />
+        )}
         <LegalField field="dataProtectionOfficer" />
       </Section>
 
@@ -115,7 +124,8 @@ export default function PrivacyPage() {
 
       <Section title="Seus direitos">
         <p style={paragraph}>
-          A Lei Geral de Proteção de Dados garante, entre outros, os direitos de confirmar o tratamento, acessar e corrigir dados. Para exercê-los, use o canal indicado acima.
+          A Lei Geral de Proteção de Dados garante, entre outros, os direitos de confirmar o tratamento, acessar e corrigir dados.
+          {contact && <> Para exercê-los, escreva para <ContactLink address={contact} />.</>}
         </p>
       </Section>
 

@@ -42,6 +42,19 @@ describe('aviso de privacidade', () => {
     }
   });
 
+  it('usa o canal institucional sem tratá-lo como encarregado', () => {
+    expect(PRIVACY_LEGAL_FIELDS.contact).toBe('contato@andradesystems.com.br');
+    expect(PRIVACY_LEGAL_FIELDS.dataProtectionOfficer).not.toBe(PRIVACY_LEGAL_FIELDS.contact);
+    expect(pendingPrivacyFields(PRIVACY_LEGAL_FIELDS)).not.toContain('contact');
+  });
+
+  it('mantém o aviso bloqueado enquanto houver campo pendente', () => {
+    if (pendingPrivacyFields(PRIVACY_LEGAL_FIELDS).length > 0) {
+      expect(PRIVACY_NOTICE_APPROVED).toBe(false);
+      expect(isPrivacyNoticeVisible(PRIVACY_LEGAL_FIELDS, PRIVACY_NOTICE_APPROVED, false)).toBe(false);
+    }
+  });
+
   it('informa finalidade e prazo técnico de cada dado e os terceiros que recebem o IP', () => {
     for (const row of PRIVACY_DATA_ROWS) {
       expect(row.purpose.length).toBeGreaterThan(0);
